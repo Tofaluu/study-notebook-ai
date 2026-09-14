@@ -1,15 +1,17 @@
-# [Project name]
+# Concept Dependency Graph
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An AI study workspace that turns lecture PDFs and concept prompts into interactive prerequisite maps with page-level source references.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/concept-graph run dev` — run the web app through its managed workflow
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Required secret: `GEMINI_API_KEY` — Gemini API key used only by the API server
 
 ## Stack
 
@@ -22,15 +24,22 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/concept-graph/` — React study workspace, PDF extraction, graph visualization, and local persistence
+- `artifacts/api-server/src/routes/concept-graphs.ts` — Gemini-backed graph and concept-question endpoints
+- `lib/api-spec/openapi.yaml` — source of truth for API contracts
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- PDF text is extracted page-by-page in the browser so citations retain the original slide/page number.
+- Uploaded lecture text and the latest generated graph are stored locally in IndexedDB; the Gemini key remains server-side.
+- The first release does not require accounts or server-side document storage.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Upload one or more PDF lectures and extract their text locally.
+- Generate a concept dependency graph from PDFs, a concept prompt, or both.
+- Click a concept to trace its prerequisite path and inspect grounded page references.
+- Ask follow-up questions against the active graph and lecture context.
 
 ## User preferences
 
@@ -38,7 +47,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Re-run API codegen after changing `lib/api-spec/openapi.yaml`.
+- The frontend must continue to allow prompt-only graph generation with no uploaded files.
 
 ## Pointers
 
