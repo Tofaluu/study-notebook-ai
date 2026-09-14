@@ -20,12 +20,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  ConceptAnswer,
-  ConceptGraph,
-  ConceptGraphInput,
-  ConceptQuestionInput,
   ErrorResponse,
-  HealthStatus
+  HealthStatus,
+  StudyExplanation,
+  StudyExplanationInput,
+  TechnicalConceptExplanation,
+  TechnicalConceptInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -133,18 +133,18 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
-export const getAnalyzeConceptGraphUrl = () => {
+export const getExplainStudyTopicUrl = () => {
 
 
 
 
-  return `/api/concept-graphs/analyze`
+  return `/api/study/explain`
 }
 
 /**
- * @summary Analyze lecture sources into a prerequisite graph
+ * @summary Explain a topic and identify technical concepts
  */
-export const analyzeConceptGraph = async (conceptGraphInput: ConceptGraphInput, options?: Parameters<typeof customFetch>[1]): Promise<ConceptGraph> => {
+export const explainStudyTopic = async (studyExplanationInput: StudyExplanationInput, options?: Parameters<typeof customFetch>[1]): Promise<StudyExplanation> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -160,12 +160,12 @@ export const analyzeConceptGraph = async (conceptGraphInput: ConceptGraphInput, 
     }
     return headers;
   };
-return customFetch<ConceptGraph>(getAnalyzeConceptGraphUrl(),
+return customFetch<StudyExplanation>(getExplainStudyTopicUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(conceptGraphInput)
+    body: JSON.stringify(studyExplanationInput)
   }
 );}
 
@@ -173,13 +173,13 @@ return customFetch<ConceptGraph>(getAnalyzeConceptGraphUrl(),
 
 
 
-export const getAnalyzeConceptGraphMutationKey = () => ['analyzeConceptGraph'] as const;
+export const getExplainStudyTopicMutationKey = () => ['explainStudyTopic'] as const;
 
-export const getAnalyzeConceptGraphMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeConceptGraph>>, TError,AnalyzeConceptGraphMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof analyzeConceptGraph>>, TError,AnalyzeConceptGraphMutationVariables, TContext> => {
+export const getExplainStudyTopicMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof explainStudyTopic>>, TError,ExplainStudyTopicMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof explainStudyTopic>>, TError,ExplainStudyTopicMutationVariables, TContext> => {
 
-const mutationKey = getAnalyzeConceptGraphMutationKey();
+const mutationKey = getExplainStudyTopicMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -189,10 +189,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzeConceptGraph>>, AnalyzeConceptGraphMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof explainStudyTopic>>, ExplainStudyTopicMutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  analyzeConceptGraph(data,requestOptions)
+          return  explainStudyTopic(data,requestOptions)
         }
 
 
@@ -202,37 +202,37 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type AnalyzeConceptGraphMutationResult = NonNullable<Awaited<ReturnType<typeof analyzeConceptGraph>>>
-    export type AnalyzeConceptGraphMutationBody = BodyType<ConceptGraphInput>
-    export type AnalyzeConceptGraphMutationError = ErrorType<ErrorResponse>
-    export type AnalyzeConceptGraphMutationVariables = {data: BodyType<ConceptGraphInput>}
+    export type ExplainStudyTopicMutationResult = NonNullable<Awaited<ReturnType<typeof explainStudyTopic>>>
+    export type ExplainStudyTopicMutationBody = BodyType<StudyExplanationInput>
+    export type ExplainStudyTopicMutationError = ErrorType<ErrorResponse>
+    export type ExplainStudyTopicMutationVariables = {data: BodyType<StudyExplanationInput>}
 
     /**
- * @summary Analyze lecture sources into a prerequisite graph
+ * @summary Explain a topic and identify technical concepts
  */
-export const useAnalyzeConceptGraph = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeConceptGraph>>, TError,AnalyzeConceptGraphMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useExplainStudyTopic = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof explainStudyTopic>>, TError,ExplainStudyTopicMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof analyzeConceptGraph>>,
+        Awaited<ReturnType<typeof explainStudyTopic>>,
         TError,
-        AnalyzeConceptGraphMutationVariables,
+        ExplainStudyTopicMutationVariables,
         TContext
       > => {
-      return useMutation(getAnalyzeConceptGraphMutationOptions(options));
+      return useMutation(getExplainStudyTopicMutationOptions(options));
     }
 
-export const getAskConceptQuestionUrl = () => {
+export const getExplainTechnicalConceptUrl = () => {
 
 
 
 
-  return `/api/concept-graphs/ask`
+  return `/api/study/concepts/explain`
 }
 
 /**
- * @summary Answer a question using a concept graph and lecture sources
+ * @summary Explain one technical concept in depth
  */
-export const askConceptQuestion = async (conceptQuestionInput: ConceptQuestionInput, options?: Parameters<typeof customFetch>[1]): Promise<ConceptAnswer> => {
+export const explainTechnicalConcept = async (technicalConceptInput: TechnicalConceptInput, options?: Parameters<typeof customFetch>[1]): Promise<TechnicalConceptExplanation> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -248,12 +248,12 @@ export const askConceptQuestion = async (conceptQuestionInput: ConceptQuestionIn
     }
     return headers;
   };
-return customFetch<ConceptAnswer>(getAskConceptQuestionUrl(),
+return customFetch<TechnicalConceptExplanation>(getExplainTechnicalConceptUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(conceptQuestionInput)
+    body: JSON.stringify(technicalConceptInput)
   }
 );}
 
@@ -261,13 +261,13 @@ return customFetch<ConceptAnswer>(getAskConceptQuestionUrl(),
 
 
 
-export const getAskConceptQuestionMutationKey = () => ['askConceptQuestion'] as const;
+export const getExplainTechnicalConceptMutationKey = () => ['explainTechnicalConcept'] as const;
 
-export const getAskConceptQuestionMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askConceptQuestion>>, TError,AskConceptQuestionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof askConceptQuestion>>, TError,AskConceptQuestionMutationVariables, TContext> => {
+export const getExplainTechnicalConceptMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof explainTechnicalConcept>>, TError,ExplainTechnicalConceptMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof explainTechnicalConcept>>, TError,ExplainTechnicalConceptMutationVariables, TContext> => {
 
-const mutationKey = getAskConceptQuestionMutationKey();
+const mutationKey = getExplainTechnicalConceptMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -277,10 +277,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof askConceptQuestion>>, AskConceptQuestionMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof explainTechnicalConcept>>, ExplainTechnicalConceptMutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  askConceptQuestion(data,requestOptions)
+          return  explainTechnicalConcept(data,requestOptions)
         }
 
 
@@ -290,22 +290,22 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type AskConceptQuestionMutationResult = NonNullable<Awaited<ReturnType<typeof askConceptQuestion>>>
-    export type AskConceptQuestionMutationBody = BodyType<ConceptQuestionInput>
-    export type AskConceptQuestionMutationError = ErrorType<ErrorResponse>
-    export type AskConceptQuestionMutationVariables = {data: BodyType<ConceptQuestionInput>}
+    export type ExplainTechnicalConceptMutationResult = NonNullable<Awaited<ReturnType<typeof explainTechnicalConcept>>>
+    export type ExplainTechnicalConceptMutationBody = BodyType<TechnicalConceptInput>
+    export type ExplainTechnicalConceptMutationError = ErrorType<ErrorResponse>
+    export type ExplainTechnicalConceptMutationVariables = {data: BodyType<TechnicalConceptInput>}
 
     /**
- * @summary Answer a question using a concept graph and lecture sources
+ * @summary Explain one technical concept in depth
  */
-export const useAskConceptQuestion = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askConceptQuestion>>, TError,AskConceptQuestionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useExplainTechnicalConcept = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof explainTechnicalConcept>>, TError,ExplainTechnicalConceptMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof askConceptQuestion>>,
+        Awaited<ReturnType<typeof explainTechnicalConcept>>,
         TError,
-        AskConceptQuestionMutationVariables,
+        ExplainTechnicalConceptMutationVariables,
         TContext
       > => {
-      return useMutation(getAskConceptQuestionMutationOptions(options));
+      return useMutation(getExplainTechnicalConceptMutationOptions(options));
     }
 

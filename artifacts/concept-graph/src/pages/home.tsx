@@ -1,126 +1,256 @@
-import React, { useState, useEffect } from 'react';
-import { ConceptGraph, LectureSource } from '@workspace/api-client-react';
-import { loadSession, saveSession } from '@/lib/db';
-import { WorkspaceSidebar } from '@/components/WorkspaceSidebar';
-import { GraphView } from '@/components/GraphView';
-import { SidePanel } from '@/components/SidePanel';
-import { Lightbulb, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useExplainStudyTopic, LectureSource } from '@workspace/api-client-react';
+import { loadSession, saveSession, HistoryItem, clearSession } from '@/lib/db';
+import { extractTextFromPDF } from '@/lib/pdf';
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { BookOpen, FileText, Send, Trash2, Loader2, UploadCloud } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function Home() {
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [sources, setSources] = useState<LectureSource[]>([]);
-  const [graph, setGraph] = useState<ConceptGraph | null>(null);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
+  const [prompt, setPrompt] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const explainMutation = useExplainStudyTopic();
 
-  // Load session on mount
   useEffect(() => {
     loadSession().then(data => {
-      if (data.sources) setSources(data.sources);
-      if (data.graph) setGraph(data.graph);
+      setHistory(data.history);
+      setSources(data.sources);
       setIsInitializing(false);
     });
   }, []);
 
-  // Save session when graph or sources change
   useEffect(() => {
-    if (!isInitializing) {
-      saveSession(graph, sources);
+    if (history.length > 0) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [graph, sources, isInitializing]);
+  }, [history, explainMutation.isPending]);
 
-  const handleGraphGenerated = (newGraph: ConceptGraph) => {
-    setGraph(newGraph);
-    setSelectedNodeId(null);
-    setHighlightedNodeIds([]);
-  };
-
-  const handleNodeSelect = (nodeId: string | null) => {
-    setSelectedNodeId(nodeId);
-    
-    if (!nodeId || !graph) {
-      setHighlightedNodeIds([]);
-      return;
-    }
-
-    // Highlight the selected node and its prerequisites
-    const highlighted = new Set<string>();
-    highlighted.add(nodeId);
-    
-    // Simple BFS for prerequisites (edges directed FROM prerequisite TO dependent, wait - let's check the API).
-    // Usually a dependency graph points from Prerequisite -> Concept.
-    // So to find prerequisites of `nodeId`, we look for edges where `to === nodeId`.
-    const queue = [nodeId];
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      const incomingEdges = graph.edges.filter(e => e.to === current);
-      for (const edge of incomingEdges) {
-        if (!highlighted.has(edge.from)) {
-          highlighted.add(edge.from);
-          queue.push(edge.from);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    try {
+      const newSources: LectureSource[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type === 'application/pdf') {
+          const extracted = await extractTextFromPDF(file);
+          newSources.push({
+            id: Math.random().toString(36).substring(2),
+            name: file.name,
+            text: extracted.text,
+            pageCount: extracted.pageCount,
+            pages: extracted.pages
+          });
         }
       }
+      const updatedSources = [...sources, ...newSources];
+      setSources(updatedSources);
+      await saveSession(history, updatedSources);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUploading(false);
     }
+  };
+
+  const removeSource = async (id: string) => {
+    const updated = sources.filter(s => s.id !== id);
+    setSources(updated);
+    await saveSession(history, updated);
+  };
+
+  const handleClearSession = async () => {
+    await clearSession();
+    setHistory([]);
+    setSources([]);
+  };
+
+  const handleTermClick = (term: string, contextSnippet: string) => {
+    const params = new URLSearchParams({ term, context: contextSnippet });
+    window.open(`${import.meta.env.BASE_URL}concept?${params.toString()}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleSubmit = async () => {
+    const isDefaultPrompt = !prompt.trim() && sources.length > 0;
+    if (!prompt.trim() && sources.length === 0) return;
+
+    const actualPrompt = isDefaultPrompt ? "Explain the key concepts of the uploaded lectures." : prompt.trim();
     
-    setHighlightedNodeIds(Array.from(highlighted));
+    const userMessage: HistoryItem = {
+      id: Math.random().toString(36).substring(2),
+      type: 'user',
+      content: actualPrompt,
+      timestamp: Date.now()
+    };
+
+    const newHistory = [...history, userMessage];
+    setHistory(newHistory);
+    setPrompt('');
+
+    explainMutation.mutate({ data: { prompt: actualPrompt, sources } }, {
+      onSuccess: (data) => {
+        const aiMessage: HistoryItem = {
+          id: Math.random().toString(36).substring(2),
+          type: 'ai',
+          content: data.title,
+          explanation: data,
+          timestamp: Date.now()
+        };
+        const updatedHistory = [...newHistory, aiMessage];
+        setHistory(updatedHistory);
+        saveSession(updatedHistory, sources);
+      }
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
   };
 
   if (isInitializing) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="h-screen w-full flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
-  const selectedNode = selectedNodeId && graph 
-    ? graph.nodes.find(n => n.id === selectedNodeId) || null 
-    : null;
-
   return (
-    <div className="h-screen w-full flex bg-background overflow-hidden font-sans">
-      <WorkspaceSidebar 
-        sources={sources}
-        setSources={setSources}
-        onGraphGenerated={handleGraphGenerated}
-      />
-      
-      <main className="flex-1 relative flex">
-        <div className="flex-1 relative h-full">
-          {graph ? (
-            <>
-              <div className="absolute top-4 left-4 z-10 max-w-sm bg-card border border-border p-4 rounded-xl shadow-lg">
-                <h2 className="font-bold text-lg leading-tight flex items-center gap-2">
-                  <Lightbulb className="w-5 h-5 text-primary" /> 
-                  {graph.title}
-                </h2>
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-3 hover:line-clamp-none transition-all">{graph.overview}</p>
-              </div>
-              <GraphView 
-                graph={graph} 
-                selectedNodeId={selectedNodeId}
-                onNodeSelect={handleNodeSelect}
-                highlightedNodeIds={highlightedNodeIds}
-              />
-            </>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8 text-muted-foreground bg-[radial-gradient(circle_at_center,var(--color-muted)_0%,transparent_100%)] opacity-60">
-              <div className="w-24 h-24 bg-card border border-border rounded-2xl shadow-xl flex items-center justify-center mb-6 -rotate-6">
-                <Lightbulb className="w-10 h-10 text-primary" />
-              </div>
-              <h2 className="text-2xl font-serif font-bold text-foreground mb-2">Knowledge Mapping</h2>
-              <p className="max-w-md">Upload lecture slides or PDFs on the left, then click Generate Graph to visually explore concept prerequisites and dependencies.</p>
+    <div className="flex h-[100dvh] bg-background w-full overflow-hidden font-sans">
+      <aside className="w-80 bg-muted border-r border-border flex flex-col hidden md:flex shrink-0">
+        <div className="p-6 border-b border-border/50 flex items-center gap-3">
+          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <h1 className="font-serif text-xl font-bold text-foreground">Study Notebook</h1>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-sm font-bold tracking-wider text-muted-foreground uppercase">Materials</h2>
+            {sources.length > 0 && (
+              <button onClick={handleClearSession} className="text-xs text-destructive hover:underline font-medium">Clear All</button>
+            )}
+          </div>
+          
+          <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-primary/30 rounded-xl cursor-pointer bg-card hover:bg-primary/5 transition-colors group">
+            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+              {isUploading ? <Loader2 className="w-6 h-6 text-primary animate-spin mb-2" /> : <UploadCloud className="w-6 h-6 text-primary/70 group-hover:text-primary mb-2 transition-colors" />}
+              <p className="text-xs text-muted-foreground font-medium">{isUploading ? 'Extracting text...' : 'Upload Lecture PDF'}</p>
             </div>
-          )}
+            <input type="file" className="hidden" accept="application/pdf" multiple onChange={handleFileUpload} disabled={isUploading} />
+          </label>
+
+          <div className="space-y-2">
+            {sources.map(s => (
+              <div key={s.id} className="bg-card border border-border p-3 rounded-xl flex items-start gap-3 group relative shadow-sm">
+                <FileText className="w-5 h-5 text-primary/70 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate" title={s.name}>{s.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{s.pageCount} pages</p>
+                </div>
+                <button onClick={() => removeSource(s.id)} className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-md transition-all absolute right-2 top-2">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      <main className="flex-1 flex flex-col min-w-0 relative bg-background">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 scroll-smooth">
+          <div className="max-w-3xl mx-auto space-y-10 pb-32">
+            {history.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-center opacity-80 animate-in fade-in zoom-in duration-700">
+                <div className="w-20 h-20 bg-muted rounded-2xl flex items-center justify-center mb-6 shadow-inner rotate-3">
+                  <BookOpen className="w-10 h-10 text-primary/80 -rotate-3" />
+                </div>
+                <h2 className="text-3xl font-serif font-bold text-foreground mb-3 tracking-tight">Begin your session.</h2>
+                <p className="text-muted-foreground max-w-md text-lg">Upload your reading materials and ask a question, or let the AI summarize the core concepts to get started.</p>
+              </div>
+            ) : (
+              history.map((item, idx) => (
+                <div key={item.id} className={`flex w-full animate-in fade-in slide-in-from-bottom-4 duration-500 ${item.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {item.type === 'user' ? (
+                    <div className="bg-primary text-primary-foreground px-6 py-4 rounded-2xl rounded-br-sm max-w-[85%] md:max-w-[75%] shadow-md">
+                      <p className="font-medium text-[1.05rem] leading-relaxed">{item.content}</p>
+                    </div>
+                  ) : (
+                    <div className="w-full">
+                      {item.explanation && (
+                        <div className="bg-card border border-border/60 rounded-3xl p-6 md:p-10 shadow-sm">
+                          <h2 className="text-3xl font-serif font-bold text-foreground mb-6 pb-4 border-b border-border/50">{item.explanation.title}</h2>
+                          <MarkdownRenderer 
+                            content={item.explanation.answerMarkdown} 
+                            terms={item.explanation.terms}
+                            onTermClick={handleTermClick}
+                          />
+                          
+                          {item.explanation.sourceRefs && item.explanation.sourceRefs.length > 0 && (
+                            <div className="mt-10 pt-6 border-t border-border/50">
+                              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <FileText className="w-3.5 h-3.5" /> Sources Cited
+                              </h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {item.explanation.sourceRefs.map((ref, i) => (
+                                  <div key={i} className="bg-muted/40 border border-border/50 px-4 py-3 rounded-xl text-sm flex flex-col gap-1.5 hover:bg-muted/60 transition-colors">
+                                    <span className="font-semibold text-foreground line-clamp-1" title={ref.sourceName}>{ref.sourceName} <span className="text-muted-foreground font-normal ml-1">p.{ref.pageNumber}</span></span>
+                                    <span className="text-muted-foreground italic line-clamp-2 leading-relaxed">"{ref.excerpt}"</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+            
+            {explainMutation.isPending && (
+              <div className="flex w-full justify-start animate-in fade-in duration-300">
+                <div className="bg-muted px-6 py-5 rounded-3xl rounded-bl-sm flex items-center gap-4 text-muted-foreground font-medium">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  Synthesizing knowledge...
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} className="h-1" />
+          </div>
         </div>
 
-        <SidePanel 
-          selectedNode={selectedNode}
-          onCloseNode={() => handleNodeSelect(null)}
-          graph={graph}
-          sources={sources}
-          onHighlightNodes={(nodeIds) => setHighlightedNodeIds(nodeIds)}
-        />
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/90 to-transparent pt-10">
+          <div className="max-w-3xl mx-auto relative flex items-end gap-3 bg-card border border-border/80 p-2 rounded-2xl shadow-lg focus-within:ring-2 focus-within:ring-primary/30 transition-all">
+            <Textarea 
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={sources.length > 0 ? "Ask a question about your materials..." : "Ask a general question..."}
+              className="min-h-[52px] max-h-48 resize-none border-0 focus-visible:ring-0 bg-transparent text-[1.05rem] py-3.5 px-4 shadow-none font-medium scrollbar-thin"
+              rows={1}
+            />
+            <Button 
+              size="icon"
+              className="h-[52px] w-[52px] rounded-xl shrink-0 shadow-md transition-all active:scale-95"
+              disabled={(!prompt.trim() && sources.length === 0) || explainMutation.isPending || isUploading}
+              onClick={handleSubmit}
+            >
+              {explainMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-0.5" />}
+            </Button>
+          </div>
+          <div className="max-w-3xl mx-auto mt-2 text-center hidden md:block">
+            <p className="text-xs font-medium text-muted-foreground">Terms are automatically highlighted. Click them for a deep dive.</p>
+          </div>
+        </div>
       </main>
     </div>
   );

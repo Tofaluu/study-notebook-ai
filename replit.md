@@ -1,6 +1,6 @@
-# Concept Dependency Graph
+# Study Notebook
 
-An AI study workspace that turns lecture PDFs and concept prompts into interactive prerequisite maps with page-level source references.
+An AI study workspace that explains lecture PDFs and concept prompts in a familiar chat format, with technical terms linked to separate beginner-friendly explanations.
 
 ## Run & Operate
 
@@ -24,22 +24,22 @@ An AI study workspace that turns lecture PDFs and concept prompts into interacti
 
 ## Where things live
 
-- `artifacts/concept-graph/` — React study workspace, PDF extraction, graph visualization, and local persistence
-- `artifacts/api-server/src/routes/concept-graphs.ts` — Gemini-backed graph and concept-question endpoints
+- `artifacts/concept-graph/` — React study workspace, PDF extraction, linked-term explanations, and local persistence
+- `artifacts/api-server/src/routes/study.ts` — Gemini-backed study and technical-concept explanation endpoints
 - `lib/api-spec/openapi.yaml` — source of truth for API contracts
 
 ## Architecture decisions
 
 - PDF text is extracted page-by-page in the browser so citations retain the original slide/page number.
-- Uploaded lecture text and the latest generated graph are stored locally in IndexedDB; the Gemini key remains server-side.
+- Uploaded lecture text and chat history are stored locally in IndexedDB; the Gemini key remains server-side.
 - The first release does not require accounts or server-side document storage.
 
 ## Product
 
 - Upload one or more PDF lectures and extract their text locally.
-- Generate a concept dependency graph from PDFs, a concept prompt, or both.
-- Click a concept to trace its prerequisite path and inspect grounded page references.
-- Ask follow-up questions against the active graph and lecture context.
+- Ask for a standard AI explanation from PDFs, a concept prompt, or both.
+- Click underlined technical terms to open separate beginner-friendly explanation tabs.
+- Continue asking questions while keeping the uploaded lecture context.
 
 ## User preferences
 
@@ -48,7 +48,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 ## Gotchas
 
 - Re-run API codegen after changing `lib/api-spec/openapi.yaml`.
-- The frontend must continue to allow prompt-only graph generation with no uploaded files.
+- The frontend must continue to support prompt-only explanations with no uploaded files.
+- Technical terms in answers must remain clickable and open a separate `/concept` tab.
 
 ## Pointers
 

@@ -5,11 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { ConceptGraph } from './conceptGraph';
 import type { LectureSource } from './lectureSource';
 
-export interface ConceptQuestionInput {
-  question: string;
-  graph: ConceptGraph;
+export interface TechnicalConceptInput {
+  term: string;
+  context: string;
   sources: LectureSource[];
 }

@@ -6,15 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from './conceptAnswer';
-export * from './conceptEdge';
-export * from './conceptGraph';
-export * from './conceptGraphInput';
-export * from './conceptNode';
-export * from './conceptNodeKind';
-export * from './conceptQuestionInput';
 export * from './errorResponse';
+export * from './explainableTerm';
 export * from './healthStatus';
 export * from './lecturePage';
 export * from './lectureSource';
 export * from './pageReference';
+export * from './studyExplanation';
+export * from './studyExplanationInput';
+export * from './technicalConceptExplanation';
+export * from './technicalConceptInput';

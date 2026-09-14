@@ -1,29 +1,39 @@
 import { get, set } from 'idb-keyval';
-import type { ConceptGraph, LectureSource } from '@workspace/api-client-react';
+import type { LectureSource, StudyExplanation } from '@workspace/api-client-react';
 
-const GRAPH_KEY = 'concept-graph-latest';
-const SOURCES_KEY = 'concept-graph-sources';
+export interface HistoryItem {
+  id: string;
+  type: 'user' | 'ai';
+  content: string;
+  explanation?: StudyExplanation;
+  timestamp: number;
+}
 
-export async function saveSession(graph: ConceptGraph | null, sources: LectureSource[]) {
-  if (graph) {
-    await set(GRAPH_KEY, graph);
-  }
+const HISTORY_KEY = 'study-notebook-history-v1';
+const SOURCES_KEY = 'study-notebook-sources-v1';
+
+export async function saveSession(history: HistoryItem[], sources: LectureSource[]) {
+  await set(HISTORY_KEY, history);
   await set(SOURCES_KEY, sources);
 }
 
-export async function loadSession(): Promise<{ graph: ConceptGraph | null, sources: LectureSource[] }> {
-  const [graph, sources] = await Promise.all([
-    get<ConceptGraph>(GRAPH_KEY),
-    get<LectureSource[]>(SOURCES_KEY),
-  ]);
-  
-  return {
-    graph: graph || null,
-    sources: sources || []
-  };
+export async function loadSession(): Promise<{ history: HistoryItem[], sources: LectureSource[] }> {
+  try {
+    const [history, sources] = await Promise.all([
+      get<HistoryItem[]>(HISTORY_KEY),
+      get<LectureSource[]>(SOURCES_KEY),
+    ]);
+    
+    return {
+      history: history || [],
+      sources: sources || []
+    };
+  } catch (e) {
+    return { history: [], sources: [] };
+  }
 }
 
 export async function clearSession() {
-  await set(GRAPH_KEY, null);
+  await set(HISTORY_KEY, []);
   await set(SOURCES_KEY, []);
 }

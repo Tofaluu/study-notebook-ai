@@ -5,11 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ExplainableTerm } from './explainableTerm';
 import type { PageReference } from './pageReference';
 
-export interface ConceptAnswer {
-  answer: string;
-  keyIdea: string;
-  relatedNodeIds: string[];
+export interface StudyExplanation {
+  title: string;
+  answerMarkdown: string;
+  terms: ExplainableTerm[];
   sourceRefs: PageReference[];
+  generatedAt: string;
 }

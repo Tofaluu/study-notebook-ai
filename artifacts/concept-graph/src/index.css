@@ -51,38 +51,36 @@
 }
 
 :root {
-  /* Colors inspired by deep ink, parchment, and illuminating amber */
-  --background: 40 33% 98%; /* Warm off-white */
-  --foreground: 224 50% 15%; /* Deep ink blue */
+  /* Study Notebook Aesthetic: Parchment, Ink, Terracotta */
+  --background: 40 40% 97%; 
+  --foreground: 24 10% 12%; 
   
-  --card: 40 20% 99%;
-  --card-foreground: 224 50% 15%;
-  --card-border: 40 20% 90%;
+  --card: 40 30% 99%;
+  --card-foreground: 24 10% 12%;
+  --card-border: 40 20% 88%;
 
-  --popover: 40 20% 99%;
-  --popover-foreground: 224 50% 15%;
-  --popover-border: 40 20% 90%;
+  --popover: 40 30% 99%;
+  --popover-foreground: 24 10% 12%;
+  --popover-border: 40 20% 88%;
 
-  /* Primary: Illuminating Amber / Ochre */
-  --primary: 38 92% 50%;
-  --primary-foreground: 224 50% 15%;
+  --primary: 13 65% 50%; /* Rich Terracotta / Ochre */
+  --primary-foreground: 0 0% 100%;
   
-  /* Secondary: Soft Sage/Teal */
-  --secondary: 172 20% 85%;
-  --secondary-foreground: 172 40% 25%;
+  --secondary: 102 15% 65%; /* Soft Sage */
+  --secondary-foreground: 24 10% 12%;
 
-  --muted: 40 20% 92%;
-  --muted-foreground: 224 20% 45%;
+  --muted: 36 30% 93%; /* Slightly darker parchment for sidebars */
+  --muted-foreground: 24 10% 40%; /* Soft ink */
 
-  --accent: 38 92% 90%;
-  --accent-foreground: 38 92% 25%;
+  --accent: 13 65% 94%;
+  --accent-foreground: 13 65% 30%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
   --border: 40 20% 86%;
   --input: 40 20% 90%;
-  --ring: 38 92% 50%;
+  --ring: 13 65% 50%;
 
   --app-font-sans: 'Plus Jakarta Sans', sans-serif;
   --app-font-serif: 'Instrument Serif', serif;
@@ -92,35 +90,36 @@
 }
 
 .dark {
-  --background: 224 50% 10%;
-  --foreground: 40 33% 98%;
+  /* Midnight Study */
+  --background: 224 20% 10%;
+  --foreground: 40 20% 90%;
   
-  --card: 224 50% 12%;
-  --card-foreground: 40 33% 98%;
-  --card-border: 224 30% 20%;
+  --card: 224 20% 14%;
+  --card-foreground: 40 20% 90%;
+  --card-border: 224 20% 22%;
 
-  --popover: 224 50% 12%;
-  --popover-foreground: 40 33% 98%;
-  --popover-border: 224 30% 20%;
+  --popover: 224 20% 14%;
+  --popover-foreground: 40 20% 90%;
+  --popover-border: 224 20% 22%;
 
-  --primary: 38 92% 50%;
-  --primary-foreground: 224 50% 10%;
+  --primary: 20 80% 60%; 
+  --primary-foreground: 224 20% 10%;
 
-  --secondary: 172 30% 20%;
-  --secondary-foreground: 172 30% 85%;
+  --secondary: 102 15% 35%;
+  --secondary-foreground: 40 20% 90%;
 
-  --muted: 224 30% 18%;
-  --muted-foreground: 224 20% 65%;
+  --muted: 224 20% 16%;
+  --muted-foreground: 40 10% 65%;
 
-  --accent: 38 92% 20%;
-  --accent-foreground: 38 92% 70%;
+  --accent: 20 80% 20%;
+  --accent-foreground: 20 80% 80%;
 
-  --destructive: 0 62% 30%;
+  --destructive: 0 62% 40%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 224 30% 20%;
-  --input: 224 30% 20%;
-  --ring: 38 92% 50%;
+  --border: 224 20% 22%;
+  --input: 224 20% 22%;
+  --ring: 20 80% 60%;
 }
 
 @layer base {
@@ -128,10 +127,6 @@
     @apply border-border;
   }
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-background text-foreground selection:bg-primary/20 selection:text-primary;
   }
-}
-
-.react-flow__node {
-  border-radius: var(--radius);
 }

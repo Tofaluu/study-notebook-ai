@@ -18,10 +18,9 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * @summary Analyze lecture sources into a prerequisite graph
+ * @summary Explain a topic and identify technical concepts
  */
-export const AnalyzeConceptGraphBody = zod.object({
-  "title": zod.string(),
+export const ExplainStudyTopicBody = zod.object({
   "prompt": zod.string(),
   "sources": zod.array(zod.object({
   "id": zod.string(),
@@ -35,59 +34,30 @@ export const AnalyzeConceptGraphBody = zod.object({
 }))
 })
 
-export const AnalyzeConceptGraphResponse = zod.object({
+export const ExplainStudyTopicResponse = zod.object({
   "title": zod.string(),
-  "overview": zod.string(),
-  "nodes": zod.array(zod.object({
-  "id": zod.string(),
-  "label": zod.string(),
-  "summary": zod.string(),
-  "kind": zod.enum(['foundation', 'core', 'application']),
-  "sourceIds": zod.array(zod.string()),
-  "pageRefs": zod.array(zod.object({
+  "answerMarkdown": zod.string(),
+  "terms": zod.array(zod.object({
+  "term": zod.string(),
+  "contextSnippet": zod.string(),
+  "plainDefinition": zod.string()
+})),
+  "sourceRefs": zod.array(zod.object({
   "sourceId": zod.string(),
   "sourceName": zod.string(),
   "pageNumber": zod.number().int(),
   "excerpt": zod.string()
-}))
-})),
-  "edges": zod.array(zod.object({
-  "from": zod.string(),
-  "to": zod.string(),
-  "relationship": zod.string()
 })),
   "generatedAt": zod.string()
 })
 
 
 /**
- * @summary Answer a question using a concept graph and lecture sources
+ * @summary Explain one technical concept in depth
  */
-export const AskConceptQuestionBody = zod.object({
-  "question": zod.string(),
-  "graph": zod.object({
-  "title": zod.string(),
-  "overview": zod.string(),
-  "nodes": zod.array(zod.object({
-  "id": zod.string(),
-  "label": zod.string(),
-  "summary": zod.string(),
-  "kind": zod.enum(['foundation', 'core', 'application']),
-  "sourceIds": zod.array(zod.string()),
-  "pageRefs": zod.array(zod.object({
-  "sourceId": zod.string(),
-  "sourceName": zod.string(),
-  "pageNumber": zod.number().int(),
-  "excerpt": zod.string()
-}))
-})),
-  "edges": zod.array(zod.object({
-  "from": zod.string(),
-  "to": zod.string(),
-  "relationship": zod.string()
-})),
-  "generatedAt": zod.string()
-}),
+export const ExplainTechnicalConceptBody = zod.object({
+  "term": zod.string(),
+  "context": zod.string(),
   "sources": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -100,10 +70,10 @@ export const AskConceptQuestionBody = zod.object({
 }))
 })
 
-export const AskConceptQuestionResponse = zod.object({
-  "answer": zod.string(),
-  "keyIdea": zod.string(),
-  "relatedNodeIds": zod.array(zod.string()),
+export const ExplainTechnicalConceptResponse = zod.object({
+  "title": zod.string(),
+  "answerMarkdown": zod.string(),
+  "prerequisiteTerms": zod.array(zod.string()),
   "sourceRefs": zod.array(zod.object({
   "sourceId": zod.string(),
   "sourceName": zod.string(),
