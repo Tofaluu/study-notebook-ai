@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: concept-graphs
+    description: Concept graph analysis and study questions
 paths:
   /healthz:
     get:
@@ -24,6 +26,66 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /concept-graphs/analyze:
+    post:
+      operationId: analyzeConceptGraph
+      tags: [concept-graphs]
+      summary: Analyze lecture sources into a prerequisite graph
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConceptGraphInput"
+      responses:
+        "200":
+          description: Extracted concept graph
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConceptGraph"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Analysis failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /concept-graphs/ask:
+    post:
+      operationId: askConceptQuestion
+      tags: [concept-graphs]
+      summary: Answer a question using a concept graph and lecture sources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConceptQuestionInput"
+      responses:
+        "200":
+          description: Grounded concept answer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConceptAnswer"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Answer failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +95,171 @@ components:
           type: string
       required:
         - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    LectureSource:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        text:
+          type: string
+        pageCount:
+          type: integer
+        pages:
+          type: array
+          items:
+            $ref: "#/components/schemas/LecturePage"
+      required:
+        - id
+        - name
+        - text
+        - pageCount
+        - pages
+    LecturePage:
+      type: object
+      properties:
+        pageNumber:
+          type: integer
+        text:
+          type: string
+      required:
+        - pageNumber
+        - text
+    ConceptGraphInput:
+      type: object
+      properties:
+        title:
+          type: string
+        prompt:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/LectureSource"
+      required:
+        - title
+        - prompt
+        - sources
+    ConceptNode:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        summary:
+          type: string
+        kind:
+          type: string
+          enum: [foundation, core, application]
+        sourceIds:
+          type: array
+          items:
+            type: string
+        pageRefs:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageReference"
+      required:
+        - id
+        - label
+        - summary
+        - kind
+        - sourceIds
+        - pageRefs
+    ConceptEdge:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        relationship:
+          type: string
+      required:
+        - from
+        - to
+        - relationship
+    PageReference:
+      type: object
+      properties:
+        sourceId:
+          type: string
+        sourceName:
+          type: string
+        pageNumber:
+          type: integer
+        excerpt:
+          type: string
+      required:
+        - sourceId
+        - sourceName
+        - pageNumber
+        - excerpt
+    ConceptGraph:
+      type: object
+      properties:
+        title:
+          type: string
+        overview:
+          type: string
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConceptNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConceptEdge"
+        generatedAt:
+          type: string
+      required:
+        - title
+        - overview
+        - nodes
+        - edges
+        - generatedAt
+    ConceptQuestionInput:
+      type: object
+      properties:
+        question:
+          type: string
+        graph:
+          $ref: "#/components/schemas/ConceptGraph"
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/LectureSource"
+      required:
+        - question
+        - graph
+        - sources
+    ConceptAnswer:
+      type: object
+      properties:
+        answer:
+          type: string
+        keyIdea:
+          type: string
+        relatedNodeIds:
+          type: array
+          items:
+            type: string
+        sourceRefs:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageReference"
+      required:
+        - answer
+        - keyIdea
+        - relatedNodeIds
+        - sourceRefs
 
