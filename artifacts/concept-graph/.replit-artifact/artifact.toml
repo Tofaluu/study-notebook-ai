@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Concept Dependency Graph"
+description = "A study companion that turns lecture PDFs and concept questions into an explorable prerequisite graph, with every idea linked back to the source material."
+version = "1.0.0"
+id = "artifacts/concept-graph"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18379
+
+[services.development]
+run = "pnpm --filter @workspace/concept-graph run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/concept-graph", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/concept-graph/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18379"
+BASE_PATH = "/"
