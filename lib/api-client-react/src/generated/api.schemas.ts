@@ -26,21 +26,6 @@ export interface LectureSource {
   pages: LecturePage[];
 }
 
-export interface ConceptGraphInput {
-  title: string;
-  prompt: string;
-  sources: LectureSource[];
-}
-
-export type ConceptNodeKind = typeof ConceptNodeKind[keyof typeof ConceptNodeKind];
-
-
-export const ConceptNodeKind = {
-  foundation: 'foundation',
-  core: 'core',
-  application: 'application',
-} as const;
-
 export interface PageReference {
   sourceId: string;
   sourceName: string;
@@ -48,39 +33,35 @@ export interface PageReference {
   excerpt: string;
 }
 
-export interface ConceptNode {
-  id: string;
-  label: string;
-  summary: string;
-  kind: ConceptNodeKind;
-  sourceIds: string[];
-  pageRefs: PageReference[];
+export interface ExplainableTerm {
+  term: string;
+  contextSnippet: string;
+  plainDefinition: string;
 }
 
-export interface ConceptEdge {
-  from: string;
-  to: string;
-  relationship: string;
-}
-
-export interface ConceptGraph {
-  title: string;
-  overview: string;
-  nodes: ConceptNode[];
-  edges: ConceptEdge[];
-  generatedAt: string;
-}
-
-export interface ConceptQuestionInput {
-  question: string;
-  graph: ConceptGraph;
+export interface StudyExplanationInput {
+  prompt: string;
   sources: LectureSource[];
 }
 
-export interface ConceptAnswer {
-  answer: string;
-  keyIdea: string;
-  relatedNodeIds: string[];
+export interface StudyExplanation {
+  title: string;
+  answerMarkdown: string;
+  terms: ExplainableTerm[];
+  sourceRefs: PageReference[];
+  generatedAt: string;
+}
+
+export interface TechnicalConceptInput {
+  term: string;
+  context: string;
+  sources: LectureSource[];
+}
+
+export interface TechnicalConceptExplanation {
+  title: string;
+  answerMarkdown: string;
+  prerequisiteTerms: string[];
   sourceRefs: PageReference[];
 }
 

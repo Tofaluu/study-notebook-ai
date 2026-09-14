@@ -7,8 +7,7 @@
  */
 import type { LectureSource } from './lectureSource';
 
-export interface ConceptGraphInput {
-  title: string;
+export interface StudyExplanationInput {
   prompt: string;
   sources: LectureSource[];
 }

@@ -10,8 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
-  - name: concept-graphs
-    description: Concept graph analysis and study questions
+  - name: study
+    description: AI explanations grounded in lecture sources
 paths:
   /healthz:
     get:
@@ -26,24 +26,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
-  /concept-graphs/analyze:
+  /study/explain:
     post:
-      operationId: analyzeConceptGraph
-      tags: [concept-graphs]
-      summary: Analyze lecture sources into a prerequisite graph
+      operationId: explainStudyTopic
+      tags: [study]
+      summary: Explain a topic and identify technical concepts
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ConceptGraphInput"
+              $ref: "#/components/schemas/StudyExplanationInput"
       responses:
         "200":
-          description: Extracted concept graph
+          description: Topic explanation
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ConceptGraph"
+                $ref: "#/components/schemas/StudyExplanation"
         "400":
           description: Invalid request
           content:
@@ -51,29 +51,29 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "500":
-          description: Analysis failed
+          description: Explanation failed
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-  /concept-graphs/ask:
+  /study/concepts/explain:
     post:
-      operationId: askConceptQuestion
-      tags: [concept-graphs]
-      summary: Answer a question using a concept graph and lecture sources
+      operationId: explainTechnicalConcept
+      tags: [study]
+      summary: Explain one technical concept in depth
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ConceptQuestionInput"
+              $ref: "#/components/schemas/TechnicalConceptInput"
       responses:
         "200":
-          description: Grounded concept answer
+          description: Concept explanation
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ConceptAnswer"
+                $ref: "#/components/schemas/TechnicalConceptExplanation"
         "400":
           description: Invalid request
           content:
@@ -81,7 +81,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "500":
-          description: Answer failed
+          description: Explanation failed
           content:
             application/json:
               schema:
@@ -93,15 +93,21 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-      required:
-        - error
+      required: [error]
+    LecturePage:
+      type: object
+      properties:
+        pageNumber:
+          type: integer
+        text:
+          type: string
+      required: [pageNumber, text]
     LectureSource:
       type: object
       properties:
@@ -117,77 +123,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/LecturePage"
-      required:
-        - id
-        - name
-        - text
-        - pageCount
-        - pages
-    LecturePage:
-      type: object
-      properties:
-        pageNumber:
-          type: integer
-        text:
-          type: string
-      required:
-        - pageNumber
-        - text
-    ConceptGraphInput:
-      type: object
-      properties:
-        title:
-          type: string
-        prompt:
-          type: string
-        sources:
-          type: array
-          items:
-            $ref: "#/components/schemas/LectureSource"
-      required:
-        - title
-        - prompt
-        - sources
-    ConceptNode:
-      type: object
-      properties:
-        id:
-          type: string
-        label:
-          type: string
-        summary:
-          type: string
-        kind:
-          type: string
-          enum: [foundation, core, application]
-        sourceIds:
-          type: array
-          items:
-            type: string
-        pageRefs:
-          type: array
-          items:
-            $ref: "#/components/schemas/PageReference"
-      required:
-        - id
-        - label
-        - summary
-        - kind
-        - sourceIds
-        - pageRefs
-    ConceptEdge:
-      type: object
-      properties:
-        from:
-          type: string
-        to:
-          type: string
-        relationship:
-          type: string
-      required:
-        - from
-        - to
-        - relationship
+      required: [id, name, text, pageCount, pages]
     PageReference:
       type: object
       properties:
@@ -199,57 +135,65 @@ components:
           type: integer
         excerpt:
           type: string
-      required:
-        - sourceId
-        - sourceName
-        - pageNumber
-        - excerpt
-    ConceptGraph:
+      required: [sourceId, sourceName, pageNumber, excerpt]
+    ExplainableTerm:
       type: object
       properties:
-        title:
+        term:
           type: string
-        overview:
+        contextSnippet:
           type: string
-        nodes:
-          type: array
-          items:
-            $ref: "#/components/schemas/ConceptNode"
-        edges:
-          type: array
-          items:
-            $ref: "#/components/schemas/ConceptEdge"
-        generatedAt:
+        plainDefinition:
           type: string
-      required:
-        - title
-        - overview
-        - nodes
-        - edges
-        - generatedAt
-    ConceptQuestionInput:
+      required: [term, contextSnippet, plainDefinition]
+    StudyExplanationInput:
       type: object
       properties:
-        question:
+        prompt:
           type: string
-        graph:
-          $ref: "#/components/schemas/ConceptGraph"
         sources:
           type: array
           items:
             $ref: "#/components/schemas/LectureSource"
-      required:
-        - question
-        - graph
-        - sources
-    ConceptAnswer:
+      required: [prompt, sources]
+    StudyExplanation:
       type: object
       properties:
-        answer:
+        title:
           type: string
-        keyIdea:
+        answerMarkdown:
           type: string
-        relatedNodeIds:
+        terms:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExplainableTerm"
+        sourceRefs:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageReference"
+        generatedAt:
+          type: string
+      required: [title, answerMarkdown, terms, sourceRefs, generatedAt]
+    TechnicalConceptInput:
+      type: object
+      properties:
+        term:
+          type: string
+        context:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/LectureSource"
+      required: [term, context, sources]
+    TechnicalConceptExplanation:
+      type: object
+      properties:
+        title:
+          type: string
+        answerMarkdown:
+          type: string
+        prerequisiteTerms:
           type: array
           items:
             type: string
@@ -257,9 +201,4 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PageReference"
-      required:
-        - answer
-        - keyIdea
-        - relatedNodeIds
-        - sourceRefs
-
+      required: [title, answerMarkdown, prerequisiteTerms, sourceRefs]
