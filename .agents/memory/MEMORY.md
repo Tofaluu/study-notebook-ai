@@ -1,0 +1,1 @@
+- [Gemini model availability](gemini-model-availability.md) — API keys may reject retired models; keep the model configurable and verify availability after model changes.
