@@ -37,6 +37,9 @@ function extractReadableSelection(range: Range, fallback: string) {
 
 export function SelectableAnswer({ title, content, terms, onTermClick }: SelectableAnswerProps) {
   const answerRef = useRef<HTMLDivElement>(null);
+  const selectedRangeRef = useRef<Range | null>(null);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const didDragRef = useRef(false);
   const [selectedText, setSelectedText] = useState('');
   const [question, setQuestion] = useState('');
   const [position, setPosition] = useState<SelectionPosition | null>(null);
@@ -55,6 +58,7 @@ export function SelectableAnswer({ title, content, terms, onTermClick }: Selecta
     setQuestion('');
     setPosition(null);
     setWasTrimmed(false);
+    selectedRangeRef.current = null;
     window.getSelection()?.removeAllRanges();
   };
 
@@ -71,6 +75,35 @@ export function SelectableAnswer({ title, content, terms, onTermClick }: Selecta
     const rawText = extractReadableSelection(range, selection.toString());
     if (rawText.length < 2) return;
 
+    selectedRangeRef.current = range.cloneRange();
+    setSelectedText(rawText.slice(0, 3000));
+    setWasTrimmed(rawText.length > 3000);
+    setQuestion('');
+    setPosition(null);
+  };
+
+  const showPromptForSelection = (event: React.MouseEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest('button')) return;
+    if (didDragRef.current) {
+      didDragRef.current = false;
+      return;
+    }
+
+    const range = selectedRangeRef.current;
+    if (!range || !selectedText) return;
+
+    const clickedSelection = Array.from(range.getClientRects()).some((rect) => (
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom
+    ));
+    if (!clickedSelection) return;
+
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
     const rect = range.getBoundingClientRect();
     const cardWidth = Math.min(384, window.innerWidth - 24);
     const estimatedHeight = 250;
@@ -82,9 +115,6 @@ export function SelectableAnswer({ title, content, terms, onTermClick }: Selecta
       ? Math.max(12, rect.top - estimatedHeight - 10)
       : rect.bottom + 10;
 
-    setSelectedText(rawText.slice(0, 3000));
-    setWasTrimmed(rawText.length > 3000);
-    setQuestion('');
     setPosition({ left, top });
   };
 
@@ -111,8 +141,22 @@ export function SelectableAnswer({ title, content, terms, onTermClick }: Selecta
     <>
       <div
         ref={answerRef}
+        className="cursor-text select-text"
+        onMouseDown={(event) => {
+          pointerStartRef.current = { x: event.clientX, y: event.clientY };
+          didDragRef.current = false;
+        }}
+        onMouseMove={(event) => {
+          if (!pointerStartRef.current || event.buttons !== 1) return;
+          const distance = Math.hypot(
+            event.clientX - pointerStartRef.current.x,
+            event.clientY - pointerStartRef.current.y
+          );
+          if (distance > 4) didDragRef.current = true;
+        }}
         onMouseUp={captureSelection}
         onTouchEnd={(event) => window.setTimeout(() => captureSelection(event), 50)}
+        onClick={showPromptForSelection}
       >
         <MarkdownRenderer content={content} terms={terms} onTermClick={onTermClick} />
       </div>
