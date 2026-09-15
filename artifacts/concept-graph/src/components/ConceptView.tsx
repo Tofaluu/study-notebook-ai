@@ -35,7 +35,7 @@ export function ConceptView({ tab, sources, onUpdateTab, onTermClick, onFollowUp
 
   if (tab.explanation) {
     return (
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-background">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 bg-background">
         <div className="max-w-3xl mx-auto space-y-6 pb-20">
           <div className="bg-card border border-border/60 rounded-3xl p-6 md:p-10 shadow-sm animate-in fade-in zoom-in-95 duration-500">
             <h2 className="text-3xl font-serif font-bold text-foreground mb-6 pb-4 border-b border-border/50">{tab.explanation.title}</h2>
@@ -69,7 +69,7 @@ export function ConceptView({ tab, sources, onUpdateTab, onTermClick, onFollowUp
 
   if (explainMutation.isError) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
         <AlertCircle className="w-12 h-12 text-destructive mb-4" />
         <h3 className="text-xl font-serif font-bold text-foreground mb-2">Analysis Failed</h3>
         <p className="text-muted-foreground max-w-sm mb-6">We couldn't unpack this concept. Please try asking in the main chat.</p>
@@ -81,7 +81,7 @@ export function ConceptView({ tab, sources, onUpdateTab, onTermClick, onFollowUp
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in duration-700">
+    <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-8 animate-in fade-in duration-700">
       <Loader2 className="w-10 h-10 animate-spin text-primary mb-6" />
       <h3 className="text-xl font-serif font-bold text-foreground mb-2">Analyzing Concept</h3>
       <p className="text-muted-foreground">"{tab.term}"</p>

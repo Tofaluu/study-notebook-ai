@@ -62,7 +62,7 @@ export default function Home() {
         onSetSources={(sources) => activeChat && setSources(activeChat.id, sources)}
       />
       
-      <main className="flex-1 flex flex-col min-w-0 bg-background relative">
+      <main className="flex-1 flex flex-col min-w-0 min-h-0 bg-background relative">
         {activeChat && activeTab ? (
           <>
             <WorkspaceTabs 
