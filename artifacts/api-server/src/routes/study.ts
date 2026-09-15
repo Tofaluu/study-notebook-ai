@@ -63,9 +63,21 @@ const selectedPassageSchema: JsonSchema = {
   properties: {
     title: { type: "string" },
     answerMarkdown: { type: "string" },
+    terms: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          term: { type: "string" },
+          contextSnippet: { type: "string" },
+          plainDefinition: { type: "string" },
+        },
+        required: ["term", "contextSnippet", "plainDefinition"],
+      },
+    },
     sourceRefs: { type: "array", items: pageReferenceSchema },
   },
-  required: ["title", "answerMarkdown", "sourceRefs"],
+  required: ["title", "answerMarkdown", "terms", "sourceRefs"],
 };
 
 async function generateStructured(
@@ -240,6 +252,8 @@ EARLIER ANSWER CONTEXT:
 ${answerContext || "No additional answer context was provided."}
 
 Answer the follow-up directly. Clearly connect the answer to the selected passage, explain assumptions and unfamiliar notation, and use a concrete example when useful. Use clear Markdown and LaTeX delimiters ($...$ for inline math and $$...$$ for display math). Do not merely repeat the selected passage.
+
+Identify 2-8 technical words or phrases used verbatim in answerMarkdown that a beginner may not consider common knowledge. Examples include gradient descent, overfitting, API, recursion, or event loop. Do not include ordinary words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them.
 
 If the lecture sources support the answer, prioritize them and cite only real source IDs/pages with short verbatim excerpts. Otherwise answer from general knowledge and return an empty sourceRefs array.
 
