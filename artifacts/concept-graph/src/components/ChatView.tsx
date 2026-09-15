@@ -1,10 +1,12 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useLayoutEffect } from 'react';
 import { useExplainStudyTopic } from '@workspace/api-client-react';
 import { Chat, HistoryItem } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
 import { BookOpen, Loader2, Send, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+
+const chatScrollPositions = new Map<string, number>();
 
 interface ChatViewProps {
   chat: Chat;
@@ -16,14 +18,18 @@ interface ChatViewProps {
 
 export function ChatView({ chat, onAddHistory, onRename, onTermClick, onFollowUp }: ChatViewProps) {
   const [prompt, setPrompt] = React.useState('');
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const explainMutation = useExplainStudyTopic();
-  
-  useEffect(() => {
-    if (chat.history.length > 0) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+  useLayoutEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const savedScrollTop = chatScrollPositions.get(chat.id);
+    if (savedScrollTop !== undefined) {
+      scrollContainer.scrollTop = savedScrollTop;
     }
-  }, [chat.history, explainMutation.isPending]);
+  }, [chat.id]);
 
   const handleSubmit = () => {
     const isDefaultPrompt = !prompt.trim() && chat.sources.length > 0;
@@ -67,7 +73,13 @@ export function ChatView({ chat, onAddHistory, onRename, onTermClick, onFollowUp
 
   return (
     <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 scroll-smooth">
+      <div
+        ref={scrollContainerRef}
+        onScroll={(event) => {
+          chatScrollPositions.set(chat.id, event.currentTarget.scrollTop);
+        }}
+        className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 scroll-smooth"
+      >
         <div className="max-w-3xl mx-auto space-y-10 pb-32">
           {chat.history.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-center opacity-80 animate-in fade-in zoom-in duration-700">
@@ -128,7 +140,6 @@ export function ChatView({ chat, onAddHistory, onRename, onTermClick, onFollowUp
               </div>
             </div>
           )}
-          <div ref={bottomRef} className="h-1" />
         </div>
       </div>
 
