@@ -1,5 +1,8 @@
 import React, { Fragment } from 'react';
 import ReactMarkdown from 'react-markdown';
+import rehypeKatex from 'rehype-katex';
+import remarkMath from 'remark-math';
+import 'katex/dist/katex.min.css';
 import type { ExplainableTerm } from '@workspace/api-client-react';
 
 interface MarkdownRendererProps {
@@ -11,6 +14,13 @@ interface MarkdownRendererProps {
 
 function escapeRegExp(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeDisplayMath(markdown: string) {
+  return markdown.replace(
+    /\$\$([^\n]+?)\$\$/g,
+    (_, expression: string) => `\n\n$$\n${expression.trim()}\n$$\n\n`
+  );
 }
 
 export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], onTermClick }: MarkdownRendererProps) {
@@ -65,8 +75,11 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
   const processChildren = (children: React.ReactNode): React.ReactNode => {
     return React.Children.map(children, child => {
       if (typeof child === 'string') return renderWithHighlights(child);
-      if (React.isValidElement(child) && child.type === 'button') {
-        return child;
+      if (React.isValidElement<{ className?: string }>(child)) {
+        const className = child.props.className ?? '';
+        if (child.type === 'button' || child.type === 'code' || className.includes('katex')) {
+          return child;
+        }
       }
       if (
         React.isValidElement<{ children?: React.ReactNode }>(child) &&
@@ -91,12 +104,20 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
     blockquote: ({ children }: any) => <blockquote className="border-l-4 border-primary/40 pl-5 italic text-muted-foreground my-6 py-2 bg-muted/40 rounded-r-xl">{processChildren(children)}</blockquote>,
     strong: ({ children }: any) => <strong className="font-semibold text-foreground">{processChildren(children)}</strong>,
     em: ({ children }: any) => <em className="italic">{processChildren(children)}</em>,
-    code: ({ children }: any) => <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded text-foreground/80">{processChildren(children)}</code>,
+    code: ({ children }: any) => <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded text-foreground/80">{children}</code>,
   };
 
+  const normalizedContent = normalizeDisplayMath(content);
+
   return (
-    <div className="prose prose-stone dark:prose-invert max-w-none">
-      <ReactMarkdown components={components}>{content}</ReactMarkdown>
+    <div className="prose prose-stone dark:prose-invert max-w-none [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex-display]:py-2">
+      <ReactMarkdown
+        remarkPlugins={[remarkMath]}
+        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
+        components={components}
+      >
+        {normalizedContent}
+      </ReactMarkdown>
     </div>
   );
 }
