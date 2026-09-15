@@ -5,6 +5,7 @@ import {
 } from '@workspace/api-client-react';
 import { BookOpen, FileText, Loader2, MessageSquareQuote } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { loadSession } from '@/lib/db';
 
 interface FollowUpPayload {
@@ -67,14 +68,17 @@ export default function FollowUpPage() {
   return (
     <div className="min-h-[100dvh] bg-background font-sans">
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl items-center gap-4 px-6 py-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <BookOpen className="h-5 w-5" />
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <BookOpen className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="mb-0.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Passage Follow-up</p>
+              <h1 className="truncate font-serif text-xl font-bold leading-tight text-foreground">{payload.question}</h1>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="mb-0.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Passage Follow-up</p>
-            <h1 className="truncate font-serif text-xl font-bold leading-tight text-foreground">{payload.question}</h1>
-          </div>
+          <ThemeToggle />
         </div>
       </header>
 
