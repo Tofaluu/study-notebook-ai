@@ -66,8 +66,8 @@ export function ChatView({ chat, onAddHistory, onRename, onTermClick, onFollowUp
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 relative">
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+    <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 scroll-smooth">
         <div className="max-w-3xl mx-auto space-y-10 pb-32">
           {chat.history.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-center opacity-80 animate-in fade-in zoom-in duration-700">
