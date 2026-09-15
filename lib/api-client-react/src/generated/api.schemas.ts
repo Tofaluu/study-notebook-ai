@@ -65,3 +65,25 @@ export interface TechnicalConceptExplanation {
   sourceRefs: PageReference[];
 }
 
+export interface SelectedPassageInput {
+  /**
+     * @minLength 1
+     * @maxLength 3000
+     */
+  selectedText: string;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  question: string;
+  /** @maxLength 20000 */
+  answerContext: string;
+  sources: LectureSource[];
+}
+
+export interface SelectedPassageExplanation {
+  title: string;
+  answerMarkdown: string;
+  sourceRefs: PageReference[];
+}
+

@@ -4,6 +4,8 @@ import {
   ExplainStudyTopicResponse,
   ExplainTechnicalConceptBody,
   ExplainTechnicalConceptResponse,
+  ExplainSelectedPassageBody,
+  ExplainSelectedPassageResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -54,6 +56,16 @@ const technicalConceptSchema: JsonSchema = {
     sourceRefs: { type: "array", items: pageReferenceSchema },
   },
   required: ["title", "answerMarkdown", "prerequisiteTerms", "sourceRefs"],
+};
+
+const selectedPassageSchema: JsonSchema = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    answerMarkdown: { type: "string" },
+    sourceRefs: { type: "array", items: pageReferenceSchema },
+  },
+  required: ["title", "answerMarkdown", "sourceRefs"],
 };
 
 async function generateStructured(
@@ -195,6 +207,52 @@ ${formatSources(sources) || "No lecture sources were uploaded."}`,
     req.log.error({ err: error }, "Technical concept explanation failed");
     res.status(500).json({
       error: "Gemini could not explain that concept. Try opening it again.",
+    });
+  }
+});
+
+router.post("/study/follow-ups/explain", async (req, res) => {
+  const parsed = ExplainSelectedPassageBody.safeParse(req.body);
+  if (
+    !parsed.success ||
+    !parsed.data.selectedText.trim() ||
+    !parsed.data.question.trim()
+  ) {
+    res.status(400).json({ error: "Select a passage and ask a question about it." });
+    return;
+  }
+
+  const { selectedText, question, answerContext, sources } = parsed.data;
+
+  try {
+    const raw = await generateStructured(
+      `You are a patient tutor answering a student's focused follow-up question about a passage they selected from an earlier AI explanation.
+
+SELECTED PASSAGE:
+"""
+${selectedText}
+"""
+
+STUDENT'S FOLLOW-UP:
+${question}
+
+EARLIER ANSWER CONTEXT:
+${answerContext || "No additional answer context was provided."}
+
+Answer the follow-up directly. Clearly connect the answer to the selected passage, explain assumptions and unfamiliar notation, and use a concrete example when useful. Use clear Markdown and LaTeX delimiters ($...$ for inline math and $$...$$ for display math). Do not merely repeat the selected passage.
+
+If the lecture sources support the answer, prioritize them and cite only real source IDs/pages with short verbatim excerpts. Otherwise answer from general knowledge and return an empty sourceRefs array.
+
+LECTURE SOURCES:
+${formatSources(sources) || "No lecture sources were uploaded."}`,
+      selectedPassageSchema,
+    );
+
+    res.json(ExplainSelectedPassageResponse.parse(raw));
+  } catch (error) {
+    req.log.error({ err: error }, "Selected passage explanation failed");
+    res.status(500).json({
+      error: "Gemini could not answer that follow-up. Try a shorter selection or question.",
     });
   }
 });

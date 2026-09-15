@@ -83,3 +83,42 @@ export const ExplainTechnicalConceptResponse = zod.object({
 })
 
 
+/**
+ * @summary Answer a question about a selected passage
+ */
+export const explainSelectedPassageBodySelectedTextMax = 3000;
+
+export const explainSelectedPassageBodyQuestionMax = 1000;
+
+export const explainSelectedPassageBodyAnswerContextMax = 20000;
+
+
+
+export const ExplainSelectedPassageBody = zod.object({
+  "selectedText": zod.string().min(1).max(explainSelectedPassageBodySelectedTextMax),
+  "question": zod.string().min(1).max(explainSelectedPassageBodyQuestionMax),
+  "answerContext": zod.string().max(explainSelectedPassageBodyAnswerContextMax),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string(),
+  "pageCount": zod.number().int(),
+  "pages": zod.array(zod.object({
+  "pageNumber": zod.number().int(),
+  "text": zod.string()
+}))
+}))
+})
+
+export const ExplainSelectedPassageResponse = zod.object({
+  "title": zod.string(),
+  "answerMarkdown": zod.string(),
+  "sourceRefs": zod.array(zod.object({
+  "sourceId": zod.string(),
+  "sourceName": zod.string(),
+  "pageNumber": zod.number().int(),
+  "excerpt": zod.string()
+}))
+})
+
+
