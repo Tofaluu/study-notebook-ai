@@ -22,6 +22,8 @@ import type {
 import type {
   ErrorResponse,
   HealthStatus,
+  SelectedPassageExplanation,
+  SelectedPassageInput,
   StudyExplanation,
   StudyExplanationInput,
   TechnicalConceptExplanation,
@@ -307,5 +309,93 @@ export const useExplainTechnicalConcept = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getExplainTechnicalConceptMutationOptions(options));
+    }
+
+export const getExplainSelectedPassageUrl = () => {
+
+
+
+
+  return `/api/study/follow-ups/explain`
+}
+
+/**
+ * @summary Answer a question about a selected passage
+ */
+export const explainSelectedPassage = async (selectedPassageInput: SelectedPassageInput, options?: Parameters<typeof customFetch>[1]): Promise<SelectedPassageExplanation> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SelectedPassageExplanation>(getExplainSelectedPassageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(selectedPassageInput)
+  }
+);}
+
+
+
+
+
+export const getExplainSelectedPassageMutationKey = () => ['explainSelectedPassage'] as const;
+
+export const getExplainSelectedPassageMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof explainSelectedPassage>>, TError,ExplainSelectedPassageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof explainSelectedPassage>>, TError,ExplainSelectedPassageMutationVariables, TContext> => {
+
+const mutationKey = getExplainSelectedPassageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof explainSelectedPassage>>, ExplainSelectedPassageMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  explainSelectedPassage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExplainSelectedPassageMutationResult = NonNullable<Awaited<ReturnType<typeof explainSelectedPassage>>>
+    export type ExplainSelectedPassageMutationBody = BodyType<SelectedPassageInput>
+    export type ExplainSelectedPassageMutationError = ErrorType<ErrorResponse>
+    export type ExplainSelectedPassageMutationVariables = {data: BodyType<SelectedPassageInput>}
+
+    /**
+ * @summary Answer a question about a selected passage
+ */
+export const useExplainSelectedPassage = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof explainSelectedPassage>>, TError,ExplainSelectedPassageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof explainSelectedPassage>>,
+        TError,
+        ExplainSelectedPassageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getExplainSelectedPassageMutationOptions(options));
     }
 

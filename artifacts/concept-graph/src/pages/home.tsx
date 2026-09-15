@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useExplainStudyTopic, LectureSource } from '@workspace/api-client-react';
 import { loadSession, saveSession, HistoryItem, clearSession } from '@/lib/db';
 import { extractTextFromPDF } from '@/lib/pdf';
-import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { SelectableAnswer } from '@/components/SelectableAnswer';
 import { BookOpen, FileText, Send, Trash2, Loader2, UploadCloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -245,8 +245,9 @@ export default function Home() {
                       {item.explanation && (
                         <div className="bg-card border border-border/60 rounded-3xl p-6 md:p-10 shadow-sm">
                           <h2 className="text-3xl font-serif font-bold text-foreground mb-6 pb-4 border-b border-border/50">{item.explanation.title}</h2>
-                          <MarkdownRenderer 
-                            content={item.explanation.answerMarkdown} 
+                          <SelectableAnswer
+                            title={item.explanation.title}
+                            content={item.explanation.answerMarkdown}
                             terms={item.explanation.terms}
                             onTermClick={handleTermClick}
                           />
@@ -306,7 +307,7 @@ export default function Home() {
             </Button>
           </div>
           <div className="max-w-3xl mx-auto mt-2 text-center hidden md:block">
-            <p className="text-xs font-medium text-muted-foreground">Terms are automatically highlighted. Click them for a deep dive.</p>
+            <p className="text-xs font-medium text-muted-foreground">Click a highlighted term, or select any passage to ask a focused follow-up.</p>
           </div>
         </div>
       </main>
