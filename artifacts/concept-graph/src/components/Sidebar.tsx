@@ -188,6 +188,27 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
           </div>
         )}
       </div>
+
+      <div className="p-4 border-t border-border/50 shrink-0 bg-background/50">
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-bold tracking-wider text-muted-foreground uppercase px-1">Gemini API Key</label>
+          <input
+            type="password"
+            placeholder="Paste Gemini Key (BYOK)"
+            className="w-full bg-card border border-border rounded-md px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-primary transition-all placeholder:text-muted-foreground"
+            defaultValue={window.localStorage.getItem('study-notebook-api-key') || ''}
+            onChange={(e) => {
+              const val = e.target.value.trim();
+              if (val) {
+                window.localStorage.setItem('study-notebook-api-key', val);
+              } else {
+                window.localStorage.removeItem('study-notebook-api-key');
+              }
+            }}
+          />
+          <p className="text-[10px] text-muted-foreground px-1 leading-tight">Key is saved in browser local storage and sent directly to your backend.</p>
+        </div>
+      </div>
     </aside>
   );
 }
