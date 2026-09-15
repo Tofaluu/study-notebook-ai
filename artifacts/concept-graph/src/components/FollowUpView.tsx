@@ -54,6 +54,7 @@ export function FollowUpView({ tab, sources, onUpdateTab, onTermClick, onFollowU
             <SelectableAnswer
               title={tab.explanation.title}
               content={tab.explanation.answerMarkdown}
+              terms={tab.explanation.terms}
               onTermClick={onTermClick}
               onFollowUp={onFollowUp}
             />
