@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useExplainTechnicalConcept, TechnicalConceptExplanation } from '@workspace/api-client-react';
 import { loadSession } from '@/lib/db';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Loader2, ArrowLeft, BookOpen, FileText } from 'lucide-react';
 
 export default function ConceptPage() {
@@ -44,14 +45,17 @@ export default function ConceptPage() {
   return (
     <div className="min-h-[100dvh] bg-background font-sans">
       <header className="sticky top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border/50">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center gap-4">
-          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
-            <BookOpen className="w-5 h-5" />
+        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold tracking-wider text-muted-foreground uppercase mb-0.5">Concept Deep Dive</p>
+              <h1 className="font-serif text-2xl font-bold text-foreground leading-tight truncate">{term}</h1>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-bold tracking-wider text-muted-foreground uppercase mb-0.5">Concept Deep Dive</p>
-            <h1 className="font-serif text-2xl font-bold text-foreground leading-tight truncate">{term}</h1>
-          </div>
+          <ThemeToggle />
         </div>
       </header>
 
