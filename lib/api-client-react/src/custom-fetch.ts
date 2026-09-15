@@ -349,12 +349,18 @@ export async function customFetch<T = unknown>(
     headers.set("accept", DEFAULT_JSON_ACCEPT);
   }
 
-  // Attach bearer token when an auth getter is configured and no
-  // Authorization header has been explicitly provided.
   if (_authTokenGetter && !headers.has("authorization")) {
     const token = await _authTokenGetter();
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
+    }
+  }
+
+  // Inject user-provided Gemini API key if present
+  if (typeof window !== "undefined") {
+    const geminiKey = window.localStorage.getItem("study-notebook-api-key");
+    if (geminiKey) {
+      headers.set("x-gemini-api-key", geminiKey);
     }
   }
 
