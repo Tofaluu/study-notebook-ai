@@ -8,8 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 interface SelectableAnswerProps {
   title: string;
   content: string;
-  terms: ExplainableTerm[];
+  terms?: ExplainableTerm[];
+  prerequisiteTerms?: string[];
   onTermClick: (term: string, contextSnippet: string) => void;
+  onFollowUp?: (selectedText: string, question: string, answerContext: string) => void;
 }
 
 interface SelectionPosition {
@@ -35,7 +37,7 @@ function extractReadableSelection(range: Range, fallback: string) {
     .trim();
 }
 
-export function SelectableAnswer({ title, content, terms, onTermClick }: SelectableAnswerProps) {
+export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms = [], onTermClick, onFollowUp }: SelectableAnswerProps) {
   const answerRef = useRef<HTMLDivElement>(null);
   const selectedRangeRef = useRef<Range | null>(null);
   const selectedTextRef = useRef('');
@@ -117,22 +119,27 @@ export function SelectableAnswer({ title, content, terms, onTermClick }: Selecta
     setPosition({ left, top });
   };
 
-  const openFollowUp = () => {
+  const submitFollowUp = () => {
     if (!selectedText || !question.trim()) return;
 
-    const id = crypto.randomUUID();
-    localStorage.setItem(`study-follow-up:${id}`, JSON.stringify({
-      selectedText,
-      question: question.trim(),
-      answerContext: `${title}\n\n${content}`.slice(0, 20000),
-      createdAt: Date.now()
-    }));
+    if (onFollowUp) {
+      onFollowUp(selectedText, question.trim(), `${title}\n\n${content}`.slice(0, 20000));
+    } else {
+      // Backwards compatible fallback
+      const id = crypto.randomUUID();
+      localStorage.setItem(`study-follow-up:${id}`, JSON.stringify({
+        selectedText,
+        question: question.trim(),
+        answerContext: `${title}\n\n${content}`.slice(0, 20000),
+        createdAt: Date.now()
+      }));
 
-    window.open(
-      `${import.meta.env.BASE_URL}follow-up?id=${encodeURIComponent(id)}`,
-      '_blank',
-      'noopener,noreferrer'
-    );
+      window.open(
+        `${import.meta.env.BASE_URL}follow-up?id=${encodeURIComponent(id)}`,
+        '_blank',
+        'noopener,noreferrer'
+      );
+    }
     closePrompt();
   };
 
@@ -145,7 +152,7 @@ export function SelectableAnswer({ title, content, terms, onTermClick }: Selecta
         onMouseUp={captureSelection}
         onTouchEnd={(event) => window.setTimeout(() => captureSelection(event), 50)}
       >
-        <MarkdownRenderer content={content} terms={terms} onTermClick={onTermClick} />
+        <MarkdownRenderer content={content} terms={terms} prerequisiteTerms={prerequisiteTerms} onTermClick={onTermClick} />
       </div>
 
       {position && (
@@ -183,7 +190,7 @@ export function SelectableAnswer({ title, content, terms, onTermClick }: Selecta
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
-                  openFollowUp();
+                  submitFollowUp();
                 }
               }}
               placeholder="Can you elaborate further?"
@@ -195,13 +202,13 @@ export function SelectableAnswer({ title, content, terms, onTermClick }: Selecta
               size="icon"
               className="h-10 w-10 shrink-0 rounded-xl"
               disabled={!question.trim()}
-              onClick={openFollowUp}
+              onClick={submitFollowUp}
               aria-label="Open follow-up explanation"
             >
               <Send className="h-4 w-4" />
             </Button>
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">Press Enter to open the answer in a new tab.</p>
+          <p className="mt-2 text-[11px] text-muted-foreground">Press Enter to investigate further.</p>
         </div>
       )}
     </>
