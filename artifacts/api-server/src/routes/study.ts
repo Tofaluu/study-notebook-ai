@@ -84,14 +84,15 @@ async function generateStructured(
   prompt: string,
   responseSchema: JsonSchema,
   model: string = DEFAULT_MODEL,
+  apiKey?: string
 ): Promise<unknown> {
-  const apiKey = process.env["GEMINI_API_KEY"];
-  if (!apiKey) {
+  const finalApiKey = apiKey || process.env["GEMINI_API_KEY"];
+  if (!finalApiKey) {
     throw new Error("GEMINI_API_KEY is not configured");
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(finalApiKey)}`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -172,6 +173,7 @@ LECTURE SOURCES:
 ${sourceText || "No lecture sources were uploaded."}`,
       studyExplanationSchema,
       model,
+      req.headers["x-gemini-api-key"] as string | undefined
     );
 
     res.json(
@@ -215,6 +217,7 @@ LECTURE SOURCES:
 ${formatSources(sources) || "No lecture sources were uploaded."}`,
       technicalConceptSchema,
       model,
+      req.headers["x-gemini-api-key"] as string | undefined
     );
 
     res.json(ExplainTechnicalConceptResponse.parse(raw));
@@ -264,6 +267,7 @@ LECTURE SOURCES:
 ${formatSources(sources) || "No lecture sources were uploaded."}`,
       selectedPassageSchema,
       model,
+      req.headers["x-gemini-api-key"] as string | undefined
     );
 
     res.json(ExplainSelectedPassageResponse.parse(raw));
