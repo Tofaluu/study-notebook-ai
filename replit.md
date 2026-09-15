@@ -38,9 +38,10 @@ An AI study workspace that explains lecture PDFs and concept prompts in a famili
 
 - Upload one or more PDF lectures and extract their text locally.
 - Ask for a standard AI explanation from PDFs, a concept prompt, or both.
-- Click underlined technical terms to open separate beginner-friendly explanation tabs.
-- Select any passage in an AI answer, ask a focused follow-up, and open the contextual explanation in a separate tab.
-- Continue asking questions while keeping the uploaded lecture context.
+- Create, rename, switch, and delete multiple locally saved study chats.
+- Click underlined technical terms to open persistent internal concept tabs.
+- Select any passage in an AI answer, ask a focused follow-up, and open the contextual explanation in an internal tab.
+- Keep separate messages, uploaded lectures, open tabs, and active-tab state for every chat.
 
 ## User preferences
 
@@ -50,8 +51,9 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 - Re-run API codegen after changing `lib/api-spec/openapi.yaml`.
 - The frontend must continue to support prompt-only explanations with no uploaded files.
-- Technical terms in answers must remain clickable and open a separate `/concept` tab.
-- Selected-passage follow-ups use a dedicated `/follow-up` page and remain grounded in the original answer and uploaded lectures.
+- Technical terms and selected-passage follow-ups must open internal workspace tabs without creating browser tabs.
+- Existing `/concept` and `/follow-up` routes are backwards-compatible fallbacks only.
+- Multi-chat state is local to IndexedDB until account authentication and server synchronization are implemented.
 
 ## Pointers
 
