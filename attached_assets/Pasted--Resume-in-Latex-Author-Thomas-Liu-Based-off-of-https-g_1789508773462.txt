@@ -1,0 +1,194 @@
+%-------------------------
+% Resume in Latex
+% Author : Thomas Liu
+% Based off of: https://github.com/sb2nov/resume
+% License : MIT
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\usepackage{multicol}
+\usepackage{changepage}
+\input{glyphtounicode}
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+% Ensure that generate pdf is machine readable/ATS parsable
+\pdfgentounicode=1
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    \textbf{\Huge \scshape Thomas Francis Liu} \\ \vspace{1pt}
+    \small 647-223-9778 $|$ \href{mailto:t78liu@uwaterloo.ca}{\underline{t78liu@uwaterloo.ca}} $|$ 
+    \href{https://www.linkedin.com/in/thomasliu2005/}{\underline{LinkedIn}} $|$ 
+    \href{https://github.com/Tofaluu}{\underline{GitHub}} $|$ 
+    {\small Oakville, ON}
+\end{center}
+
+
+%-----------TECHNICAL SKILLS-----------
+\section{Technical Skills}
+\begin{itemize}[leftmargin=*]
+
+\item \textbf{Languages:}  
+TypeScript, JavaScript, Python, Java, C / C++, C\#, SQL
+
+\item \textbf{Frameworks \& Tools:}  
+React, Node.js, Playwright, Docker, AWS, Git, Azure DevOps, Postman, Unity, Jira
+
+\end{itemize}
+ 
+
+%-----------EXPERIENCE-----------
+\section{Experience}
+\resumeSubHeadingListStart
+
+\resumeSubheading
+  {Software Engineer}{May 2026 -- Aug 2026}{Method CRM}{Toronto, ON}
+  \resumeItemListStart
+    \resumeItem{Engineered full-stack features and resolved critical bugs for a modern, no-code App Builder using React, TypeScript, and C\#, directly accelerating the product's time-to-market.}
+    \resumeItem{Spearheaded a Proof of Concept (POC) and interactive demo for keyboard navigation to drive accessibility standards, alongside developing core UI features like dynamic component color customization.}
+    \resumeItem{Managed the end-to-end software development lifecycle from ticket refinement to deployment via Docker and Azure DevOps, and integrated AWS to implement secure Single Sign-On (SSO) authentication.}
+  \resumeItemListEnd
+
+\resumeSubheading
+  {QA Automation Engineer}{Sep 2025 -- Dec 2025}{Method CRM}{Toronto, ON}
+  \resumeItemListStart
+    \resumeItem{Developed and maintained Playwright automation for Method CRM's no-code platform: authored 25 TypeScript tests covering UI and functionality, identifying 20+ bugs.}
+    \resumeItem{Maintained and triaged 9 test suites; refactored 15+ flaky tests, reducing false positives by 80\%.}
+    \resumeItem{Validated core product flows through manual and exploratory testing; authored 100+ test cases per release cycle to ensure functionality and regression coverage.}
+  \resumeItemListEnd
+
+\resumeSubheading
+  {Operations and QA Analyst}{Jan 2025 -- Apr 2025}{LeapAP}{Remote}
+  \resumeItemListStart
+    \resumeItem{Provided technical support to 80+ clients, maintaining high satisfaction through proactive problem-solving and issue triaging.}
+    \resumeItem{Analyzed support ticket trends to identify recurring issues and collaborated with engineers to implement targeted solutions.}
+  \resumeItemListEnd
+  
+\resumeSubheading
+  {UWaterloo Esports Manager - Super Smash Bros. Ultimate}{Sep 2024 -- Present}{University of Waterloo}{Waterloo, ON}
+  \resumeItemListStart
+    \resumeItem{Organize weekly tournaments for 20-30 participants, coordinating logistics including venue booking, bracket management, and match scheduling.}
+  \resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+
+%-----------PROJECTS-----------
+\section{Projects}
+\resumeSubHeadingListStart
+
+\resumeProjectHeading
+        {\textbf{TrackMarket} $|$ \href{https://trackmarket.dev}{\underline{Live App}} $|$ \href{https://github.
+  com/Tofaluu/track-market}{\underline{GitHub}} $|$ \emph{React / Preact, TypeScript, Tailwind CSS, Gemini AI}}{}
+        \resumeItemListStart
+          \resumeItem{Architected a high-performance, serverless financial terminal (SPA) using Preact and Signals,
+  achieving fine-grained reactive state updates for live market data without heavy component re-renders.}
+          \resumeItem{Integrated Google Gemini 3.6 Flash with Search Grounding to autonomously fetch real-time stock
+  quotes and generate structured institutional equity research, bypassing expensive legacy financial APIs.}
+          \resumeItem{Engineered a zero-dependency, interactive SVG vector charting engine for historical pricing and
+  intraday sparklines, utilizing a custom Cloudflare Worker proxy to circumvent browser CORS restrictions.}
+          \resumeItem{Built a responsive, dark-mode UI with Tailwind CSS featuring a global ticker search, real-time
+  exchange session tracking, keyboard-driven undo/redo, and seamless \texttt{localStorage} persistence.}
+        \resumeItemListEnd
+
+\resumeProjectHeading
+    {\textbf{RaceMania} $|$ \href{https://tofaluu.github.io/racemania-game/}{\underline{Play in Browser (WebGL Build)}} $|$ \emph{Unity, C\#, WebGL}}{}
+    \resumeItemListStart
+      \resumeItem{Developed a competitive top-down arcade racer in Unity, featuring local co-op multiplayer.}
+      \resumeItem{Engineered a shared-keyboard input system allowing two players to race simultaneously on a single machine.}
+      \resumeItem{Implemented core mechanics including lap validation, collision physics, and track boundaries.}
+    \resumeItemListEnd
+    
+\resumeSubHeadingListEnd
+
+
+ %-----------EDUCATION-----------
+\section{Education}
+\resumeSubHeadingListStart
+\resumeSubheading
+  {University of Waterloo}{Waterloo, ON}
+  {Bachelor of Computer Science}{Sep 2023 -- Apr 2028}
+\resumeSubHeadingListEnd
+
+%-------------------------------------------
+\end{document}
