@@ -55,7 +55,7 @@ export default function Home() {
     const tabKey = `${chat.id}:${tab.id}`;
     const isVisible = tabKey === activeTabKey;
     const visibilityClass = isVisible
-      ? 'flex flex-1 min-h-0 flex-col'
+      ? 'absolute inset-0 flex min-h-0 flex-col'
       : 'hidden';
 
     if (tab.type === 'chat') {
