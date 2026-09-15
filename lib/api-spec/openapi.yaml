@@ -258,8 +258,12 @@ components:
           type: string
         answerMarkdown:
           type: string
+        terms:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExplainableTerm"
         sourceRefs:
           type: array
           items:
             $ref: "#/components/schemas/PageReference"
-      required: [title, answerMarkdown, sourceRefs]
+      required: [title, answerMarkdown, terms, sourceRefs]
