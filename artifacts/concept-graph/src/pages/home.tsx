@@ -307,7 +307,7 @@ export default function Home() {
             </Button>
           </div>
           <div className="max-w-3xl mx-auto mt-2 text-center hidden md:block">
-            <p className="text-xs font-medium text-muted-foreground">Click a highlighted term, or select any passage to ask a focused follow-up.</p>
+            <p className="text-xs font-medium text-muted-foreground">Select text to copy it; click the selected passage to ask a focused follow-up.</p>
           </div>
         </div>
       </main>
