@@ -1,0 +1,29 @@
+What is Machine Epsilon?
+Machine epsilon (often denoted as $E$) is defined as the maximum relative error introduced when converting a real number into its floating-point representation. It is also referred to as the unit round-off error.
+
+Formally, machine epsilon is the smallest value $E$ such that: $$fl(1 + E) > 1$$
+
+It represents the threshold where adding a small value to $1$ produces a result that the floating-point system can distinguish from $1$ itself. Crucially, machine epsilon is not the smallest representable number in the system, but rather a measure of relative precision.
+
+How Machine Epsilon is Calculated
+When representing a real number $x$ in a floating-point system $F = (\beta, t, L, U)$ with base $\beta$ and precision digits $t$, the approximation satisfies $fl(x) = x(1 + \delta)$ for some $|\delta| \le E$.
+
+The exact value of machine epsilon depends on how numbers are rounded:
+
+Rounding to nearest: $E = \frac{1}{2} \beta^{1-t}$
+Truncation: $E = \beta^{1-t}$
+Significance in Arithmetic Operations
+Machine epsilon bounds the relative error for single arithmetic operations under standard hardware models like the IEEE standard. For any basic operation between floating-point numbers $w$ and $z$: $$w \oplus z = fl(w + z) = (w + z)(1 + \delta) \quad \text{where } |\delta| \le E$$
+
+This guarantee ensures that individual floating-point operations stay within a bounded relative error of the exact real-number result.
+
+Sources Cited
+2_FloatingPoint2.pdf p.4
+"This maximum relative error, E, for converting a real into a FP system is called machine epsilon or unit round-off error. It is defined as the smallest value such that fl(1 + E) > 1 under the given floating point system."
+2_FloatingPoint2.pdf p.5
+"These definitions give a rule fl(x) = x(1 + delta) for some |delta| <= E. For an FP system F = (beta, t, L, U) with... rounding to nearest: E = 1/2 beta^(1-t) . truncation: E = beta^(1-t) ."
+2_FloatingPoint2.pdf p.6
+"IEEE standard requires that for w, z in F, w [+] z = fl(w + z) = (w + z)(1 + delta) . again, with |delta| <= E"
+Ask a question about your materials...
+
+
