@@ -3,6 +3,7 @@ import { useExplainStudyTopic, LectureSource } from '@workspace/api-client-react
 import { loadSession, saveSession, HistoryItem, clearSession } from '@/lib/db';
 import { extractTextFromPDF } from '@/lib/pdf';
 import { SelectableAnswer } from '@/components/SelectableAnswer';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { BookOpen, FileText, Send, Trash2, Loader2, UploadCloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -150,11 +151,14 @@ export default function Home() {
   return (
     <div className="flex h-[100dvh] bg-background w-full overflow-hidden font-sans">
       <aside className="w-80 bg-muted border-r border-border flex flex-col hidden md:flex shrink-0">
-        <div className="p-6 border-b border-border/50 flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-            <BookOpen className="w-5 h-5" />
+        <div className="p-6 border-b border-border/50 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <h1 className="truncate font-serif text-xl font-bold text-foreground">Study Notebook</h1>
           </div>
-          <h1 className="font-serif text-xl font-bold text-foreground">Study Notebook</h1>
+          <ThemeToggle />
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
