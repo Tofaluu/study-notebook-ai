@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { LectureSource } from './lectureSource';
+import type { StudyModel } from './studyModel';
 
 export interface StudyExplanationInput {
   prompt: string;
+  model?: StudyModel;
   sources: LectureSource[];
 }

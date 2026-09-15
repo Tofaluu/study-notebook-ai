@@ -39,8 +39,18 @@ export interface ExplainableTerm {
   plainDefinition: string;
 }
 
+export type StudyModel = typeof StudyModel[keyof typeof StudyModel];
+
+
+export const StudyModel = {
+  'gemini-31-flash-lite': 'gemini-3.1-flash-lite',
+  'gemini-37-flash': 'gemini-3.7-flash',
+  'gemini-31-pro-preview': 'gemini-3.1-pro-preview',
+} as const;
+
 export interface StudyExplanationInput {
   prompt: string;
+  model?: StudyModel;
   sources: LectureSource[];
 }
 
@@ -55,6 +65,7 @@ export interface StudyExplanation {
 export interface TechnicalConceptInput {
   term: string;
   context: string;
+  model?: StudyModel;
   sources: LectureSource[];
 }
 
@@ -78,6 +89,7 @@ export interface SelectedPassageInput {
   question: string;
   /** @maxLength 20000 */
   answerContext: string;
+  model?: StudyModel;
   sources: LectureSource[];
 }
 
