@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { LectureSource } from './lectureSource';
+import type { StudyModel } from './studyModel';
 
 export interface SelectedPassageInput {
   /**
@@ -20,5 +21,6 @@ export interface SelectedPassageInput {
   question: string;
   /** @maxLength 20000 */
   answerContext: string;
+  model?: StudyModel;
   sources: LectureSource[];
 }

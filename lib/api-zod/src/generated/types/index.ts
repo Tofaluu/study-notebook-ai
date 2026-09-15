@@ -16,5 +16,6 @@ export * from './selectedPassageExplanation';
 export * from './selectedPassageInput';
 export * from './studyExplanation';
 export * from './studyExplanationInput';
+export * from './studyModel';
 export * from './technicalConceptExplanation';
 export * from './technicalConceptInput';
