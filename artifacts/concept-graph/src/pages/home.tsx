@@ -12,6 +12,8 @@ export default function Home() {
   const [sources, setSources] = useState<LectureSource[]>([]);
   const [prompt, setPrompt] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -31,33 +33,57 @@ export default function Home() {
     }
   }, [history, explainMutation.isPending]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const processFiles = async (files: File[]) => {
+    if (files.length === 0 || isUploading) return;
+
+    const pdfFiles = files.filter(
+      file => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    );
+    const rejectedCount = files.length - pdfFiles.length;
+
+    if (pdfFiles.length === 0) {
+      setUploadError('Please choose PDF files only.');
+      return;
+    }
+
+    setUploadError(
+      rejectedCount > 0
+        ? `${rejectedCount} non-PDF ${rejectedCount === 1 ? 'file was' : 'files were'} skipped.`
+        : null
+    );
     setIsUploading(true);
     try {
       const newSources: LectureSource[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (file.type === 'application/pdf') {
-          const extracted = await extractTextFromPDF(file);
-          newSources.push({
-            id: Math.random().toString(36).substring(2),
-            name: file.name,
-            text: extracted.text,
-            pageCount: extracted.pageCount,
-            pages: extracted.pages
-          });
-        }
+      for (const file of pdfFiles) {
+        const extracted = await extractTextFromPDF(file);
+        newSources.push({
+          id: Math.random().toString(36).substring(2),
+          name: file.name,
+          text: extracted.text,
+          pageCount: extracted.pageCount,
+          pages: extracted.pages
+        });
       }
       const updatedSources = [...sources, ...newSources];
       setSources(updatedSources);
       await saveSession(history, updatedSources);
     } catch (err) {
       console.error(err);
+      setUploadError('One or more PDFs could not be read. Please try another file.');
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    await processFiles(Array.from(e.target.files ?? []));
+    e.target.value = '';
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDraggingFiles(false);
+    void processFiles(Array.from(e.dataTransfer.files));
   };
 
   const removeSource = async (id: string) => {
@@ -139,13 +165,45 @@ export default function Home() {
             )}
           </div>
           
-          <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-primary/30 rounded-xl cursor-pointer bg-card hover:bg-primary/5 transition-colors group">
+          <label
+            onDragEnter={(event) => {
+              event.preventDefault();
+              if (!isUploading) setIsDraggingFiles(true);
+            }}
+            onDragOver={(event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = isUploading ? 'none' : 'copy';
+            }}
+            onDragLeave={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                setIsDraggingFiles(false);
+              }
+            }}
+            onDrop={handleDrop}
+            className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl bg-card transition-all group ${
+              isUploading
+                ? 'cursor-wait opacity-70 border-primary/30'
+                : isDraggingFiles
+                  ? 'cursor-copy border-primary bg-primary/10 scale-[1.01] shadow-sm'
+                  : 'cursor-pointer border-primary/30 hover:bg-primary/5 hover:border-primary/60'
+            }`}
+          >
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               {isUploading ? <Loader2 className="w-6 h-6 text-primary animate-spin mb-2" /> : <UploadCloud className="w-6 h-6 text-primary/70 group-hover:text-primary mb-2 transition-colors" />}
-              <p className="text-xs text-muted-foreground font-medium">{isUploading ? 'Extracting text...' : 'Upload Lecture PDF'}</p>
+              <p className="text-xs text-muted-foreground font-medium">
+                {isUploading ? 'Extracting text...' : isDraggingFiles ? 'Drop PDFs here' : 'Drop PDFs here or browse'}
+              </p>
+              {!isUploading && !isDraggingFiles && (
+                <p className="mt-1 text-[11px] text-muted-foreground/70">Multiple files supported</p>
+              )}
             </div>
-            <input type="file" className="hidden" accept="application/pdf" multiple onChange={handleFileUpload} disabled={isUploading} />
+            <input type="file" className="hidden" accept="application/pdf,.pdf" multiple onChange={handleFileUpload} disabled={isUploading} />
           </label>
+          {uploadError && (
+            <p role="alert" className="px-2 text-xs leading-relaxed text-destructive">
+              {uploadError}
+            </p>
+          )}
 
           <div className="space-y-2">
             {sources.map(s => (
