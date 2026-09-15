@@ -39,6 +39,7 @@ An AI study workspace that explains lecture PDFs and concept prompts in a famili
 - Upload one or more PDF lectures and extract their text locally.
 - Ask for a standard AI explanation from PDFs, a concept prompt, or both.
 - Click underlined technical terms to open separate beginner-friendly explanation tabs.
+- Select any passage in an AI answer, ask a focused follow-up, and open the contextual explanation in a separate tab.
 - Continue asking questions while keeping the uploaded lecture context.
 
 ## User preferences
@@ -50,6 +51,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 - Re-run API codegen after changing `lib/api-spec/openapi.yaml`.
 - The frontend must continue to support prompt-only explanations with no uploaded files.
 - Technical terms in answers must remain clickable and open a separate `/concept` tab.
+- Selected-passage follow-ups use a dedicated `/follow-up` page and remain grounded in the original answer and uploaded lectures.
 
 ## Pointers
 

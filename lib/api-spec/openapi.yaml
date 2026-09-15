@@ -86,6 +86,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /study/follow-ups/explain:
+    post:
+      operationId: explainSelectedPassage
+      tags: [study]
+      summary: Answer a question about a selected passage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SelectedPassageInput"
+      responses:
+        "200":
+          description: Contextual follow-up explanation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SelectedPassageExplanation"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Explanation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -202,3 +232,34 @@ components:
           items:
             $ref: "#/components/schemas/PageReference"
       required: [title, answerMarkdown, prerequisiteTerms, sourceRefs]
+    SelectedPassageInput:
+      type: object
+      properties:
+        selectedText:
+          type: string
+          minLength: 1
+          maxLength: 3000
+        question:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        answerContext:
+          type: string
+          maxLength: 20000
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/LectureSource"
+      required: [selectedText, question, answerContext, sources]
+    SelectedPassageExplanation:
+      type: object
+      properties:
+        title:
+          type: string
+        answerMarkdown:
+          type: string
+        sourceRefs:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageReference"
+      required: [title, answerMarkdown, sourceRefs]

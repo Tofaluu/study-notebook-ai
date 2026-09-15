@@ -12,6 +12,8 @@ export * from './healthStatus';
 export * from './lecturePage';
 export * from './lectureSource';
 export * from './pageReference';
+export * from './selectedPassageExplanation';
+export * from './selectedPassageInput';
 export * from './studyExplanation';
 export * from './studyExplanationInput';
 export * from './technicalConceptExplanation';
