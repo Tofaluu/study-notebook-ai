@@ -1,5 +1,5 @@
 import React, { useRef, useLayoutEffect } from 'react';
-import { useExplainStudyTopic } from '@workspace/api-client-react';
+import { useExplainStudyTopic, type StudyModel } from '@workspace/api-client-react';
 import { Chat, HistoryItem } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
 import { BookOpen, Loader2, Send, FileText } from 'lucide-react';
@@ -10,13 +10,14 @@ const chatScrollPositions = new Map<string, number>();
 
 interface ChatViewProps {
   chat: Chat;
+  model: StudyModel;
   onAddHistory: (items: HistoryItem[]) => void;
   onRename: (title: string) => void;
   onTermClick: (term: string, contextSnippet: string) => void;
   onFollowUp: (selectedText: string, question: string, answerContext: string) => void;
 }
 
-export function ChatView({ chat, onAddHistory, onRename, onTermClick, onFollowUp }: ChatViewProps) {
+export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onFollowUp }: ChatViewProps) {
   const [prompt, setPrompt] = React.useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const explainMutation = useExplainStudyTopic();
@@ -50,7 +51,7 @@ export function ChatView({ chat, onAddHistory, onRename, onTermClick, onFollowUp
     }
     setPrompt('');
 
-    explainMutation.mutate({ data: { prompt: actualPrompt, sources: chat.sources } }, {
+    explainMutation.mutate({ data: { prompt: actualPrompt, model, sources: chat.sources } }, {
       onSuccess: (data) => {
         const aiMessage: HistoryItem = {
           id: crypto.randomUUID(),

@@ -6,8 +6,19 @@ import { ChatView } from '@/components/ChatView';
 import { ConceptView } from '@/components/ConceptView';
 import { FollowUpView } from '@/components/FollowUpView';
 import { Loader2 } from 'lucide-react';
+import type { StudyModel } from '@workspace/api-client-react';
+import { DEFAULT_STUDY_MODEL, isStudyModel } from '@/lib/models';
+
+const MODEL_STORAGE_KEY = 'study-notebook-model-v1';
 
 export default function Home() {
+  const [selectedModel, setSelectedModel] = React.useState<StudyModel>(() => {
+    const savedModel = localStorage.getItem(MODEL_STORAGE_KEY);
+    return isStudyModel(savedModel) ? savedModel : DEFAULT_STUDY_MODEL;
+  });
+  React.useEffect(() => {
+    localStorage.setItem(MODEL_STORAGE_KEY, selectedModel);
+  }, [selectedModel]);
   const { 
     state, activeChat, createChat, switchChat, deleteChat, renameChat, 
     addTab, closeTab, switchTab, updateTab, setSources, addHistory 
@@ -32,7 +43,8 @@ export default function Home() {
       type: 'concept',
       title: term,
       term,
-      contextSnippet
+      contextSnippet,
+      model: selectedModel
     });
   };
 
@@ -44,7 +56,8 @@ export default function Home() {
       title: `Q: ${question.length > 15 ? question.slice(0, 15) + '...' : question}`,
       selectedText,
       question,
-      answerContext
+      answerContext,
+      model: selectedModel
     });
   };
 
@@ -63,6 +76,7 @@ export default function Home() {
         <div key={tabKey} className={visibilityClass}>
           <ChatView
             chat={chat}
+            model={selectedModel}
             onAddHistory={(items) => addHistory(chat.id, items)}
             onRename={(title) => renameChat(chat.id, title)}
             onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet)}
@@ -80,6 +94,7 @@ export default function Home() {
           <ConceptView
             tab={tab}
             sources={chat.sources}
+            model={tab.model ?? selectedModel}
             onUpdateTab={(updates) => updateTab(chat.id, tab.id, updates)}
             onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet)}
             onFollowUp={(selectedText, question, answerContext) =>
@@ -95,6 +110,7 @@ export default function Home() {
         <FollowUpView
           tab={tab}
           sources={chat.sources}
+          model={tab.model ?? selectedModel}
           onUpdateTab={(updates) => updateTab(chat.id, tab.id, updates)}
           onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet)}
           onFollowUp={(selectedText, question, answerContext) =>
@@ -124,8 +140,12 @@ export default function Home() {
             <WorkspaceTabs 
               tabs={activeChat.tabs} 
               activeTabId={activeChat.activeTabId} 
+              model={selectedModel}
               onSwitch={(tabId) => switchTab(activeChat.id, tabId)}
               onClose={(tabId) => closeTab(activeChat.id, tabId)}
+              onModelChange={(model) => {
+                setSelectedModel(model);
+              }}
             />
             <div className="flex-1 min-h-0 relative">
               {state.chats.flatMap(chat =>

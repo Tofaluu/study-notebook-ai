@@ -9,7 +9,7 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
-const MODEL = process.env["GEMINI_MODEL"] || "gemini-3.6-flash";
+const DEFAULT_MODEL = "gemini-3.7-flash";
 const MAX_SOURCE_CHARS = 180_000;
 
 type JsonSchema = Record<string, unknown>;
@@ -83,6 +83,7 @@ const selectedPassageSchema: JsonSchema = {
 async function generateStructured(
   prompt: string,
   responseSchema: JsonSchema,
+  model: string = DEFAULT_MODEL,
 ): Promise<unknown> {
   const apiKey = process.env["GEMINI_API_KEY"];
   if (!apiKey) {
@@ -90,7 +91,7 @@ async function generateStructured(
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -149,7 +150,7 @@ router.post("/study/explain", async (req, res) => {
     return;
   }
 
-  const { prompt, sources } = parsed.data;
+  const { prompt, sources, model } = parsed.data;
   if (!prompt.trim() && sources.length === 0) {
     res.status(400).json({ error: "Add a question or lecture PDF." });
     return;
@@ -170,6 +171,7 @@ If lecture sources are supplied, prioritize them and cite only real source IDs/p
 LECTURE SOURCES:
 ${sourceText || "No lecture sources were uploaded."}`,
       studyExplanationSchema,
+      model,
     );
 
     res.json(
@@ -196,7 +198,7 @@ router.post("/study/concepts/explain", async (req, res) => {
     return;
   }
 
-  const { term, context, sources } = parsed.data;
+  const { term, context, sources, model } = parsed.data;
 
   try {
     const raw = await generateStructured(
@@ -212,6 +214,7 @@ If the lecture sources discuss the concept, prioritize them and cite only real s
 LECTURE SOURCES:
 ${formatSources(sources) || "No lecture sources were uploaded."}`,
       technicalConceptSchema,
+      model,
     );
 
     res.json(ExplainTechnicalConceptResponse.parse(raw));
@@ -234,7 +237,7 @@ router.post("/study/follow-ups/explain", async (req, res) => {
     return;
   }
 
-  const { selectedText, question, answerContext, sources } = parsed.data;
+  const { selectedText, question, answerContext, sources, model } = parsed.data;
 
   try {
     const raw = await generateStructured(
@@ -260,6 +263,7 @@ If the lecture sources support the answer, prioritize them and cite only real so
 LECTURE SOURCES:
 ${formatSources(sources) || "No lecture sources were uploaded."}`,
       selectedPassageSchema,
+      model,
     );
 
     res.json(ExplainSelectedPassageResponse.parse(raw));

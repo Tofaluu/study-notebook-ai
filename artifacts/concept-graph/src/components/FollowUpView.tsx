@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useExplainSelectedPassage, LectureSource } from '@workspace/api-client-react';
+import { useExplainSelectedPassage, LectureSource, type StudyModel } from '@workspace/api-client-react';
 import { FollowUpTab } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
 import { Loader2, AlertCircle, Quote } from 'lucide-react';
@@ -7,12 +7,13 @@ import { Loader2, AlertCircle, Quote } from 'lucide-react';
 interface FollowUpViewProps {
   tab: FollowUpTab;
   sources: LectureSource[];
+  model: StudyModel;
   onUpdateTab: (updates: Partial<FollowUpTab>) => void;
   onTermClick: (term: string, contextSnippet: string) => void;
   onFollowUp: (selectedText: string, question: string, answerContext: string) => void;
 }
 
-export function FollowUpView({ tab, sources, onUpdateTab, onTermClick, onFollowUp }: FollowUpViewProps) {
+export function FollowUpView({ tab, sources, model, onUpdateTab, onTermClick, onFollowUp }: FollowUpViewProps) {
   const explainMutation = useExplainSelectedPassage();
   const initRef = useRef(false);
 
@@ -24,6 +25,7 @@ export function FollowUpView({ tab, sources, onUpdateTab, onTermClick, onFollowU
           selectedText: tab.selectedText,
           question: tab.question,
           answerContext: tab.answerContext,
+          model,
           sources
         }
       }, {

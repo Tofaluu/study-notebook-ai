@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useExplainTechnicalConcept, LectureSource } from '@workspace/api-client-react';
+import { useExplainTechnicalConcept, LectureSource, type StudyModel } from '@workspace/api-client-react';
 import { ConceptTab } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -7,12 +7,13 @@ import { Loader2, AlertCircle } from 'lucide-react';
 interface ConceptViewProps {
   tab: ConceptTab;
   sources: LectureSource[];
+  model: StudyModel;
   onUpdateTab: (updates: Partial<ConceptTab>) => void;
   onTermClick: (term: string, contextSnippet: string) => void;
   onFollowUp: (selectedText: string, question: string, answerContext: string) => void;
 }
 
-export function ConceptView({ tab, sources, onUpdateTab, onTermClick, onFollowUp }: ConceptViewProps) {
+export function ConceptView({ tab, sources, model, onUpdateTab, onTermClick, onFollowUp }: ConceptViewProps) {
   const explainMutation = useExplainTechnicalConcept();
   const initRef = useRef(false);
 
@@ -23,6 +24,7 @@ export function ConceptView({ tab, sources, onUpdateTab, onTermClick, onFollowUp
         data: {
           term: tab.term,
           context: tab.contextSnippet,
+          model,
           sources
         }
       }, {

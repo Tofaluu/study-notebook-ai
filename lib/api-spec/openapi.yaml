@@ -176,11 +176,19 @@ components:
         plainDefinition:
           type: string
       required: [term, contextSnippet, plainDefinition]
+    StudyModel:
+      type: string
+      enum:
+        - gemini-3.1-flash-lite
+        - gemini-3.7-flash
+        - gemini-3.1-pro-preview
     StudyExplanationInput:
       type: object
       properties:
         prompt:
           type: string
+        model:
+          $ref: "#/components/schemas/StudyModel"
         sources:
           type: array
           items:
@@ -211,6 +219,8 @@ components:
           type: string
         context:
           type: string
+        model:
+          $ref: "#/components/schemas/StudyModel"
         sources:
           type: array
           items:
@@ -246,6 +256,8 @@ components:
         answerContext:
           type: string
           maxLength: 20000
+        model:
+          $ref: "#/components/schemas/StudyModel"
         sources:
           type: array
           items:

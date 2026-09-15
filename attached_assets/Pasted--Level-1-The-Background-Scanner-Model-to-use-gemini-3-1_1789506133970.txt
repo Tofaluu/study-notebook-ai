@@ -1,0 +1,26 @@
+### Level 1: The Background Scanner
+
+  • Model to use: gemini-3.1-flash-lite
+  • What it does in your app: This is the model that reads the AI's generated answers and decides which words are "concept prerequisites" that need
+  to be underlined.
+  • Why: This is a high-volume, repetitive data-extraction task. Since 3.1 Flash-Lite costs a fraction of the standard models ($0.25 per 1M input
+  tokens), it can run invisibly in the background every single time a message is sent without ballooning your API costs. It is lightning-fast and
+  built exactly for this type of endpoint routing.
+
+  ### Level 2: The Core Chatbot
+
+  • Model to use: gemini-3.7-flash
+  • What it does in your app: This is your primary conversational engine. When the user types a normal prompt in the chat (e.g., "Summarize chapter
+  4" or "What does this PDF say about X?"), this model handles it.
+  • Why: As your log noted, 3.7 Flash is the "Efficient Mid-Tier." It is highly capable of reading the PDF context and giving great answers, but it
+  guarantees predictable token output. It won't freeze up and burn hundreds of hidden "thinking tokens" to answer a straightforward study question.
+  It keeps the chat feeling snappy and cost-effective.
+
+  ### Level 3: The Deep Academic Tutor
+
+  • Model to use: gemini-3.1-pro (or gemini-3.8-flash on "High Effort" mode)
+  • What it does in your app: You trigger this model when the user highlights a massive, complex block of text and asks a deeply specific question,
+  or when they click an underlined prerequisite word and need a fundamental pedagogical breakdown of the science/math behind it.
+  • Why: This is where you actually want the model to slow down and think. 3.1 Pro is specifically designated for "the absolute hardest problems in
+  science, research, and deep reasoning." By reserving this expensive, heavy-duty reasoning model exclusively for deep-dives, you guarantee that
+  users get incredibly high-quality tutoring exactly when they need it most, without wasting compute on simple tasks.

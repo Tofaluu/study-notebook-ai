@@ -1,5 +1,5 @@
 import { get, set } from 'idb-keyval';
-import type { LectureSource, StudyExplanation, TechnicalConceptExplanation, SelectedPassageExplanation } from '@workspace/api-client-react';
+import type { LectureSource, StudyExplanation, TechnicalConceptExplanation, SelectedPassageExplanation, StudyModel } from '@workspace/api-client-react';
 
 export interface HistoryItem {
   id: string;
@@ -25,6 +25,7 @@ export interface ConceptTab extends BaseTab {
   type: 'concept';
   term: string;
   contextSnippet: string;
+  model?: StudyModel;
   explanation?: TechnicalConceptExplanation;
 }
 
@@ -33,6 +34,7 @@ export interface FollowUpTab extends BaseTab {
   selectedText: string;
   question: string;
   answerContext: string;
+  model?: StudyModel;
   explanation?: SelectedPassageExplanation;
 }
 
