@@ -5,10 +5,12 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ExplainableTerm } from './explainableTerm';
 import type { PageReference } from './pageReference';
 
 export interface SelectedPassageExplanation {
   title: string;
   answerMarkdown: string;
+  terms: ExplainableTerm[];
   sourceRefs: PageReference[];
 }
