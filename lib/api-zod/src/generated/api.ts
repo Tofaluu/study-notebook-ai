@@ -113,6 +113,11 @@ export const ExplainSelectedPassageBody = zod.object({
 export const ExplainSelectedPassageResponse = zod.object({
   "title": zod.string(),
   "answerMarkdown": zod.string(),
+  "terms": zod.array(zod.object({
+  "term": zod.string(),
+  "contextSnippet": zod.string(),
+  "plainDefinition": zod.string()
+})),
   "sourceRefs": zod.array(zod.object({
   "sourceId": zod.string(),
   "sourceName": zod.string(),

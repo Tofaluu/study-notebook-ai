@@ -84,6 +84,7 @@ export interface SelectedPassageInput {
 export interface SelectedPassageExplanation {
   title: string;
   answerMarkdown: string;
+  terms: ExplainableTerm[];
   sourceRefs: PageReference[];
 }
 
