@@ -103,7 +103,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
                     <TextSelect className="w-5 h-5 text-primary" />
                     Contextual Follow-ups
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">Highlight any text within the AI's response using your mouse to ask a highly specific follow-up question directly related to that passage.</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Highlight any text within the AI's response and left-click on the selected text to ask a highly specific follow-up question directly related to that passage.</p>
                 </div>
               </div>
             </div>
