@@ -153,7 +153,13 @@ router.post("/study/explain", async (req, res) => {
   }
   const apiKey = req.get("x-gemini-api-key")?.trim();
   if (!apiKey) {
-    res.status(400).json({ error: "Add your Gemini API key in the sidebar to continue." });
+    res.json({
+      title: "API Key Required",
+      answerMarkdown: "Your Gemini API key is not configured. Please paste your Gemini API key in the bottom left sidebar to start using the Study Notebook.",
+      terms: [],
+      sourceRefs: [],
+      generatedAt: new Date().toISOString()
+    });
     return;
   }
 
@@ -200,7 +206,12 @@ router.post("/study/concepts/explain", async (req, res) => {
   const { term, context, sources, model } = parsed.data;
   const apiKey = req.get("x-gemini-api-key")?.trim();
   if (!apiKey) {
-    res.status(400).json({ error: "Add your Gemini API key in the sidebar to continue." });
+    res.json({
+      title: "API Key Required",
+      answerMarkdown: "Your Gemini API key is not configured. Please paste your Gemini API key in the bottom left sidebar to explain concepts.",
+      prerequisiteTerms: [],
+      sourceRefs: []
+    });
     return;
   }
 
@@ -245,7 +256,12 @@ router.post("/study/follow-ups/explain", async (req, res) => {
   const { selectedText, question, answerContext, sources, model } = parsed.data;
   const apiKey = req.get("x-gemini-api-key")?.trim();
   if (!apiKey) {
-    res.status(400).json({ error: "Add your Gemini API key in the sidebar to continue." });
+    res.json({
+      title: "API Key Required",
+      answerMarkdown: "Your Gemini API key is not configured. Please paste your Gemini API key in the bottom left sidebar to ask follow-up questions.",
+      terms: [],
+      sourceRefs: []
+    });
     return;
   }
 
