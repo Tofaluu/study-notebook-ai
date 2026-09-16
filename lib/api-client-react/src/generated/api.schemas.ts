@@ -46,6 +46,11 @@ export const StudyModel = {
   'gemini-31-flash-lite': 'gemini-3.1-flash-lite',
   'gemini-37-flash': 'gemini-3.7-flash',
   'gemini-31-pro-preview': 'gemini-3.1-pro-preview',
+  'gemini-37-pro': 'gemini-3.7-pro',
+  'gpt-6-astra': 'gpt-6-astra',
+  'gpt-56-sol': 'gpt-5.6-sol',
+  'claude-fable-51': 'claude-fable-5.1',
+  'claude-sonnet-5': 'claude-sonnet-5',
 } as const;
 
 export interface StudyExplanationInput {
