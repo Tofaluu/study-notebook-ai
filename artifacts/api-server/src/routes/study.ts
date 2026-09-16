@@ -116,6 +116,24 @@ async function generateStructured(
   return JSON.parse(text);
 }
 
+function getErrorMessage(error: unknown): string {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (
+    msg.includes("API_KEY_INVALID") ||
+    msg.includes("API key not valid") ||
+    msg.includes("PERMISSION_DENIED") ||
+    msg.includes("400") ||
+    msg.includes("401") ||
+    msg.includes("403")
+  ) {
+    return "The provided Gemini API key is invalid or unauthorized. Please verify your API key and update it in the API Key Settings.";
+  }
+  if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
+    return "Gemini quota or rate limit exceeded for this API key. Please check your usage limits or try again in a few moments.";
+  }
+  return "An error occurred while communicating with Gemini. Please check your API key in API Key Settings and try again.";
+}
+
 function formatSources(
   sources: Array<{
     id: string;
@@ -155,7 +173,7 @@ router.post("/study/explain", async (req, res) => {
   if (!apiKey) {
     res.json({
       title: "API Key Required",
-      answerMarkdown: "Your Gemini API key is not configured. Please paste your Gemini API key in the bottom left sidebar to start using the Study Notebook.",
+      answerMarkdown: "Your Gemini API key is not configured. Please add your Gemini API key in API Key Settings to start using the Study Notebook.",
       terms: [],
       sourceRefs: [],
       generatedAt: new Date().toISOString()
@@ -190,8 +208,12 @@ ${sourceText || "No lecture sources were uploaded."}`,
     );
   } catch (error) {
     req.log.error({ err: error }, "Study explanation failed");
-    res.status(500).json({
-      error: "Gemini could not create the explanation. Try a shorter question or fewer lecture files.",
+    res.json({
+      title: "Unable to Complete Request",
+      answerMarkdown: getErrorMessage(error),
+      terms: [],
+      sourceRefs: [],
+      generatedAt: new Date().toISOString(),
     });
   }
 });
@@ -208,7 +230,7 @@ router.post("/study/concepts/explain", async (req, res) => {
   if (!apiKey) {
     res.json({
       title: "API Key Required",
-      answerMarkdown: "Your Gemini API key is not configured. Please paste your Gemini API key in the bottom left sidebar to explain concepts.",
+      answerMarkdown: "Your Gemini API key is not configured. Please add your Gemini API key in API Key Settings to explain concepts.",
       prerequisiteTerms: [],
       sourceRefs: []
     });
@@ -236,8 +258,11 @@ ${formatSources(sources) || "No lecture sources were uploaded."}`,
     res.json(ExplainTechnicalConceptResponse.parse(raw));
   } catch (error) {
     req.log.error({ err: error }, "Technical concept explanation failed");
-    res.status(500).json({
-      error: "Gemini could not explain that concept. Try opening it again.",
+    res.json({
+      title: "Unable to Complete Request",
+      answerMarkdown: getErrorMessage(error),
+      prerequisiteTerms: [],
+      sourceRefs: [],
     });
   }
 });
@@ -258,7 +283,7 @@ router.post("/study/follow-ups/explain", async (req, res) => {
   if (!apiKey) {
     res.json({
       title: "API Key Required",
-      answerMarkdown: "Your Gemini API key is not configured. Please paste your Gemini API key in the bottom left sidebar to ask follow-up questions.",
+      answerMarkdown: "Your Gemini API key is not configured. Please add your Gemini API key in API Key Settings to ask follow-up questions.",
       terms: [],
       sourceRefs: []
     });
@@ -296,8 +321,11 @@ ${formatSources(sources) || "No lecture sources were uploaded."}`,
     res.json(ExplainSelectedPassageResponse.parse(raw));
   } catch (error) {
     req.log.error({ err: error }, "Selected passage explanation failed");
-    res.status(500).json({
-      error: "Gemini could not answer that follow-up. Try a shorter selection or question.",
+    res.json({
+      title: "Unable to Complete Request",
+      answerMarkdown: getErrorMessage(error),
+      terms: [],
+      sourceRefs: [],
     });
   }
 });
