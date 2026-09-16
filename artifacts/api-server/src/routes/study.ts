@@ -84,35 +84,95 @@ async function generateStructured(
   prompt: string,
   responseSchema: JsonSchema,
   model: string = DEFAULT_MODEL,
-  apiKey: string
+  req?: any // Pass the express request to get headers easily
 ): Promise<unknown> {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.25,
-          responseMimeType: "application/json",
-          responseSchema,
-        },
-      }),
-      signal: AbortSignal.timeout(90_000),
-    },
-  );
+  const isOpenAI = model.startsWith("gpt-");
+  const isAnthropic = model.startsWith("claude-");
+  
+  let apiKey = req?.get("x-gemini-api-key")?.trim();
+  if (isOpenAI) apiKey = req?.get("x-openai-api-key")?.trim();
+  if (isAnthropic) apiKey = req?.get("x-anthropic-api-key")?.trim();
+
+  if (!apiKey) {
+    throw new Error(`API_KEY_INVALID: Missing API key for ${isOpenAI ? 'OpenAI' : isAnthropic ? 'Anthropic' : 'Gemini'}`);
+  }
+
+  let url, headers, body, extractText;
+
+  if (isOpenAI) {
+    url = "https://api.openai.com/v1/chat/completions";
+    headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    };
+    body = {
+      model,
+      temperature: 0.25,
+      messages: [{ role: "user", content: prompt }],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "response",
+          strict: true,
+          schema: { ...responseSchema, additionalProperties: false }
+        }
+      }
+    };
+    extractText = (payload: any) => payload.choices?.[0]?.message?.content;
+  } else if (isAnthropic) {
+    url = "https://api.anthropic.com/v1/messages";
+    headers = {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01"
+    };
+    body = {
+      model,
+      max_tokens: 4096,
+      temperature: 0.25,
+      system: "You must use the provided tool to output the response in the requested format.",
+      messages: [{ role: "user", content: prompt }],
+      tools: [{
+        name: "output_response",
+        description: "Output the structured response",
+        input_schema: responseSchema
+      }],
+      tool_choice: { type: "tool", name: "output_response" }
+    };
+    extractText = (payload: any) => {
+      const toolCall = payload.content?.find((c: any) => c.type === "tool_use");
+      return toolCall ? JSON.stringify(toolCall.input) : null;
+    };
+  } else {
+    url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    headers = { "content-type": "application/json" };
+    body = {
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.25,
+        responseMimeType: "application/json",
+        responseSchema,
+      },
+    };
+    extractText = (payload: any) => payload.candidates?.[0]?.content?.parts?.[0]?.text;
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(90_000),
+  });
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(`Gemini request failed (${response.status}): ${detail}`);
+    throw new Error(`API request failed (${response.status}): ${detail}`);
   }
 
-  const payload = (await response.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-  };
-  const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini returned an empty response");
+  const payload = await response.json();
+  const text = extractText(payload);
+  if (!text) throw new Error("API returned an empty response");
+  
   return JSON.parse(text);
 }
 
@@ -169,18 +229,6 @@ router.post("/study/explain", async (req, res) => {
     res.status(400).json({ error: "Add a question or lecture PDF." });
     return;
   }
-  const apiKey = req.get("x-gemini-api-key")?.trim();
-  if (!apiKey) {
-    res.json({
-      title: "API Key Required",
-      answerMarkdown: "Your Gemini API key is not configured. Please add your Gemini API key in API Key Settings to start using the Study Notebook.",
-      terms: [],
-      sourceRefs: [],
-      generatedAt: new Date().toISOString()
-    });
-    return;
-  }
-
   try {
     const sourceText = formatSources(sources);
     const raw = await generateStructured(
@@ -197,7 +245,7 @@ LECTURE SOURCES:
 ${sourceText || "No lecture sources were uploaded."}`,
       studyExplanationSchema,
       model,
-      apiKey
+      req
     );
 
     res.json(
@@ -226,17 +274,6 @@ router.post("/study/concepts/explain", async (req, res) => {
   }
 
   const { term, context, sources, model } = parsed.data;
-  const apiKey = req.get("x-gemini-api-key")?.trim();
-  if (!apiKey) {
-    res.json({
-      title: "API Key Required",
-      answerMarkdown: "Your Gemini API key is not configured. Please add your Gemini API key in API Key Settings to explain concepts.",
-      prerequisiteTerms: [],
-      sourceRefs: []
-    });
-    return;
-  }
-
   try {
     const raw = await generateStructured(
       `You are a patient computer science tutor. Explain the technical concept "${term}" as a standalone learning page for a beginner who clicked the term inside another explanation.
@@ -252,7 +289,7 @@ LECTURE SOURCES:
 ${formatSources(sources) || "No lecture sources were uploaded."}`,
       technicalConceptSchema,
       model,
-      apiKey
+      req
     );
 
     res.json(ExplainTechnicalConceptResponse.parse(raw));
@@ -279,17 +316,6 @@ router.post("/study/follow-ups/explain", async (req, res) => {
   }
 
   const { selectedText, question, answerContext, sources, model } = parsed.data;
-  const apiKey = req.get("x-gemini-api-key")?.trim();
-  if (!apiKey) {
-    res.json({
-      title: "API Key Required",
-      answerMarkdown: "Your Gemini API key is not configured. Please add your Gemini API key in API Key Settings to ask follow-up questions.",
-      terms: [],
-      sourceRefs: []
-    });
-    return;
-  }
-
   try {
     const raw = await generateStructured(
       `You are a patient tutor answering a student's focused follow-up question about a passage they selected from an earlier AI explanation.
@@ -315,7 +341,7 @@ LECTURE SOURCES:
 ${formatSources(sources) || "No lecture sources were uploaded."}`,
       selectedPassageSchema,
       model,
-      apiKey
+      req
     );
 
     res.json(ExplainSelectedPassageResponse.parse(raw));

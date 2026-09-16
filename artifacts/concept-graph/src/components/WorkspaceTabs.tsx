@@ -60,9 +60,21 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
         onChange={(event) => onModelChange(event.target.value as StudyModel)}
         className="h-8 shrink-0 rounded-md border border-border bg-card px-2 text-xs font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/30"
       >
-        {STUDY_MODEL_OPTIONS.map(option => (
-          <option key={option.value} value={option.value}>{option.label}</option>
-        ))}
+        <optgroup label="Google">
+          {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Google').map(option => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </optgroup>
+        <optgroup label="OpenAI">
+          {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'OpenAI').map(option => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </optgroup>
+        <optgroup label="Anthropic">
+          {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Anthropic').map(option => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </optgroup>
       </select>
     </div>
   );
