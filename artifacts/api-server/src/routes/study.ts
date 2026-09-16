@@ -245,12 +245,12 @@ router.post("/study/explain", async (req, res) => {
   try {
     const sourceText = formatSources(sources);
     const raw = await generateStructured(
-      `You are a patient computer science tutor. Give the student a normal, high-quality chat answer to their question. Start with a direct explanation, use examples where helpful, and build from familiar ideas toward technical detail. Use Markdown headings, paragraphs, lists, and code fences when useful.
+      `You are a patient and knowledgeable tutor. Give the student a high-quality, educational answer to their question. Start with a direct explanation, use examples where helpful, and build from familiar ideas toward complex details. Use Markdown headings, paragraphs, lists, and formatting when useful.
 
 QUESTION:
 ${prompt.trim() || "Explain the main ideas in these lecture materials."}
 
-Identify 4-12 technical words or phrases used verbatim in answerMarkdown that a beginner may not consider common knowledge. Examples include DOM, props, component, state, API, closure, recursion, or event loop. Do not include ordinary words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them.
+Identify 2-12 specialized terms, concepts, or jargon used verbatim in your answer that a beginner to the topic might not know. Do not include ordinary everyday words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them. If the user is just making small talk or greeting you without asking an educational question, just respond normally and return an empty terms array.
 
 If lecture sources are supplied, prioritize them and cite only real source IDs/pages from the material. Include short verbatim excerpts. If no sources are supplied, answer from general knowledge and return an empty sourceRefs array.
 
@@ -305,7 +305,7 @@ router.post("/study/concepts/explain", async (req, res) => {
 
   try {
     const raw = await generateStructured(
-      `You are a patient computer science tutor. Explain the technical concept "${term}" as a standalone learning page for a beginner who clicked the term inside another explanation.
+      `You are a patient and knowledgeable tutor. Explain the concept "${term}" as a standalone learning page for a beginner who clicked the term inside another explanation.
 
 ORIGINAL CONTEXT:
 ${context || "No additional context was provided."}
@@ -363,7 +363,7 @@ router.post("/study/follow-ups/explain", async (req, res) => {
 
   try {
     const raw = await generateStructured(
-      `You are a patient tutor answering a student's focused follow-up question about a passage they selected from an earlier AI explanation.
+      `You are a patient and knowledgeable tutor answering a student's focused follow-up question about a passage they selected from an earlier AI explanation.
 
 SELECTED PASSAGE:
 """
@@ -378,7 +378,7 @@ ${answerContext || "No additional answer context was provided."}
 
 Answer the follow-up directly. Clearly connect the answer to the selected passage, explain assumptions and unfamiliar notation, and use a concrete example when useful. Use clear Markdown and LaTeX delimiters ($...$ for inline math and $$...$$ for display math). Do not merely repeat the selected passage.
 
-Identify 2-8 technical words or phrases used verbatim in answerMarkdown that a beginner may not consider common knowledge. Examples include gradient descent, overfitting, API, recursion, or event loop. Do not include ordinary words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them.
+Identify 0-8 specialized terms, concepts, or jargon used verbatim in your answer that a beginner to the topic might not know. Do not include ordinary everyday words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them. If no complex terms are used, return an empty array.
 
 If the lecture sources support the answer, prioritize them and cite only real source IDs/pages with short verbatim excerpts. Otherwise answer from general knowledge and return an empty sourceRefs array.
 
