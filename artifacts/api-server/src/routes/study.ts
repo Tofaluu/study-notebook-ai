@@ -93,10 +93,6 @@ async function generateStructured(
   if (isOpenAI) apiKey = req?.get("x-openai-api-key")?.trim();
   if (isAnthropic) apiKey = req?.get("x-anthropic-api-key")?.trim();
 
-  if (!apiKey) {
-    throw new Error(`API_KEY_INVALID: Missing API key for ${isOpenAI ? 'OpenAI' : isAnthropic ? 'Anthropic' : 'Gemini'}`);
-  }
-
   let url, headers, body, extractText;
 
   if (isOpenAI) {
@@ -186,12 +182,12 @@ function getErrorMessage(error: unknown): string {
     msg.includes("401") ||
     msg.includes("403")
   ) {
-    return "The provided Gemini API key is invalid or unauthorized. Please verify your API key and update it in the API Key Settings.";
+    return "The provided API key is invalid or unauthorized. Please verify your API key and update it in the API Key Settings.";
   }
   if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
-    return "Gemini quota or rate limit exceeded for this API key. Please check your usage limits or try again in a few moments.";
+    return "Quota or rate limit exceeded for this API key. Please check your usage limits or try again in a few moments.";
   }
-  return "An error occurred while communicating with Gemini. Please check your API key in API Key Settings and try again.";
+  return "An error occurred while communicating with the AI provider. Please check your API key in API Key Settings and try again.";
 }
 
 function formatSources(
@@ -229,6 +225,23 @@ router.post("/study/explain", async (req, res) => {
     res.status(400).json({ error: "Add a question or lecture PDF." });
     return;
   }
+  const isOpenAI = model?.startsWith("gpt-");
+  const isAnthropic = model?.startsWith("claude-");
+  let apiKey = req.get("x-gemini-api-key")?.trim();
+  if (isOpenAI) apiKey = req.get("x-openai-api-key")?.trim();
+  if (isAnthropic) apiKey = req.get("x-anthropic-api-key")?.trim();
+
+  if (!apiKey) {
+    res.json({
+      title: "API Key Required",
+      answerMarkdown: `Your ${isOpenAI ? 'OpenAI' : isAnthropic ? 'Anthropic' : 'Google Gemini'} API key is not configured. Please add it in API Key Settings to start using the Study Notebook.`,
+      terms: [],
+      sourceRefs: [],
+      generatedAt: new Date().toISOString()
+    });
+    return;
+  }
+
   try {
     const sourceText = formatSources(sources);
     const raw = await generateStructured(
@@ -274,6 +287,22 @@ router.post("/study/concepts/explain", async (req, res) => {
   }
 
   const { term, context, sources, model } = parsed.data;
+  const isOpenAI = model?.startsWith("gpt-");
+  const isAnthropic = model?.startsWith("claude-");
+  let apiKey = req.get("x-gemini-api-key")?.trim();
+  if (isOpenAI) apiKey = req.get("x-openai-api-key")?.trim();
+  if (isAnthropic) apiKey = req.get("x-anthropic-api-key")?.trim();
+
+  if (!apiKey) {
+    res.json({
+      title: "API Key Required",
+      answerMarkdown: `Your ${isOpenAI ? 'OpenAI' : isAnthropic ? 'Anthropic' : 'Google Gemini'} API key is not configured. Please add it in API Key Settings to explain concepts.`,
+      prerequisiteTerms: [],
+      sourceRefs: []
+    });
+    return;
+  }
+
   try {
     const raw = await generateStructured(
       `You are a patient computer science tutor. Explain the technical concept "${term}" as a standalone learning page for a beginner who clicked the term inside another explanation.
@@ -316,6 +345,22 @@ router.post("/study/follow-ups/explain", async (req, res) => {
   }
 
   const { selectedText, question, answerContext, sources, model } = parsed.data;
+  const isOpenAI = model?.startsWith("gpt-");
+  const isAnthropic = model?.startsWith("claude-");
+  let apiKey = req.get("x-gemini-api-key")?.trim();
+  if (isOpenAI) apiKey = req.get("x-openai-api-key")?.trim();
+  if (isAnthropic) apiKey = req.get("x-anthropic-api-key")?.trim();
+
+  if (!apiKey) {
+    res.json({
+      title: "API Key Required",
+      answerMarkdown: `Your ${isOpenAI ? 'OpenAI' : isAnthropic ? 'Anthropic' : 'Google Gemini'} API key is not configured. Please add it in API Key Settings to ask follow-up questions.`,
+      terms: [],
+      sourceRefs: []
+    });
+    return;
+  }
+
   try {
     const raw = await generateStructured(
       `You are a patient tutor answering a student's focused follow-up question about a passage they selected from an earlier AI explanation.
