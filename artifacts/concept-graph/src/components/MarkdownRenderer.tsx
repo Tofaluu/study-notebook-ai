@@ -24,6 +24,8 @@ function normalizeDisplayMath(markdown: string) {
 }
 
 export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], onTermClick }: MarkdownRendererProps) {
+  const highlightedTerms = new Set<string>();
+
   const renderWithHighlights = (text: string) => {
     if (typeof text !== 'string') return text;
     if (terms.length === 0 && prerequisiteTerms.length === 0) return text;
@@ -41,10 +43,13 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
     const parts = text.split(regex);
 
     return parts.map((part, i) => {
-      const matchedTerm = terms.find(t => t.term.toLowerCase() === part.toLowerCase());
-      const isPrereq = prerequisiteTerms.some(pt => pt.toLowerCase() === part.toLowerCase());
+      const termLower = part.toLowerCase();
+      const matchedTerm = terms.find(t => t.term.toLowerCase() === termLower);
+      const isPrereq = prerequisiteTerms.some(pt => pt.toLowerCase() === termLower);
 
       if (matchedTerm) {
+        if (highlightedTerms.has(termLower)) return <Fragment key={i}>{part}</Fragment>;
+        highlightedTerms.add(termLower);
         return (
           <button
             key={i}
@@ -57,6 +62,8 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
           </button>
         );
       } else if (isPrereq) {
+        if (highlightedTerms.has(termLower)) return <Fragment key={i}>{part}</Fragment>;
+        highlightedTerms.add(termLower);
         return (
           <button
             key={i}
