@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, FileText, Trash2, UploadCloud, Loader2, Plus, Edit2 } from 'lucide-react';
+import { BookOpen, FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Key } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Chat } from '@/lib/db';
 import type { LectureSource } from '@workspace/api-client-react';
@@ -194,7 +194,8 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
           onClick={() => window.dispatchEvent(new Event('open-api-key-modal'))}
           className="w-full flex items-center justify-center gap-2 bg-card border border-border rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
-          🔑 API Key Settings
+          <Key className="w-4 h-4" />
+          API Key Settings
         </button>
       </div>
     </aside>
