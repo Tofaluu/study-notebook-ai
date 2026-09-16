@@ -194,7 +194,7 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
           <label className="text-xs font-bold tracking-wider text-muted-foreground uppercase px-1">Gemini API Key</label>
           <input
             type="password"
-            placeholder="Paste Gemini Key (BYOK)"
+            placeholder="Paste Gemini Key Here"
             className="w-full bg-card border border-border rounded-md px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-primary transition-all placeholder:text-muted-foreground"
             defaultValue={window.localStorage.getItem('study-notebook-api-key') || ''}
             onChange={(e) => {
