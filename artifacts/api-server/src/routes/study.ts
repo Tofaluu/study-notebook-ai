@@ -250,7 +250,7 @@ router.post("/study/explain", async (req, res) => {
 QUESTION:
 ${prompt.trim() || "Explain the main ideas in these lecture materials."}
 
-Identify 2-12 specialized terms, concepts, or jargon used verbatim in your answer that a beginner to the topic might not know. Do not include ordinary everyday words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them. If the user is just making small talk or greeting you without asking an educational question, just respond normally and return an empty terms array.
+Identify 2-12 core concepts, specialized terms, or subject-specific vocabulary used verbatim in your answer that are crucial to understanding the topic. Focus on conceptual ideas specific to the subject matter, not just general vocabulary. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them. If the user is just making small talk or greeting you without asking an educational question, just respond normally and return an empty terms array.
 
 If lecture sources are supplied, prioritize them and cite only real source IDs/pages from the material. Include short verbatim excerpts. If no sources are supplied, answer from general knowledge and return an empty sourceRefs array.
 
@@ -378,7 +378,7 @@ ${answerContext || "No additional answer context was provided."}
 
 Answer the follow-up directly. Clearly connect the answer to the selected passage, explain assumptions and unfamiliar notation, and use a concrete example when useful. Use clear Markdown and LaTeX delimiters ($...$ for inline math and $$...$$ for display math). Do not merely repeat the selected passage.
 
-Identify 0-8 specialized terms, concepts, or jargon used verbatim in your answer that a beginner to the topic might not know. Do not include ordinary everyday words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them. If no complex terms are used, return an empty array.
+Identify 0-8 core concepts, specialized terms, or subject-specific vocabulary used verbatim in your answer that are crucial to understanding the topic. Focus on conceptual ideas specific to the subject matter, not just general vocabulary. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them. If no complex concepts are used, return an empty array.
 
 If the lecture sources support the answer, prioritize them and cite only real source IDs/pages with short verbatim excerpts. Otherwise answer from general knowledge and return an empty sourceRefs array.
 
