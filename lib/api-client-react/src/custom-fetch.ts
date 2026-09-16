@@ -356,12 +356,16 @@ export async function customFetch<T = unknown>(
     }
   }
 
-  // Inject user-provided Gemini API key if present
+  // Inject user-provided API keys if present
   if (typeof window !== "undefined") {
-    const geminiKey = window.localStorage.getItem("study-notebook-api-key");
-    if (geminiKey) {
-      headers.set("x-gemini-api-key", geminiKey);
-    }
+    const geminiKey = window.localStorage.getItem("study-notebook-gemini-key") || window.localStorage.getItem("study-notebook-api-key");
+    if (geminiKey) headers.set("x-gemini-api-key", geminiKey);
+    
+    const openaiKey = window.localStorage.getItem("study-notebook-openai-key");
+    if (openaiKey) headers.set("x-openai-api-key", openaiKey);
+    
+    const anthropicKey = window.localStorage.getItem("study-notebook-anthropic-key");
+    if (anthropicKey) headers.set("x-anthropic-api-key", anthropicKey);
   }
 
   const requestInfo = { method, url: resolveUrl(input) };
