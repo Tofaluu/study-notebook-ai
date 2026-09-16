@@ -84,15 +84,10 @@ async function generateStructured(
   prompt: string,
   responseSchema: JsonSchema,
   model: string = DEFAULT_MODEL,
-  apiKey?: string
+  apiKey: string
 ): Promise<unknown> {
-  const finalApiKey = apiKey || process.env["GEMINI_API_KEY"];
-  if (!finalApiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
-  }
-
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(finalApiKey)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -156,6 +151,11 @@ router.post("/study/explain", async (req, res) => {
     res.status(400).json({ error: "Add a question or lecture PDF." });
     return;
   }
+  const apiKey = req.get("x-gemini-api-key")?.trim();
+  if (!apiKey) {
+    res.status(400).json({ error: "Add your Gemini API key in the sidebar to continue." });
+    return;
+  }
 
   try {
     const sourceText = formatSources(sources);
@@ -173,7 +173,7 @@ LECTURE SOURCES:
 ${sourceText || "No lecture sources were uploaded."}`,
       studyExplanationSchema,
       model,
-      req.headers["x-gemini-api-key"] as string | undefined
+      apiKey
     );
 
     res.json(
@@ -185,10 +185,7 @@ ${sourceText || "No lecture sources were uploaded."}`,
   } catch (error) {
     req.log.error({ err: error }, "Study explanation failed");
     res.status(500).json({
-      error:
-        error instanceof Error && error.message.includes("GEMINI_API_KEY")
-          ? "Gemini is not configured yet."
-          : "Gemini could not create the explanation. Try a shorter question or fewer lecture files.",
+      error: "Gemini could not create the explanation. Try a shorter question or fewer lecture files.",
     });
   }
 });
@@ -201,6 +198,11 @@ router.post("/study/concepts/explain", async (req, res) => {
   }
 
   const { term, context, sources, model } = parsed.data;
+  const apiKey = req.get("x-gemini-api-key")?.trim();
+  if (!apiKey) {
+    res.status(400).json({ error: "Add your Gemini API key in the sidebar to continue." });
+    return;
+  }
 
   try {
     const raw = await generateStructured(
@@ -217,7 +219,7 @@ LECTURE SOURCES:
 ${formatSources(sources) || "No lecture sources were uploaded."}`,
       technicalConceptSchema,
       model,
-      req.headers["x-gemini-api-key"] as string | undefined
+      apiKey
     );
 
     res.json(ExplainTechnicalConceptResponse.parse(raw));
@@ -241,6 +243,11 @@ router.post("/study/follow-ups/explain", async (req, res) => {
   }
 
   const { selectedText, question, answerContext, sources, model } = parsed.data;
+  const apiKey = req.get("x-gemini-api-key")?.trim();
+  if (!apiKey) {
+    res.status(400).json({ error: "Add your Gemini API key in the sidebar to continue." });
+    return;
+  }
 
   try {
     const raw = await generateStructured(
@@ -267,7 +274,7 @@ LECTURE SOURCES:
 ${formatSources(sources) || "No lecture sources were uploaded."}`,
       selectedPassageSchema,
       model,
-      req.headers["x-gemini-api-key"] as string | undefined
+      apiKey
     );
 
     res.json(ExplainSelectedPassageResponse.parse(raw));

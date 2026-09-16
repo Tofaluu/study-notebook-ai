@@ -11,7 +11,6 @@ An AI study workspace that explains lecture PDFs and concept prompts in a famili
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
-- Required secret: `GEMINI_API_KEY` — Gemini API key used only by the API server
 
 ## Stack
 
@@ -31,7 +30,7 @@ An AI study workspace that explains lecture PDFs and concept prompts in a famili
 ## Architecture decisions
 
 - PDF text is extracted page-by-page in the browser so citations retain the original slide/page number.
-- Uploaded lecture text and chat history are stored locally in IndexedDB; the Gemini key remains server-side.
+- Uploaded lecture text, chat history, and the user-provided Gemini key are stored locally in the browser; the API server never uses a project-owned Gemini key.
 - The first release does not require accounts or server-side document storage.
 
 ## Product
