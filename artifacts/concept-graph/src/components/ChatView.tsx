@@ -2,7 +2,7 @@ import React, { useRef, useLayoutEffect } from 'react';
 import { useExplainStudyTopic, type StudyModel } from '@workspace/api-client-react';
 import { Chat, HistoryItem } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
-import { BookOpen, Loader2, Send, FileText } from 'lucide-react';
+import { BookOpen, Loader2, Send, FileText, MousePointerClick, TextSelect } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -83,12 +83,29 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
       >
         <div className="max-w-3xl mx-auto space-y-10 pb-32">
           {chat.history.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-center opacity-80 animate-in fade-in zoom-in duration-700">
+            <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-center animate-in fade-in zoom-in duration-700">
               <div className="w-20 h-20 bg-muted rounded-2xl flex items-center justify-center mb-6 shadow-inner rotate-3">
                 <BookOpen className="w-10 h-10 text-primary/80 -rotate-3" />
               </div>
               <h2 className="text-3xl font-serif font-bold text-foreground mb-3 tracking-tight">{chat.title === 'New Session' ? 'Begin your session.' : chat.title}</h2>
-              <p className="text-muted-foreground max-w-md text-lg">Upload your reading materials and ask a question, or let the AI summarize the core concepts to get started.</p>
+              <p className="text-muted-foreground max-w-md text-lg mb-10 opacity-80">Upload your reading materials and ask a question, or let the AI summarize the core concepts to get started.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full text-left">
+                <div className="bg-card/50 border border-border rounded-xl p-5 shadow-sm">
+                  <div className="flex items-center gap-3 mb-2 text-foreground font-semibold">
+                    <MousePointerClick className="w-5 h-5 text-primary" />
+                    Interactive Concepts
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">The AI will automatically underline technical jargon in its answers. Click on any underlined term to open a dedicated tab that explains the concept in isolation.</p>
+                </div>
+                <div className="bg-card/50 border border-border rounded-xl p-5 shadow-sm">
+                  <div className="flex items-center gap-3 mb-2 text-foreground font-semibold">
+                    <TextSelect className="w-5 h-5 text-primary" />
+                    Contextual Follow-ups
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Highlight any text within the AI's response using your mouse to ask a highly specific follow-up question directly related to that passage.</p>
+                </div>
+              </div>
             </div>
           ) : (
             chat.history.map((item) => (
