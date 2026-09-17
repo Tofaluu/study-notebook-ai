@@ -111,7 +111,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
             chat.history.map((item) => (
               <div key={item.id} className={`flex w-full animate-in fade-in slide-in-from-bottom-4 duration-500 ${item.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {item.type === 'user' ? (
-                  <div className="bg-primary text-primary-foreground px-6 py-4 rounded-2xl rounded-br-sm max-w-[85%] md:max-w-[75%] shadow-md">
+                  <div className="bg-primary text-primary-foreground selection:bg-primary-foreground/30 px-6 py-4 rounded-2xl rounded-br-sm max-w-[85%] md:max-w-[75%] shadow-md">
                     <p className="font-medium text-[1.05rem] leading-relaxed">{item.content}</p>
                   </div>
                 ) : (
