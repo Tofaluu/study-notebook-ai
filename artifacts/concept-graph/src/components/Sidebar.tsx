@@ -199,7 +199,7 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
               {activeChat.sources.map(s => (
                 <div key={s.id} className="bg-card border border-border p-3 rounded-xl flex items-start gap-3 group relative shadow-sm">
                   <FileText className="w-5 h-5 text-primary/70 shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 pr-8">
                     <p className="text-sm font-medium text-foreground truncate" title={s.name}>{s.name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{s.pageCount} pages</p>
                   </div>
