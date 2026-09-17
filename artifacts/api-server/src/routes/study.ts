@@ -245,7 +245,7 @@ router.post("/study/explain", async (req, res) => {
   try {
     const sourceText = formatSources(sources);
     const raw = await generateStructured(
-      `You are a patient and knowledgeable tutor. Give the student a high-quality, educational answer to their question. Start with a direct explanation, use examples where helpful, and build from familiar ideas toward complex details. Use Markdown headings, paragraphs, lists, and formatting when useful.
+      `You are a patient and knowledgeable tutor. Give the student a high-quality, educational answer to their question. Start with a direct explanation, use examples where helpful, and build from familiar ideas toward complex details. Use Markdown headings, paragraphs, lists, and formatting when useful. Use LaTeX delimiters ($...$ for inline math and $$...$$ for display math).
 
 QUESTION:
 ${prompt.trim() || "Explain the main ideas in these lecture materials."}
@@ -310,7 +310,7 @@ router.post("/study/concepts/explain", async (req, res) => {
 ORIGINAL CONTEXT:
 ${context || "No additional context was provided."}
 
-Give a direct definition first, then explain why it matters, how it works, and one concrete example. Use clear Markdown. Avoid assuming the student knows related jargon. Return 0-6 prerequisiteTerms that would genuinely help the student understand this concept; use concise exact terms suitable for opening another explanation page.
+Give a direct definition first, then explain why it matters, how it works, and one concrete example. Use clear Markdown and LaTeX delimiters ($...$ for inline math and $$...$$ for display math). Avoid assuming the student knows related jargon. Return 0-6 prerequisiteTerms that would genuinely help the student understand this concept; use concise exact terms suitable for opening another explanation page.
 
 If the lecture sources discuss the concept, prioritize them and cite only real source IDs/pages with short verbatim excerpts. Otherwise explain from general knowledge and return an empty sourceRefs array.
 
