@@ -73,14 +73,14 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
-      <div
-        ref={scrollContainerRef}
-        onScroll={(event) => {
-          chatScrollPositions.set(chat.id, event.currentTarget.scrollTop);
-        }}
-        className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 scroll-smooth"
-      >
+    <div
+      ref={scrollContainerRef}
+      onScroll={(event) => {
+        chatScrollPositions.set(chat.id, event.currentTarget.scrollTop);
+      }}
+      className="flex-1 min-w-0 min-h-0 overflow-y-auto scroll-smooth flex flex-col relative"
+    >
+      <div className="p-4 md:p-8 flex-1">
         <div className="max-w-3xl mx-auto space-y-10 pb-32">
           {chat.history.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-center animate-in fade-in zoom-in duration-700">
@@ -160,8 +160,8 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
           )}
         </div>
       </div>
-
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/90 to-transparent pt-10">
+      
+      <div className="sticky bottom-0 w-full p-4 bg-gradient-to-t from-background via-background/90 to-transparent pt-10 mt-auto">
         <div className="max-w-3xl mx-auto relative flex items-end gap-3 bg-card border border-border/80 p-2 rounded-2xl shadow-lg focus-within:ring-2 focus-within:ring-primary/30 transition-all">
           <Textarea 
             value={prompt}
@@ -181,7 +181,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
           </Button>
         </div>
         <div className="max-w-3xl mx-auto mt-2 text-center hidden md:block">
-          <p className="text-xs font-medium text-muted-foreground">Select text to copy it; click the selected passage to ask a focused follow-up.</p>
+          <p className="text-xs font-medium text-muted-foreground drop-shadow-sm">Select text to copy it; click the selected passage to ask a focused follow-up.</p>
         </div>
       </div>
     </div>
