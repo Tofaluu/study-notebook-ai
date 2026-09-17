@@ -182,10 +182,9 @@ components:
         - gemini-3.1-flash-lite
         - gemini-3.7-flash
         - gemini-3.1-pro-preview
-        - gemini-3.7-pro
         - gpt-6-astra
         - gpt-5.6-sol
-        - claude-fable-5.1
+        - claude-fable-5-1
         - claude-sonnet-5
     StudyExplanationInput:
       type: object
