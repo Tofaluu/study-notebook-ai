@@ -4,6 +4,17 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Chat } from '@/lib/db';
 import type { LectureSource } from '@workspace/api-client-react';
 import { extractTextFromPDF } from '@/lib/pdf';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface SidebarProps {
   chats: Chat[];
@@ -122,14 +133,27 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
                   <button onClick={(e) => { e.stopPropagation(); setEditingChatId(chat.id); setEditTitle(chat.title); }} className="p-1.5 hover:bg-foreground/10 rounded-md transition-colors" aria-label="Rename notebook">
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm(`Delete “${chat.title}” and all of its saved messages, tabs, and PDFs from this browser?`)) {
-                      onDeleteChat(chat.id);
-                    }
-                  }} className="p-1.5 hover:bg-destructive/10 text-destructive/80 hover:text-destructive rounded-md transition-colors" aria-label="Delete notebook">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button onClick={(e) => e.stopPropagation()} className="p-1.5 hover:bg-destructive/10 text-destructive/80 hover:text-destructive rounded-md transition-colors" aria-label="Delete notebook">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Notebook?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{chat.title}"? This will permanently delete all saved messages, tabs, and PDFs from this browser. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={(e) => { e.stopPropagation(); onDeleteChat(chat.id); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             ))}

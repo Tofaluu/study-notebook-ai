@@ -175,6 +175,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
       <div className="sticky bottom-0 w-full p-4 bg-gradient-to-t from-background via-background/90 to-transparent pt-10 mt-auto">
         <div className="max-w-3xl mx-auto relative flex items-end gap-3 bg-card border border-border/80 p-2 rounded-2xl shadow-lg focus-within:ring-2 focus-within:ring-primary/30 transition-all">
           <Textarea 
+            autoFocus
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
