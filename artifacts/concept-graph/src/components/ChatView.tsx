@@ -49,9 +49,20 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
     if (chat.history.length === 0 && chat.title === 'New Session') {
       onRename(actualPrompt.length > 42 ? `${actualPrompt.slice(0, 42)}…` : actualPrompt);
     }
+
+    // Build chat context from the last 4 messages (2 turns)
+    const recentHistory = chat.history.slice(-4);
+    const historyContext = recentHistory
+      .map(item => `${item.type === 'user' ? 'User' : 'AI'}: ${item.type === 'user' ? item.content : item.explanation?.answerMarkdown || ''}`)
+      .join('\n\n');
+      
+    const fullPrompt = historyContext 
+      ? `PREVIOUS CHAT HISTORY FOR CONTEXT:\n${historyContext}\n\nCURRENT QUESTION:\n${actualPrompt}`
+      : actualPrompt;
+
     setPrompt('');
 
-    explainMutation.mutate({ data: { prompt: actualPrompt, model, sources: chat.sources } }, {
+    explainMutation.mutate({ data: { prompt: fullPrompt, model, sources: chat.sources } }, {
       onSuccess: (data) => {
         const aiMessage: HistoryItem = {
           id: crypto.randomUUID(),
