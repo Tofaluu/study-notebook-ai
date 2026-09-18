@@ -61,6 +61,7 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
       }
       onSetSources([...activeChat.sources, ...newSources]);
     } catch (err) {
+      console.error("PDF Parsing Error:", err);
       setUploadError('One or more PDFs could not be read.');
     } finally {
       setIsUploading(false);
