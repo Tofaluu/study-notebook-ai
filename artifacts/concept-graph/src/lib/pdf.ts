@@ -1,8 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Use the classic .js worker instead of .mjs (module worker) because Safari has major bugs 
-// with cross-origin module workers and module workers in general.
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Setting worker path to CDN to avoid Vite asset resolution complexities
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 export interface LecturePage {
   pageNumber: number;
