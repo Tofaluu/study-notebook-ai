@@ -34,6 +34,17 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
 
+  const processFilesRef = React.useRef<((files: File[]) => Promise<void>) | null>(null);
+
+  React.useEffect(() => {
+    const handleCustomUpload = (e: Event) => {
+      const files = (e as CustomEvent<File[]>).detail;
+      if (processFilesRef.current) processFilesRef.current(files);
+    };
+    window.addEventListener('upload-pdfs', handleCustomUpload);
+    return () => window.removeEventListener('upload-pdfs', handleCustomUpload);
+  }, []);
+
   const processFiles = async (files: File[]) => {
     if (!activeChat || files.length === 0 || isUploading) return;
     const pdfFiles = files.filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
@@ -72,6 +83,8 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
     processFiles(Array.from(e.target.files ?? []));
     e.target.value = '';
   };
+
+  processFilesRef.current = processFiles;
 
   return (
     <aside className="w-72 lg:w-80 bg-muted border-r border-border hidden md:flex flex-col shrink-0 transition-colors">

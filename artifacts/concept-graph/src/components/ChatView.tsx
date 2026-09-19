@@ -72,8 +72,25 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
           timestamp: Date.now()
         };
         onAddHistory([aiMessage]);
+        setTimeout(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({
+              top: scrollContainerRef.current.scrollHeight,
+              behavior: 'smooth'
+            });
+          }
+        }, 50);
       }
     });
+
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }, 50);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
