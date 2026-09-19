@@ -185,6 +185,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
           )}
           <div className="flex items-end gap-2">
             <Textarea
+              autoFocus
               value={question}
               onChange={(event) => setQuestion(event.target.value.slice(0, 1000))}
               onKeyDown={(event) => {

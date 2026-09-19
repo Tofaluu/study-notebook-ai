@@ -135,7 +135,17 @@ export default function Home() {
         onSetSources={(sources) => activeChat && setSources(activeChat.id, sources)}
       />
       
-      <main className="flex-1 flex flex-col min-w-0 min-h-0 bg-background relative">
+      <main 
+        className="flex-1 flex flex-col min-w-0 min-h-0 bg-background relative"
+        onDragEnter={(e) => e.preventDefault()}
+        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+        onDrop={(e) => {
+          e.preventDefault();
+          if (e.dataTransfer.files.length > 0) {
+            window.dispatchEvent(new CustomEvent('upload-pdfs', { detail: Array.from(e.dataTransfer.files) }));
+          }
+        }}
+      >
         {activeChat && activeTab ? (
           <>
             <WorkspaceTabs 
