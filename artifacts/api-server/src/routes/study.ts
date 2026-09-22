@@ -137,8 +137,24 @@ async function generateStructured(
       ]
     };
     extractText = (payload: any) => {
-      const text = payload.content?.[0]?.text;
-      return text ? "{" + text : null;
+      let text = payload.content?.[0]?.text;
+      if (!text) {
+         throw new Error("API returned an empty response. Payload was: " + JSON.stringify(payload));
+      }
+      text = text.trim();
+      if (text.startsWith("```json")) {
+         text = text.replace(/^```json\n?/, "").replace(/\n?```$/, "");
+      } else if (text.startsWith("```")) {
+         text = text.replace(/^```\n?/, "").replace(/\n?```$/, "");
+      }
+      
+      // Sometimes Claude adds conversation text before or after the JSON block
+      const firstBrace = text.indexOf('{');
+      const lastBrace = text.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+          text = text.substring(firstBrace, lastBrace + 1);
+      }
+      return text.trim();
     };
   } else {
     url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
