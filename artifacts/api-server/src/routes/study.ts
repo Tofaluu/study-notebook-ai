@@ -138,18 +138,28 @@ async function generateStructured(
         description: "Output the structured response",
         input_schema: responseSchema
       }],
-      tool_choice: { type: "tool", name: "output_response" }
+      tool_choice: { type: "auto" }
     };
-    extractText = (payload: any) => {
-      if (payload.error) {
-         throw new Error(`Anthropic API Error: ${payload.error.message}`);
-      }
-      const toolCall = payload.content?.find((c: any) => c.type === "tool_use");
-      if (!toolCall) {
-         throw new Error("API returned an empty response. Payload was: " + JSON.stringify(payload));
-      }
-      return JSON.stringify(toolCall.input);
-    };
+      extractText = (payload: any) => {
+        if (payload.error) {
+           throw new Error(`Anthropic API Error: ${payload.error.message}`);
+        }
+        const toolCall = payload.content?.find((c: any) => c.type === "tool_use");
+        if (!toolCall) {
+           // If the model ignored the tool and just output conversational text, wrap it gracefully
+           const textBlock = payload.content?.find((c: any) => c.type === "text");
+           if (textBlock && textBlock.text) {
+               return JSON.stringify({
+                   title: "Response",
+                   answerMarkdown: textBlock.text,
+                   terms: [],
+                   sourceRefs: []
+               });
+           }
+           throw new Error("API returned an empty response. Payload was: " + JSON.stringify(payload));
+        }
+        return JSON.stringify(toolCall.input);
+      };
   } else {
     url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
     headers = { "content-type": "application/json" };
@@ -216,6 +226,19 @@ function getErrorMessage(error: unknown): string {
 
 function sanitizeArrays(raw: any): any {
   if (raw && typeof raw === 'object') {
+    // If the model hallucinated the JSON schema definition instead of the instance
+    if (raw.properties && raw.type === "object") {
+       const props = raw.properties;
+       if (props.title?.type === "string") raw.title = "Response";
+       else if (typeof props.title === "string") raw.title = props.title;
+       
+       if (typeof props.answerMarkdown === "string") raw.answerMarkdown = props.answerMarkdown;
+       else if (props.answerMarkdown?.description) raw.answerMarkdown = "Model hallucinated schema definition.";
+       
+       if (Array.isArray(props.terms)) raw.terms = props.terms;
+       if (Array.isArray(props.sourceRefs)) raw.sourceRefs = props.sourceRefs;
+    }
+
     if ('terms' in raw && !Array.isArray(raw.terms)) raw.terms = [];
     if ('sourceRefs' in raw && !Array.isArray(raw.sourceRefs)) raw.sourceRefs = [];
     if ('prerequisiteTerms' in raw && !Array.isArray(raw.prerequisiteTerms)) raw.prerequisiteTerms = [];
