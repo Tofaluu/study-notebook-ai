@@ -109,7 +109,6 @@ async function generateStructured(
     };
     body = {
       model,
-      temperature: 0.25,
       messages: [{ role: "user", content: prompt }],
       response_format: {
         type: "json_schema",
