@@ -12,7 +12,7 @@ export type StudyModel = typeof StudyModel[keyof typeof StudyModel];
 export const StudyModel = {
   'gemini-31-flash-lite': 'gemini-3.1-flash-lite',
   'gemini-37-flash': 'gemini-3.7-flash',
-  'gemini-31-pro': 'gemini-3.1-pro',
+  'gemini-31-pro-preview': 'gemini-3.1-pro-preview',
   'gpt-56-luna': 'gpt-5.6-luna',
   'gpt-56-terra': 'gpt-5.6-terra',
   'gpt-56-sol': 'gpt-5.6-sol',
