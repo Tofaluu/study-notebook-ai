@@ -128,11 +128,8 @@ async function generateStructured(
       "anthropic-version": "2023-06-01"
     };
     
-    // Downgrade Claude 5 Sonnet to Claude 3.5 Sonnet because Claude 5's tool use is highly unstable
-    const actualModel = model === "claude-sonnet-5" ? "claude-3-5-sonnet-20241022" : model;
-    
     body = {
-      model: actualModel,
+      model,
       max_tokens: 4096,
       system: "You must use the provided tool to output your response. IMPORTANT: Never generate XML or HTML tags inside the JSON strings. The 'terms' must be placed inside the proper JSON array, NOT hallucinated as XML tags inside the answerMarkdown string.",
       messages: [{ role: "user", content: prompt }],
