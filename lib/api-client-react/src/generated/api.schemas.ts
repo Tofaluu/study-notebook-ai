@@ -46,10 +46,12 @@ export const StudyModel = {
   'gemini-31-flash-lite': 'gemini-3.1-flash-lite',
   'gemini-37-flash': 'gemini-3.7-flash',
   'gemini-31-pro-preview': 'gemini-3.1-pro-preview',
-  'gpt-6-astra': 'gpt-6-astra',
+  'gpt-56-luna': 'gpt-5.6-luna',
+  'gpt-56-terra': 'gpt-5.6-terra',
   'gpt-56-sol': 'gpt-5.6-sol',
   'claude-fable-5-1': 'claude-fable-5-1',
   'claude-sonnet-5': 'claude-sonnet-5',
+  'claude-opus-5': 'claude-opus-5',
 } as const;
 
 export interface StudyExplanationInput {
