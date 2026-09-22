@@ -127,7 +127,7 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
     <div className="prose prose-stone dark:prose-invert max-w-none [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex-display]:py-2">
       <ReactMarkdown
         remarkPlugins={[remarkMath]}
-        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
+        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false, errorColor: 'inherit' }]]}
         components={components}
       >
         {normalizedContent}
