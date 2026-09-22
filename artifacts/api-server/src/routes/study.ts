@@ -125,7 +125,6 @@ async function generateStructured(
     body = {
       model,
       max_tokens: 4096,
-      temperature: 0.25,
       system: "You must use the provided tool to output the response in the requested format.",
       messages: [{ role: "user", content: prompt }],
       tools: [{
@@ -133,7 +132,7 @@ async function generateStructured(
         description: "Output the structured response",
         input_schema: responseSchema
       }],
-      tool_choice: { type: "tool", name: "output_response" }
+      tool_choice: { type: "auto" }
     };
     extractText = (payload: any) => {
       const toolCall = payload.content?.find((c: any) => c.type === "tool_use");
