@@ -130,7 +130,7 @@ async function generateStructured(
     body = {
       model,
       max_tokens: 4096,
-      system: "You must use the provided tool to output the response in the requested format.",
+      system: "You must use the provided tool to output the response in the requested format. IMPORTANT: Do not use any XML tags or XML structures inside the JSON arguments for the tool. Output valid JSON arrays, objects, and strings only.",
       messages: [{ role: "user", content: prompt }],
       tools: [{
         name: "output_response",
