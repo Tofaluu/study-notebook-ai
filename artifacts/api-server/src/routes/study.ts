@@ -137,7 +137,7 @@ async function generateStructured(
         description: "Output the structured response",
         input_schema: responseSchema
       }],
-      tool_choice: { type: "auto" }
+      tool_choice: { type: "tool", name: "output_response" }
     };
     extractText = (payload: any) => {
       const toolCall = payload.content?.find((c: any) => c.type === "tool_use");
