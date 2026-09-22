@@ -130,31 +130,24 @@ async function generateStructured(
     body = {
       model,
       max_tokens: 4096,
-      system: `You must output your response as a valid, raw JSON object exactly matching this schema:\n${JSON.stringify(responseSchema)}\n\nDo not output any XML tags, markdown code blocks, or other text outside the JSON object. Just output the raw JSON.`,
-      messages: [
-        { role: "user", content: prompt }
-      ]
+      system: "You must use the provided tool to output your response. IMPORTANT: Never generate XML or HTML tags inside the JSON strings. The 'terms' must be placed inside the proper JSON array, NOT hallucinated as XML tags inside the answerMarkdown string.",
+      messages: [{ role: "user", content: prompt }],
+      tools: [{
+        name: "output_response",
+        description: "Output the structured response",
+        input_schema: responseSchema
+      }],
+      tool_choice: { type: "tool", name: "output_response" }
     };
     extractText = (payload: any) => {
-        const textBlock = payload.content?.find((c: any) => c.type === "text");
-        let text = textBlock?.text;
-        if (!text) {
+      if (payload.error) {
+         throw new Error(`Anthropic API Error: ${payload.error.message}`);
+      }
+      const toolCall = payload.content?.find((c: any) => c.type === "tool_use");
+      if (!toolCall) {
          throw new Error("API returned an empty response. Payload was: " + JSON.stringify(payload));
       }
-      text = text.trim();
-      if (text.startsWith("```json")) {
-         text = text.replace(/^```json\n?/, "").replace(/\n?```$/, "");
-      } else if (text.startsWith("```")) {
-         text = text.replace(/^```\n?/, "").replace(/\n?```$/, "");
-      }
-      
-      // Sometimes Claude adds conversation text before or after the JSON block
-      const firstBrace = text.indexOf('{');
-      const lastBrace = text.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1) {
-          text = text.substring(firstBrace, lastBrace + 1);
-      }
-      return text.trim();
+      return JSON.stringify(toolCall.input);
     };
   } else {
     url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
