@@ -207,6 +207,20 @@ function getErrorMessage(error: unknown): string {
   return `An error occurred while communicating with the AI provider: ${msg}`;
 }
 
+function sanitizeArrays(raw: any): any {
+  if (raw && typeof raw === 'object') {
+    if ('terms' in raw && !Array.isArray(raw.terms)) raw.terms = [];
+    if ('sourceRefs' in raw && !Array.isArray(raw.sourceRefs)) raw.sourceRefs = [];
+    if ('prerequisiteTerms' in raw && !Array.isArray(raw.prerequisiteTerms)) raw.prerequisiteTerms = [];
+    
+    // Also if they are missing entirely, add them
+    if (!('terms' in raw)) raw.terms = [];
+    if (!('sourceRefs' in raw)) raw.sourceRefs = [];
+    if (!('prerequisiteTerms' in raw)) raw.prerequisiteTerms = [];
+  }
+  return raw;
+}
+
 function formatSources(
   sources: Array<{
     id: string;
@@ -280,7 +294,7 @@ ${sourceText || "No lecture sources were uploaded."}`,
 
     res.json(
       ExplainStudyTopicResponse.parse({
-        ...(raw as object),
+        ...(sanitizeArrays(raw) as object),
         generatedAt: new Date().toISOString(),
       }),
     );
@@ -338,7 +352,7 @@ ${formatSources(sources) || "No lecture sources were uploaded."}`,
       req
     );
 
-    res.json(ExplainTechnicalConceptResponse.parse(raw));
+    res.json(ExplainTechnicalConceptResponse.parse(sanitizeArrays(raw)));
   } catch (error) {
     req.log.error({ err: error }, "Technical concept explanation failed");
     res.json({
@@ -406,7 +420,7 @@ ${formatSources(sources) || "No lecture sources were uploaded."}`,
       req
     );
 
-    res.json(ExplainSelectedPassageResponse.parse(raw));
+    res.json(ExplainSelectedPassageResponse.parse(sanitizeArrays(raw)));
   } catch (error) {
     req.log.error({ err: error }, "Selected passage explanation failed");
     res.json({
