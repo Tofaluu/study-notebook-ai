@@ -217,6 +217,10 @@ function sanitizeArrays(raw: any): any {
     if (!('terms' in raw)) raw.terms = [];
     if (!('sourceRefs' in raw)) raw.sourceRefs = [];
     if (!('prerequisiteTerms' in raw)) raw.prerequisiteTerms = [];
+    
+    // Fallbacks for missing string fields
+    if (!('title' in raw) || typeof raw.title !== 'string') raw.title = "Study Explanation";
+    if (!('answerMarkdown' in raw) || typeof raw.answerMarkdown !== 'string') raw.answerMarkdown = "No explanation provided.";
   }
   return raw;
 }
@@ -278,10 +282,10 @@ router.post("/study/explain", async (req, res) => {
     const raw = await generateStructured(
       `You are a patient and knowledgeable tutor. Give the student a high-quality, educational answer to their question. Start with a direct explanation, use examples where helpful, and build from familiar ideas toward complex details. Use Markdown headings, paragraphs, lists, and formatting when useful. Use LaTeX delimiters ($...$ for inline math and $$...$$ for display math).
 
-QUESTION:
-${prompt.trim() || "Explain the main ideas in these lecture materials."}
-
-Identify 2-12 specialized terms, concepts, or jargon used verbatim in your answer that a beginner to the topic might not know. Do not include ordinary everyday words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them. If the user is just making small talk or greeting you without asking an educational question, just respond normally and return an empty terms array.
+  QUESTION:
+  ${prompt.trim() || "Explain the main ideas in these lecture materials."}
+  
+  You must generate a short, descriptive title for your explanation in the title field. Identify 2-12 specialized terms, concepts, or jargon used verbatim in your answer that a beginner to the topic might not know. Do not include ordinary everyday words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them. If the user is just making small talk or greeting you without asking an educational question, just respond normally and return an empty terms array.
 
 If lecture sources are supplied, prioritize them and cite only real source IDs/pages from the material. Include short verbatim excerpts. If no sources are supplied, answer from general knowledge and return an empty sourceRefs array.
 
@@ -338,10 +342,10 @@ router.post("/study/concepts/explain", async (req, res) => {
     const raw = await generateStructured(
       `You are a patient and knowledgeable tutor. Explain the concept "${term}" as a standalone learning page for a beginner who clicked the term inside another explanation.
 
-ORIGINAL CONTEXT:
-${context || "No additional context was provided."}
-
-Give a direct definition first, then explain why it matters, how it works, and one concrete example. Use clear Markdown and LaTeX delimiters ($...$ for inline math and $$...$$ for display math). Avoid assuming the student knows related jargon. Return 0-6 prerequisiteTerms that would genuinely help the student understand this concept; use concise exact terms suitable for opening another explanation page.
+  ORIGINAL CONTEXT:
+  ${context || "No additional context was provided."}
+  
+  You must generate a short, descriptive title for your explanation in the title field. Give a direct definition first, then explain why it matters, how it works, and one concrete example. Use clear Markdown and LaTeX delimiters ($...$ for inline math and $$...$$ for display math). Avoid assuming the student knows related jargon. Return 0-6 prerequisiteTerms that would genuinely help the student understand this concept; use concise exact terms suitable for opening another explanation page.
 
 If the lecture sources discuss the concept, prioritize them and cite only real source IDs/pages with short verbatim excerpts. Otherwise explain from general knowledge and return an empty sourceRefs array.
 
@@ -404,10 +408,10 @@ ${selectedText}
 STUDENT'S FOLLOW-UP:
 ${question}
 
-EARLIER ANSWER CONTEXT:
-${answerContext || "No additional answer context was provided."}
-
-Answer the follow-up directly. Clearly connect the answer to the selected passage, explain assumptions and unfamiliar notation, and use a concrete example when useful. Use clear Markdown and LaTeX delimiters ($...$ for inline math and $$...$$ for display math). Do not merely repeat the selected passage.
+  EARLIER ANSWER CONTEXT:
+  ${answerContext || "No additional answer context was provided."}
+  
+  You must generate a short, descriptive title for your explanation in the title field. Answer the follow-up directly. Clearly connect the answer to the selected passage, explain assumptions and unfamiliar notation, and use a concrete example when useful. Use clear Markdown and LaTeX delimiters ($...$ for inline math and $$...$$ for display math). Do not merely repeat the selected passage.
 
 Identify 0-8 specialized terms, concepts, or jargon used verbatim in your answer that a beginner to the topic might not know. Do not include ordinary everyday words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them. If no complex terms are used, return an empty array.
 
