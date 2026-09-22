@@ -17,10 +17,17 @@ function escapeRegExp(string: string) {
 }
 
 function normalizeDisplayMath(markdown: string) {
-  return markdown.replace(
-    /\$\$([^\n]+?)\$\$/g,
-    (_, expression: string) => `\n\n$$\n${expression.trim()}\n$$\n\n`
-  );
+  let processed = markdown;
+  // Convert \[ \] to $$ $$
+  processed = processed.replace(/\\\[([\s\S]*?)\\\]/g, (_, math) => `\n\n$$\n${math.trim()}\n$$\n\n`);
+  // Convert \( \) to $ $
+  processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, (_, math) => `$${math.trim()}$`);
+  // Ensure existing $$ blocks have proper blank lines around them for remark-math
+  processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (_, math) => `\n\n$$\n${math.trim()}\n$$\n\n`);
+  
+  // Clean up excessive newlines we might have just created
+  processed = processed.replace(/\n{3,}/g, '\n\n');
+  return processed;
 }
 
 export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], onTermClick }: MarkdownRendererProps) {
