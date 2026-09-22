@@ -3,6 +3,15 @@ import { FileText, MessageSquareText, MessageCircle, X } from 'lucide-react';
 import { WorkspaceTab } from '@/lib/db';
 import type { StudyModel } from '@workspace/api-client-react';
 import { STUDY_MODEL_OPTIONS } from '@/lib/models';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface WorkspaceTabsProps {
   tabs: WorkspaceTab[];
@@ -54,28 +63,37 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
           );
         })}
       </div>
-      <select
-        aria-label="AI model"
-        value={model}
-        onChange={(event) => onModelChange(event.target.value as StudyModel)}
-        className="h-8 shrink-0 rounded-md border border-border bg-card px-2 text-xs font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/30"
-      >
-        <optgroup label="Google">
-          {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Google').map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </optgroup>
-        <optgroup label="OpenAI">
-          {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'OpenAI').map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </optgroup>
-        <optgroup label="Anthropic">
-          {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Anthropic').map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </optgroup>
-      </select>
+      <Select value={model} onValueChange={(value) => onModelChange(value as StudyModel)}>
+        <SelectTrigger className="h-8 w-[150px] shrink-0 rounded-md border border-border bg-card px-2 text-xs font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/30">
+          <SelectValue placeholder="Select model" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectLabel className="text-xs text-muted-foreground">Google</SelectLabel>
+            {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Google').map(option => (
+              <SelectItem key={option.value} value={option.value} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs">
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+          <SelectGroup>
+            <SelectLabel className="text-xs text-muted-foreground mt-1">OpenAI</SelectLabel>
+            {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'OpenAI').map(option => (
+              <SelectItem key={option.value} value={option.value} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs">
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+          <SelectGroup>
+            <SelectLabel className="text-xs text-muted-foreground mt-1">Anthropic</SelectLabel>
+            {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Anthropic').map(option => (
+              <SelectItem key={option.value} value={option.value} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs">
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
     </div>
   );
 }

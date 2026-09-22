@@ -149,6 +149,7 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
                   {editingChatId === chat.id ? (
                     <input
                       autoFocus
+                      onFocus={e => e.target.select()}
                       className="w-full bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
                       value={editTitle}
                       onChange={e => setEditTitle(e.target.value)}
