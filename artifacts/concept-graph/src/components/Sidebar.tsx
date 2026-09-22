@@ -33,6 +33,8 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [hoveredChatId, setHoveredChatId] = useState<string | null>(null);
+  const [hoveredSourceId, setHoveredSourceId] = useState<string | null>(null);
 
   const processFilesRef = React.useRef<((files: File[]) => Promise<void>) | null>(null);
 
@@ -111,9 +113,11 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
             {chats.map(chat => (
               <div 
                 key={chat.id} 
+                onMouseEnter={() => setHoveredChatId(chat.id)}
+                onMouseLeave={() => setHoveredChatId(null)}
                 onClick={() => onSwitchChat(chat.id)}
                 className={`
-                  group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors
+                  flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors
                   ${chat.id === activeChatId ? 'bg-primary/10 text-primary font-medium' : 'text-foreground/80 hover:bg-foreground/5'}
                 `}
               >
@@ -143,7 +147,7 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
                   )}
                 </div>
                 
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center shrink-0">
+                <div className={`transition-opacity duration-200 flex items-center shrink-0 ${hoveredChatId === chat.id ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                   <button onClick={(e) => { e.stopPropagation(); setEditingChatId(chat.id); setEditTitle(chat.title); }} className="p-1.5 hover:bg-foreground/10 rounded-md transition-colors" aria-label="Rename notebook">
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
@@ -211,13 +215,18 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
 
             <div className="space-y-2">
               {activeChat.sources.map(s => (
-                <div key={s.id} className="bg-card border border-border p-3 rounded-xl flex items-start gap-3 group relative shadow-sm">
+                <div 
+                  key={s.id} 
+                  onMouseEnter={() => setHoveredSourceId(s.id)}
+                  onMouseLeave={() => setHoveredSourceId(null)}
+                  className="bg-card border border-border p-3 rounded-xl flex items-start gap-3 relative shadow-sm"
+                >
                   <FileText className="w-5 h-5 text-primary/70 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0 pr-8">
                     <p className="text-sm font-medium text-foreground truncate" title={s.name}>{s.name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{s.pageCount} pages</p>
                   </div>
-                  <button onClick={() => onSetSources(activeChat.sources.filter(src => src.id !== s.id))} className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-md absolute right-2 top-2">
+                  <button onClick={() => onSetSources(activeChat.sources.filter(src => src.id !== s.id))} className={`transition-opacity duration-200 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-md absolute right-2 top-2 ${hoveredSourceId === s.id ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
