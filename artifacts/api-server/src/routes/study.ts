@@ -151,7 +151,7 @@ async function generateStructured(
       generationConfig: {
         temperature: 0.25,
         responseMimeType: "application/json",
-        responseSchema,
+        responseSchema: stripAdditionalProperties(responseSchema),
       },
     };
     extractText = (payload: any) => payload.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -176,17 +176,30 @@ async function generateStructured(
   return JSON.parse(text);
 }
 
+function stripAdditionalProperties(schema: any): any {
+  if (typeof schema !== "object" || schema === null) return schema;
+  if (Array.isArray(schema)) return schema.map(stripAdditionalProperties);
+  const { additionalProperties, ...rest } = schema;
+  const newSchema: any = {};
+  for (const [key, value] of Object.entries(rest)) {
+    newSchema[key] = stripAdditionalProperties(value);
+  }
+  return newSchema;
+}
+
 function getErrorMessage(error: unknown): string {
   const msg = error instanceof Error ? error.message : String(error);
   if (
     msg.includes("API_KEY_INVALID") ||
     msg.includes("API key not valid") ||
     msg.includes("PERMISSION_DENIED") ||
-    msg.includes("400") ||
     msg.includes("401") ||
     msg.includes("403")
   ) {
     return "The provided API key is invalid or unauthorized. Please verify your API key and update it in the API Key Settings.";
+  }
+  if (msg.includes("400")) {
+    return `Bad Request (400) from AI provider: ${msg}`;
   }
   if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
     return "Quota or rate limit exceeded for this API key. Please check your usage limits or try again in a few moments.";
