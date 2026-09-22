@@ -23,11 +23,12 @@ interface SidebarProps {
   onCreateChat: () => void;
   onSwitchChat: (id: string) => void;
   onDeleteChat: (id: string) => void;
+  onDeleteAllChats: () => void;
   onRenameChat: (id: string, newTitle: string) => void;
   onSetSources: (sources: LectureSource[]) => void;
 }
 
-export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitchChat, onDeleteChat, onRenameChat, onSetSources }: SidebarProps) {
+export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitchChat, onDeleteChat, onDeleteAllChats, onRenameChat, onSetSources }: SidebarProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -105,9 +106,32 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
         <div className="p-4 border-b border-border/50 shrink-0">
           <div className="flex items-center justify-between px-2 mb-3">
             <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">Notebooks</h2>
-            <button onClick={onCreateChat} className="p-1 hover:bg-foreground/5 rounded text-foreground transition-colors" aria-label="New Notebook">
-              <Plus className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              {chats.length > 1 || chats[0]?.history?.length > 0 || chats[0]?.sources?.length > 0 ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="text-xs text-destructive hover:underline font-medium">Clear All</button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear all notebooks?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete all notebooks? This will permanently delete all saved messages, tabs, and PDFs from this browser. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={onDeleteAllChats} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Delete All
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : null}
+              <button onClick={onCreateChat} className="p-1 hover:bg-foreground/5 rounded text-foreground transition-colors" aria-label="New Notebook">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <div className="space-y-1">
             {chats.map(chat => (

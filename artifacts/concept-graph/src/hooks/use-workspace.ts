@@ -46,6 +46,13 @@ export function useWorkspace() {
     });
   }, [updateState]);
 
+  const deleteAllChats = useCallback(() => {
+    updateState(() => {
+      const newChat = createEmptyChat();
+      return { chats: [newChat], activeChatId: newChat.id };
+    });
+  }, [updateState]);
+
   const renameChat = useCallback((id: string, title: string) => {
     updateState(prev => ({
       ...prev,
@@ -117,6 +124,7 @@ export function useWorkspace() {
     createChat,
     switchChat,
     deleteChat,
+    deleteAllChats,
     renameChat,
     addTab,
     closeTab,
