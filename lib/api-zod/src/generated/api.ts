@@ -22,7 +22,7 @@ export const HealthCheckResponse = zod.object({
  */
 export const ExplainStudyTopicBody = zod.object({
   "prompt": zod.string(),
-  "model": zod.enum(['gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-3.1-pro-preview', 'gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-sol', 'claude-fable-5-1', 'claude-sonnet-5', 'claude-opus-5']).optional(),
+  "model": zod.enum(['gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-3.1-pro-preview', 'gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-sol', 'claude-haiku-4-5', 'claude-fable-5-1', 'claude-sonnet-5', 'claude-opus-5']).optional(),
   "sources": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -59,7 +59,7 @@ export const ExplainStudyTopicResponse = zod.object({
 export const ExplainTechnicalConceptBody = zod.object({
   "term": zod.string(),
   "context": zod.string(),
-  "model": zod.enum(['gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-3.1-pro-preview', 'gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-sol', 'claude-fable-5-1', 'claude-sonnet-5', 'claude-opus-5']).optional(),
+  "model": zod.enum(['gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-3.1-pro-preview', 'gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-sol', 'claude-haiku-4-5', 'claude-fable-5-1', 'claude-sonnet-5', 'claude-opus-5']).optional(),
   "sources": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -100,7 +100,7 @@ export const ExplainSelectedPassageBody = zod.object({
   "selectedText": zod.string().min(1).max(explainSelectedPassageBodySelectedTextMax),
   "question": zod.string().min(1).max(explainSelectedPassageBodyQuestionMax),
   "answerContext": zod.string().max(explainSelectedPassageBodyAnswerContextMax),
-  "model": zod.enum(['gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-3.1-pro-preview', 'gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-sol', 'claude-fable-5-1', 'claude-sonnet-5', 'claude-opus-5']).optional(),
+  "model": zod.enum(['gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-3.1-pro-preview', 'gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-sol', 'claude-haiku-4-5', 'claude-fable-5-1', 'claude-sonnet-5', 'claude-opus-5']).optional(),
   "sources": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
