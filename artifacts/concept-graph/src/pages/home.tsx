@@ -21,7 +21,7 @@ export default function Home() {
     localStorage.setItem(MODEL_STORAGE_KEY, selectedModel);
   }, [selectedModel]);
   const { 
-    state, activeChat, createChat, switchChat, deleteChat, renameChat, 
+    state, activeChat, createChat, switchChat, deleteChat, deleteAllChats, renameChat, 
     addTab, closeTab, switchTab, updateTab, setSources, addHistory 
   } = useWorkspace();
 
@@ -131,6 +131,7 @@ export default function Home() {
         onCreateChat={createChat}
         onSwitchChat={switchChat}
         onDeleteChat={deleteChat}
+        onDeleteAllChats={deleteAllChats}
         onRenameChat={renameChat}
         onSetSources={(sources) => activeChat && setSources(activeChat.id, sources)}
       />
