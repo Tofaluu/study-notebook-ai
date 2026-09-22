@@ -143,7 +143,7 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
                   )}
                 </div>
                 
-                <div className={`${activeChatId === chat.id ? 'flex' : 'hidden group-hover:flex'} items-center shrink-0`}>
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center shrink-0">
                   <button onClick={(e) => { e.stopPropagation(); setEditingChatId(chat.id); setEditTitle(chat.title); }} className="p-1.5 hover:bg-foreground/10 rounded-md transition-colors" aria-label="Rename notebook">
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
@@ -217,7 +217,7 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
                     <p className="text-sm font-medium text-foreground truncate" title={s.name}>{s.name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{s.pageCount} pages</p>
                   </div>
-                  <button onClick={() => onSetSources(activeChat.sources.filter(src => src.id !== s.id))} className="hidden group-hover:block p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-md transition-all absolute right-2 top-2">
+                  <button onClick={() => onSetSources(activeChat.sources.filter(src => src.id !== s.id))} className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-md absolute right-2 top-2">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
