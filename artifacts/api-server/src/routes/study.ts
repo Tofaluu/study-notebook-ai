@@ -23,6 +23,7 @@ const pageReferenceSchema = {
     excerpt: { type: "string" },
   },
   required: ["sourceId", "sourceName", "pageNumber", "excerpt"],
+  additionalProperties: false,
 };
 
 const studyExplanationSchema: JsonSchema = {
@@ -40,11 +41,13 @@ const studyExplanationSchema: JsonSchema = {
           plainDefinition: { type: "string" },
         },
         required: ["term", "contextSnippet", "plainDefinition"],
+        additionalProperties: false,
       },
     },
     sourceRefs: { type: "array", items: pageReferenceSchema },
   },
   required: ["title", "answerMarkdown", "terms", "sourceRefs"],
+  additionalProperties: false,
 };
 
 const technicalConceptSchema: JsonSchema = {
@@ -56,6 +59,7 @@ const technicalConceptSchema: JsonSchema = {
     sourceRefs: { type: "array", items: pageReferenceSchema },
   },
   required: ["title", "answerMarkdown", "prerequisiteTerms", "sourceRefs"],
+  additionalProperties: false,
 };
 
 const selectedPassageSchema: JsonSchema = {
@@ -73,11 +77,13 @@ const selectedPassageSchema: JsonSchema = {
           plainDefinition: { type: "string" },
         },
         required: ["term", "contextSnippet", "plainDefinition"],
+        additionalProperties: false,
       },
     },
     sourceRefs: { type: "array", items: pageReferenceSchema },
   },
   required: ["title", "answerMarkdown", "terms", "sourceRefs"],
+  additionalProperties: false,
 };
 
 async function generateStructured(
