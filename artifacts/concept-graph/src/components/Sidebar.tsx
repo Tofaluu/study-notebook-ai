@@ -143,7 +143,7 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
                   )}
                 </div>
                 
-                <div className="opacity-0 group-hover:opacity-100 flex items-center shrink-0">
+                <div className={`flex items-center shrink-0 ${activeChatId === chat.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                   <button onClick={(e) => { e.stopPropagation(); setEditingChatId(chat.id); setEditTitle(chat.title); }} className="p-1.5 hover:bg-foreground/10 rounded-md transition-colors" aria-label="Rename notebook">
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
