@@ -204,7 +204,7 @@ function getErrorMessage(error: unknown): string {
   if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
     return "Quota or rate limit exceeded for this API key. Please check your usage limits or try again in a few moments.";
   }
-  return "An error occurred while communicating with the AI provider. Please check your API key in API Key Settings and try again.";
+  return `An error occurred while communicating with the AI provider: ${msg}`;
 }
 
 function formatSources(
