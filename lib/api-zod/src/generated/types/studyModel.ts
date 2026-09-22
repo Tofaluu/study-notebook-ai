@@ -16,6 +16,7 @@ export const StudyModel = {
   'gpt-56-luna': 'gpt-5.6-luna',
   'gpt-56-terra': 'gpt-5.6-terra',
   'gpt-56-sol': 'gpt-5.6-sol',
+  'claude-haiku-4-5': 'claude-haiku-4-5',
   'claude-fable-5-1': 'claude-fable-5-1',
   'claude-sonnet-5': 'claude-sonnet-5',
   'claude-opus-5': 'claude-opus-5',
