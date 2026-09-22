@@ -132,13 +132,13 @@ async function generateStructured(
       max_tokens: 4096,
       system: `You must output your response as a valid, raw JSON object exactly matching this schema:\n${JSON.stringify(responseSchema)}\n\nDo not output any XML tags, markdown code blocks, or other text outside the JSON object. Just output the raw JSON.`,
       messages: [
-        { role: "user", content: prompt },
-        { role: "assistant", content: "{" }
+        { role: "user", content: prompt }
       ]
     };
     extractText = (payload: any) => {
-      let text = payload.content?.[0]?.text;
-      if (!text) {
+        const textBlock = payload.content?.find((c: any) => c.type === "text");
+        let text = textBlock?.text;
+        if (!text) {
          throw new Error("API returned an empty response. Payload was: " + JSON.stringify(payload));
       }
       text = text.trim();
