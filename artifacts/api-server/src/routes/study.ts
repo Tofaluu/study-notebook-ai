@@ -130,18 +130,15 @@ async function generateStructured(
     body = {
       model,
       max_tokens: 4096,
-      system: "You must use the provided tool to output the response in the requested format. IMPORTANT: Do not use any XML tags or XML structures inside the JSON arguments for the tool. Output valid JSON arrays, objects, and strings only.",
-      messages: [{ role: "user", content: prompt }],
-      tools: [{
-        name: "output_response",
-        description: "Output the structured response",
-        input_schema: responseSchema
-      }],
-      tool_choice: { type: "tool", name: "output_response" }
+      system: `You must output your response as a valid, raw JSON object exactly matching this schema:\n${JSON.stringify(responseSchema)}\n\nDo not output any XML tags, markdown code blocks, or other text outside the JSON object. Just output the raw JSON.`,
+      messages: [
+        { role: "user", content: prompt },
+        { role: "assistant", content: "{" }
+      ]
     };
     extractText = (payload: any) => {
-      const toolCall = payload.content?.find((c: any) => c.type === "tool_use");
-      return toolCall ? JSON.stringify(toolCall.input) : null;
+      const text = payload.content?.[0]?.text;
+      return text ? "{" + text : null;
     };
   } else {
     url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
