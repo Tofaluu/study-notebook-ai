@@ -22,6 +22,35 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
   const [prompt, setPrompt] = React.useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const explainMutation = useExplainStudyTopic();
+  const cancelTokenRef = useRef(0);
+
+  const handleCancel = () => {
+    cancelTokenRef.current += 1;
+    explainMutation.reset();
+    onAddHistory([{
+      id: crypto.randomUUID(),
+      type: 'ai',
+      content: 'Cancelled',
+      explanation: {
+        title: 'Cancelled',
+        answerMarkdown: '*You stopped this response.*',
+        terms: [],
+        sourceRefs: [],
+        generatedAt: new Date().toISOString()
+      },
+      timestamp: Date.now()
+    }]);
+  };
+
+  React.useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && explainMutation.isPending) {
+        handleCancel();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [explainMutation.isPending]);
 
   useLayoutEffect(() => {
     const scrollContainer = scrollContainerRef.current;
@@ -67,6 +96,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
   };
 
   const handleSubmit = () => {
+    if (explainMutation.isPending) return;
     const isDefaultPrompt = !prompt.trim() && chat.sources.length > 0;
     if (!prompt.trim() && chat.sources.length === 0) return;
 
@@ -96,8 +126,11 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
 
     setPrompt('');
 
+    const currentToken = cancelTokenRef.current;
+
     explainMutation.mutate({ data: { prompt: fullPrompt, model, sources: chat.sources } }, {
       onSuccess: (data) => {
+        if (currentToken !== cancelTokenRef.current) return;
         const aiMessage: HistoryItem = {
           id: crypto.randomUUID(),
           type: 'ai',
@@ -123,6 +156,10 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
+    }
+    if (e.key === 'Escape' && explainMutation.isPending) {
+      e.preventDefault();
+      handleCancel();
     }
   };
 
@@ -226,14 +263,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
             className="min-h-[52px] max-h-48 resize-none border-0 focus-visible:ring-0 bg-transparent text-[1.05rem] py-3.5 px-4 shadow-none font-medium scrollbar-thin"
             rows={1}
           />
-          <Button 
-            size="icon"
-            className="h-[52px] w-[52px] rounded-xl shrink-0 shadow-md transition-all active:scale-95"
-            disabled={(!prompt.trim() && chat.sources.length === 0) || explainMutation.isPending}
-            onClick={handleSubmit}
-          >
-            {explainMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-0.5" />}
-          </Button>
+          {explainMutation.isPending ? (<Button size="icon" variant="outline" className="bg-background border-border/80 h-[52px] w-[52px] rounded-xl shrink-0 shadow-md transition-all active:scale-95" onClick={handleCancel}><div className="w-4 h-4 bg-current rounded-[2px]" /></Button>) : (<Button size="icon" className="h-[52px] w-[52px] rounded-xl shrink-0 shadow-md transition-all active:scale-95" disabled={!prompt.trim() && chat.sources.length === 0} onClick={handleSubmit}><Send className="w-5 h-5 ml-0.5" /></Button>)}
         </div>
         <div className="max-w-3xl mx-auto mt-2 text-center hidden md:block">
           <p className="text-xs font-medium text-muted-foreground drop-shadow-sm">Highlight and click on any text from an explanation to ask a focused follow-up question.</p>
@@ -242,3 +272,9 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
     </div>
   );
 }
+
+
+
+
+
+
