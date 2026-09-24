@@ -81,6 +81,7 @@ export default function Home() {
             onAddHistory={(items) => addHistory(chat.id, items)}
             onRename={(title) => renameChat(chat.id, title)}
             onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet)}
+            onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
             onFollowUp={(selectedText, question, answerContext) =>
               handleFollowUp(chat.id, selectedText, question, answerContext)
             }
@@ -98,6 +99,7 @@ export default function Home() {
             model={tab.model ?? selectedModel}
             onUpdateTab={(updates) => updateTab(chat.id, tab.id, updates)}
             onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet)}
+            onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
             onFollowUp={(selectedText, question, answerContext) =>
               handleFollowUp(chat.id, selectedText, question, answerContext)
             }
@@ -114,7 +116,8 @@ export default function Home() {
           model={tab.model ?? selectedModel}
           onUpdateTab={(updates) => updateTab(chat.id, tab.id, updates)}
           onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet)}
-          onFollowUp={(selectedText, question, answerContext) =>
+          onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
+            onFollowUp={(selectedText, question, answerContext) =>
             handleFollowUp(chat.id, selectedText, question, answerContext)
           }
         />

@@ -15,9 +15,10 @@ interface ChatViewProps {
   onRename: (title: string) => void;
   onTermClick: (term: string, contextSnippet: string) => void;
   onFollowUp: (selectedText: string, question: string, answerContext: string) => void;
+  onAddSources: (sources: any[]) => void;
 }
 
-export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onFollowUp }: ChatViewProps) {
+export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onFollowUp, onAddSources }: ChatViewProps) {
   const [prompt, setPrompt] = React.useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const explainMutation = useExplainStudyTopic();
@@ -31,6 +32,39 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
       scrollContainer.scrollTop = savedScrollTop;
     }
   }, [chat.id]);
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItems = items.filter(item => item.type.startsWith('image/'));
+    
+    if (imageItems.length > 0) {
+      e.preventDefault();
+      const newSources = [];
+      for (const item of imageItems) {
+        const file = item.getAsFile();
+        if (!file) continue;
+        
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        
+        newSources.push({
+          id: crypto.randomUUID(),
+          name: file.name || `Pasted Image ${new Date().toLocaleTimeString()}`,
+          type: 'image' as const,
+          text: `[Pasted Image: ${file.name || 'image'}]`,
+          base64Data: base64,
+          mimeType: file.type,
+          pageCount: 1,
+          pages: [{ pageNumber: 1, text: `[Pasted Image: ${file.name || 'image'}]` }]
+        });
+      }
+      onAddSources(newSources);
+    }
+  };
 
   const handleSubmit = () => {
     const isDefaultPrompt = !prompt.trim() && chat.sources.length > 0;
@@ -187,7 +221,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
             autoFocus
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleKeyDown} onPaste={handlePaste}
             placeholder={chat.sources.length > 0 ? "Ask a question about your materials..." : "Ask a general question..."}
             className="min-h-[52px] max-h-48 resize-none border-0 focus-visible:ring-0 bg-transparent text-[1.05rem] py-3.5 px-4 shadow-none font-medium scrollbar-thin"
             rows={1}
@@ -202,7 +236,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
           </Button>
         </div>
         <div className="max-w-3xl mx-auto mt-2 text-center hidden md:block">
-          <p className="text-xs font-medium text-muted-foreground drop-shadow-sm">Select text to copy it; click the selected passage to ask a focused follow-up.</p>
+          <p className="text-xs font-medium text-muted-foreground drop-shadow-sm">Highlight and click on any text from an explanation to ask a focused follow-up question.</p>
         </div>
       </div>
     </div>
