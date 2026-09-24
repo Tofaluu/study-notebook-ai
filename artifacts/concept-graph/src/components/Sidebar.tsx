@@ -50,28 +50,52 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
 
   const processFiles = async (files: File[]) => {
     if (!activeChat || files.length === 0 || isUploading) return;
-    const pdfFiles = files.filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
-    const rejectedCount = files.length - pdfFiles.length;
+    const allowedFiles = files.filter(f => 
+      f.type === 'application/pdf' || 
+      f.name.toLowerCase().endsWith('.pdf') ||
+      f.type.startsWith('image/')
+    );
+    const rejectedCount = files.length - allowedFiles.length;
 
-    if (pdfFiles.length === 0) {
-      setUploadError('Please choose PDF files only.');
+    if (allowedFiles.length === 0) {
+      setUploadError('Please choose PDF or image files.');
       return;
     }
 
-    setUploadError(rejectedCount > 0 ? `${rejectedCount} non-PDF skipped.` : null);
+    setUploadError(rejectedCount > 0 ? `${rejectedCount} unsupported files skipped.` : null);
     setIsUploading(true);
     
     try {
       const newSources = [];
-      for (const file of pdfFiles) {
-        const extracted = await extractTextFromPDF(file);
-        newSources.push({
-          id: crypto.randomUUID(),
-          name: file.name,
-          text: extracted.text,
-          pageCount: extracted.pageCount,
-          pages: extracted.pages
-        });
+      for (const file of allowedFiles) {
+        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+          const extracted = await extractTextFromPDF(file);
+          newSources.push({
+            id: crypto.randomUUID(),
+            name: file.name,
+            type: 'pdf' as const,
+            text: extracted.text,
+            pageCount: extracted.pageCount,
+            pages: extracted.pages
+          });
+        } else if (file.type.startsWith('image/')) {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          newSources.push({
+            id: crypto.randomUUID(),
+            name: file.name,
+            type: 'image' as const,
+            text: `[Image file: ${file.name}]`,
+            base64Data: base64,
+            mimeType: file.type,
+            pageCount: 1,
+            pages: [{ pageNumber: 1, text: `[Image file: ${file.name}]` }]
+          });
+        }
       }
       onSetSources([...activeChat.sources, ...newSources]);
     } catch (err) {
@@ -231,10 +255,10 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
               <div className="flex flex-col items-center justify-center pt-4 pb-4">
                 {isUploading ? <Loader2 className="w-6 h-6 text-primary animate-spin mb-2" /> : <UploadCloud className="w-6 h-6 text-primary/70 group-hover:text-primary mb-2 transition-colors" />}
                 <p className="text-xs text-muted-foreground font-medium text-center px-2">
-                  {isUploading ? 'Extracting text...' : isDraggingFiles ? 'Drop PDFs here' : 'Drop PDFs here or browse'}
+                  {isUploading ? 'Processing files...' : isDraggingFiles ? 'Drop files here' : 'Drop PDFs or Images here'}
                 </p>
               </div>
-              <input type="file" className="hidden" accept="application/pdf,.pdf" multiple onChange={handleFileUpload} disabled={isUploading} />
+              <input type="file" className="hidden" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" multiple onChange={handleFileUpload} disabled={isUploading} />
             </label>
             {uploadError && <p className="px-2 text-xs text-destructive">{uploadError}</p>}
 
@@ -246,10 +270,10 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
                   onMouseLeave={() => setHoveredSourceId(null)}
                   className="bg-card border border-border p-3 rounded-xl flex items-start gap-3 relative shadow-sm"
                 >
-                  <FileText className="w-5 h-5 text-primary/70 shrink-0 mt-0.5" />
+                  {s.type === 'image' && s.base64Data ? <div className="w-8 h-8 rounded shrink-0 overflow-hidden bg-muted flex items-center justify-center"><img src={s.base64Data} alt={s.name} className="w-full h-full object-cover" /></div> : <FileText className="w-5 h-5 text-primary/70 shrink-0 mt-0.5" />}
                   <div className="flex-1 min-w-0 pr-8">
                     <p className="text-sm font-medium text-foreground truncate" title={s.name}>{s.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{s.pageCount} pages</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{s.type === 'image' ? 'Image' : s.pageCount + ' pages'}</p>
                   </div>
                   <button onClick={() => onSetSources(activeChat.sources.filter(src => src.id !== s.id))} className={`transition-opacity duration-200 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-md absolute right-2 top-2 ${hoveredSourceId === s.id ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                     <Trash2 className="w-3.5 h-3.5" />

@@ -26,6 +26,9 @@ export const ExplainStudyTopicBody = zod.object({
   "sources": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "type": zod.enum(['pdf', 'image']).optional(),
+  "base64Data": zod.string().optional(),
+  "mimeType": zod.string().optional(),
   "text": zod.string(),
   "pageCount": zod.number().int(),
   "pages": zod.array(zod.object({
@@ -63,6 +66,9 @@ export const ExplainTechnicalConceptBody = zod.object({
   "sources": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "type": zod.enum(['pdf', 'image']).optional(),
+  "base64Data": zod.string().optional(),
+  "mimeType": zod.string().optional(),
   "text": zod.string(),
   "pageCount": zod.number().int(),
   "pages": zod.array(zod.object({
@@ -104,6 +110,9 @@ export const ExplainSelectedPassageBody = zod.object({
   "sources": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "type": zod.enum(['pdf', 'image']).optional(),
+  "base64Data": zod.string().optional(),
+  "mimeType": zod.string().optional(),
   "text": zod.string(),
   "pageCount": zod.number().int(),
   "pages": zod.array(zod.object({

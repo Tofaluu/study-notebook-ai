@@ -145,6 +145,13 @@ components:
           type: string
         name:
           type: string
+        type:
+          type: string
+          enum: [pdf, image]
+        base64Data:
+          type: string
+        mimeType:
+          type: string
         text:
           type: string
         pageCount:
