@@ -90,8 +90,7 @@ async function generateStructured(
   prompt: string,
   responseSchema: JsonSchema,
   model: string = DEFAULT_MODEL,
-  req?: any // Pass the express request to get headers easily
-): Promise<unknown> {
+  req?: any, images: Array<{ mimeType: string, data: string }> = []): Promise<unknown> {
   const isOpenAI = model.startsWith("gpt-");
   const isAnthropic = model.startsWith("claude-");
   
@@ -162,9 +161,14 @@ async function generateStructured(
       };
   } else {
     url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-    headers = { "content-type": "application/json" };
+    headers = { "Content-Type": "application/json" };
+    const parts: any[] = [{ text: prompt }];
+    for (const img of images) {
+      const base64Data = img.data.includes(',') ? img.data.split(',')[1] : img.data;
+      parts.push({ inlineData: { mimeType: img.mimeType, data: base64Data } });
+    }
     body = {
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      contents: [{ role: "user", parts: parts }],
       generationConfig: {
         temperature: 0.25,
         responseMimeType: "application/json",
@@ -309,6 +313,7 @@ router.post("/study/explain", async (req, res) => {
 
   try {
     const sourceText = formatSources(sources);
+    const images = sources.filter(s => s.type === 'image' && s.base64Data).map(s => ({ mimeType: s.mimeType || "image/jpeg", data: s.base64Data }));
     const raw = await generateStructured(
       `You are a patient and knowledgeable tutor. Give the student a high-quality, educational answer to their question. Start with a direct explanation, use examples where helpful, and build from familiar ideas toward complex details. Use Markdown headings, paragraphs, lists, and formatting when useful. Use LaTeX delimiters ($...$ for inline math and $$...$$ for display math). IMPORTANT: Never place ordinary English text or markdown formatting (like bold/italics) inside LaTeX math blocks; only mathematical formulas go inside math delimiters.
 
@@ -323,7 +328,8 @@ LECTURE SOURCES:
 ${sourceText || "No lecture sources were uploaded."}`,
       studyExplanationSchema,
       model,
-      req
+      req,
+      images
     );
 
     res.json(
@@ -352,6 +358,7 @@ router.post("/study/concepts/explain", async (req, res) => {
   }
 
   const { term, context, sources, model } = parsed.data;
+  const images = sources.filter(s => s.type === 'image' && s.base64Data).map(s => ({ mimeType: s.mimeType || "image/jpeg", data: s.base64Data }));
   const isOpenAI = model?.startsWith("gpt-");
   const isAnthropic = model?.startsWith("claude-");
   let apiKey = req.get("x-gemini-api-key")?.trim();
@@ -383,7 +390,8 @@ LECTURE SOURCES:
 ${formatSources(sources) || "No lecture sources were uploaded."}`,
       technicalConceptSchema,
       model,
-      req
+      req,
+      images
     );
 
     res.json(ExplainTechnicalConceptResponse.parse(sanitizeArrays(raw)));
@@ -410,6 +418,7 @@ router.post("/study/follow-ups/explain", async (req, res) => {
   }
 
   const { selectedText, question, answerContext, sources, model } = parsed.data;
+  const images = sources.filter(s => s.type === 'image' && s.base64Data).map(s => ({ mimeType: s.mimeType || "image/jpeg", data: s.base64Data }));
   const isOpenAI = model?.startsWith("gpt-");
   const isAnthropic = model?.startsWith("claude-");
   let apiKey = req.get("x-gemini-api-key")?.trim();
@@ -451,7 +460,8 @@ LECTURE SOURCES:
 ${formatSources(sources) || "No lecture sources were uploaded."}`,
       selectedPassageSchema,
       model,
-      req
+      req,
+      images
     );
 
     res.json(ExplainSelectedPassageResponse.parse(sanitizeArrays(raw)));
@@ -467,3 +477,7 @@ ${formatSources(sources) || "No lecture sources were uploaded."}`,
 });
 
 export default router;
+
+
+
+

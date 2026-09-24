@@ -18,9 +18,20 @@ export interface LecturePage {
   text: string;
 }
 
+export type LectureSourceType = typeof LectureSourceType[keyof typeof LectureSourceType];
+
+
+export const LectureSourceType = {
+  pdf: 'pdf',
+  image: 'image',
+} as const;
+
 export interface LectureSource {
   id: string;
   name: string;
+  type?: LectureSourceType;
+  base64Data?: string;
+  mimeType?: string;
   text: string;
   pageCount: number;
   pages: LecturePage[];

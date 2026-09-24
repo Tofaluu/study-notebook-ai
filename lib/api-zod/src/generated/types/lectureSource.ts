@@ -6,10 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { LecturePage } from './lecturePage';
+import type { LectureSourceType } from './lectureSourceType';
 
 export interface LectureSource {
   id: string;
   name: string;
+  type?: LectureSourceType;
+  base64Data?: string;
+  mimeType?: string;
   text: string;
   pageCount: number;
   pages: LecturePage[];
