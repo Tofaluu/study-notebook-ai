@@ -90,7 +90,7 @@ async function generateStructured(
   prompt: string,
   responseSchema: JsonSchema,
   model: string = DEFAULT_MODEL,
-  req?: any, images: Array<{ mimeType: string, data: string }> = []): Promise<unknown> {
+  req?: any, images: Array<{ name: string, mimeType: string, data: string }> = []): Promise<unknown> {
   const isOpenAI = model.startsWith("gpt-");
   const isAnthropic = model.startsWith("claude-");
   
@@ -109,6 +109,7 @@ async function generateStructured(
 
     const contentArray: any[] = [{ type: "text", text: prompt }];
     for (const img of images) {
+      contentArray.push({ type: "text", text: "Attached Image: " + img.name });
       contentArray.push({
         type: "image_url",
         image_url: { url: img.data }
@@ -136,11 +137,18 @@ async function generateStructured(
       "anthropic-version": "2023-06-01"
     };
     
+    const contentArray: any[] = [{ type: "text", text: prompt }];
+    for (const img of images) {
+      contentArray.push({ type: "text", text: "Attached Image: " + img.name });
+      const base64Data = img.data.includes(',') ? img.data.split(',')[1] : img.data;
+      contentArray.push({ type: "image", source: { type: "base64", media_type: img.mimeType, data: base64Data } });
+    }
+
     body = {
       model,
       max_tokens: 4096,
       system: "You must use the provided tool to output your response. IMPORTANT: Never generate XML or HTML tags inside the JSON strings. The 'terms' must be placed inside the proper JSON array, NOT hallucinated as XML tags inside the answerMarkdown string.",
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: contentArray }],
       tools: [{
         name: "output_response",
         description: "Output the structured response",
@@ -173,6 +181,7 @@ async function generateStructured(
     headers = { "Content-Type": "application/json" };
     const parts: any[] = [{ text: prompt }];
     for (const img of images) {
+      parts.push({ text: "Attached Image: " + img.name });
       const base64Data = img.data.includes(',') ? img.data.split(',')[1] : img.data;
       parts.push({ inlineData: { mimeType: img.mimeType, data: base64Data } });
     }
@@ -322,7 +331,7 @@ router.post("/study/explain", async (req, res) => {
 
   try {
     const sourceText = formatSources(sources);
-    const images = sources.filter(s => s.type === 'image' && s.base64Data).map(s => ({ mimeType: s.mimeType || "image/jpeg", data: s.base64Data }));
+    const images = sources.filter(s => s.type === 'image' && s.base64Data).map(s => ({ name: s.name, mimeType: s.mimeType || "image/jpeg", data: s.base64Data }));
     const raw = await generateStructured(
       `You are a patient and knowledgeable tutor. Give the student a high-quality, educational answer to their question. Start with a direct explanation, use examples where helpful, and build from familiar ideas toward complex details. Use Markdown headings, paragraphs, lists, and formatting when useful. Use LaTeX delimiters ($...$ for inline math and $$...$$ for display math). IMPORTANT: Never place ordinary English text or markdown formatting (like bold/italics) inside LaTeX math blocks; only mathematical formulas go inside math delimiters.
 
@@ -367,7 +376,7 @@ router.post("/study/concepts/explain", async (req, res) => {
   }
 
   const { term, context, sources, model } = parsed.data;
-  const images = sources.filter(s => s.type === 'image' && s.base64Data).map(s => ({ mimeType: s.mimeType || "image/jpeg", data: s.base64Data }));
+  const images = sources.filter(s => s.type === 'image' && s.base64Data).map(s => ({ name: s.name, mimeType: s.mimeType || "image/jpeg", data: s.base64Data }));
   const isOpenAI = model?.startsWith("gpt-");
   const isAnthropic = model?.startsWith("claude-");
   let apiKey = req.get("x-gemini-api-key")?.trim();
@@ -427,7 +436,7 @@ router.post("/study/follow-ups/explain", async (req, res) => {
   }
 
   const { selectedText, question, answerContext, sources, model } = parsed.data;
-  const images = sources.filter(s => s.type === 'image' && s.base64Data).map(s => ({ mimeType: s.mimeType || "image/jpeg", data: s.base64Data }));
+  const images = sources.filter(s => s.type === 'image' && s.base64Data).map(s => ({ name: s.name, mimeType: s.mimeType || "image/jpeg", data: s.base64Data }));
   const isOpenAI = model?.startsWith("gpt-");
   const isAnthropic = model?.startsWith("claude-");
   let apiKey = req.get("x-gemini-api-key")?.trim();
@@ -486,6 +495,11 @@ ${formatSources(sources) || "No lecture sources were uploaded."}`,
 });
 
 export default router;
+
+
+
+
+
 
 
 
