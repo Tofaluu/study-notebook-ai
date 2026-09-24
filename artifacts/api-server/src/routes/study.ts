@@ -106,9 +106,18 @@ async function generateStructured(
       "Content-Type": "application/json",
       "Authorization": `Bearer ${apiKey}`
     };
+
+    const contentArray: any[] = [{ type: "text", text: prompt }];
+    for (const img of images) {
+      contentArray.push({
+        type: "image_url",
+        image_url: { url: img.data }
+      });
+    }
+
     body = {
       model,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: contentArray }],
       response_format: {
         type: "json_schema",
         json_schema: {
