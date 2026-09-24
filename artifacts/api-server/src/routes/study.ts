@@ -338,7 +338,7 @@ router.post("/study/explain", async (req, res) => {
   QUESTION:
   ${prompt.trim() || "Explain the main ideas in these lecture materials."}
   
-  You must generate a short, descriptive title for your explanation in the title field. Identify 2-12 specialized terms, concepts, or jargon used verbatim in your answer that a beginner to the topic might not know. Do not include ordinary everyday words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them. If the user is just making small talk or greeting you without asking an educational question, just respond normally and return an empty terms array.
+  You must generate a short, descriptive title for your explanation in the title field. Identify 2-12 specialized terms, concepts, or jargon used verbatim in your answer that a beginner to the topic might not know. Do not include ordinary everyday words. Each term must appear exactly in answerMarkdown with the same spelling and capitalization. For every term, provide the sentence or short phrase where it appears as contextSnippet and a one-sentence plainDefinition. Do not add special markup around these terms; the client will underline them. If the user is just making small talk or greeting you without asking an educational question (and no images or lecture materials are involved), just respond normally and return an empty terms array.
 
 If lecture sources are supplied, prioritize them and cite only real source IDs/pages from the material. Include short verbatim excerpts. If no sources are supplied, answer from general knowledge and return an empty sourceRefs array.
 
@@ -495,6 +495,8 @@ ${formatSources(sources) || "No lecture sources were uploaded."}`,
 });
 
 export default router;
+
+
 
 
 
