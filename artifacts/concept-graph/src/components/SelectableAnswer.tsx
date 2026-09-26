@@ -45,6 +45,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
   const [selectedText, setSelectedText] = useState('');
   const [question, setQuestion] = useState('');
   const [position, setPosition] = useState<SelectionPosition | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const [wasTrimmed, setWasTrimmed] = useState(false);
 
   useEffect(() => {
@@ -91,6 +92,43 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
   };
 
   
+
+  const handleModalDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const target = e.target as HTMLElement;
+    if (target.closest('textarea') || target.closest('button')) return;
+    if (!position || !modalRef.current) return;
+
+    e.preventDefault();
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    
+    // Read exact pixels to avoid string parsing issues, or just use offsetLeft/Top
+    const startLeft = position.left;
+    const startTop = position.top;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      if (!modalRef.current) return;
+      modalRef.current.style.left = `${startLeft + (moveEvent.clientX - startX)}px`;
+      modalRef.current.style.top = `${startTop + (moveEvent.clientY - startY)}px`;
+    };
+
+    const onMouseUp = (moveEvent: MouseEvent) => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      
+      if (modalRef.current) {
+        setPosition({
+          left: parseFloat(modalRef.current.style.left),
+          top: parseFloat(modalRef.current.style.top)
+        });
+      }
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
 
   const showPromptForSelection = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0 || (event.target as HTMLElement).closest('button')) return;
@@ -164,11 +202,12 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
 
       {position && (
         <div
+          ref={modalRef}
           role="dialog"
           aria-label="Ask about selected text"
-          className="fixed z-50 w-[calc(100vw-1.5rem)] max-w-sm -translate-x-1/2 rounded-2xl border border-border bg-card p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+          className="fixed z-50 w-[calc(100vw-1.5rem)] max-w-sm -translate-x-1/2 rounded-2xl border border-border bg-card p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-150 cursor-move select-none"
           style={{ left: position.left, top: position.top }}
-          onMouseDown={(event) => event.stopPropagation()}
+          onMouseDown={handleModalDragStart}
         >
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -222,5 +261,12 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
     </>
   );
 }
+
+
+
+
+
+
+
 
 
