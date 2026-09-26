@@ -111,7 +111,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
 
     onAddHistory([userMessage]);
     if (chat.history.length === 0 && chat.title === 'New Session') {
-      onRename(actualPrompt.length > 42 ? `${actualPrompt.slice(0, 42)}…` : actualPrompt);
+      onRename(actualPrompt);
     }
 
     // Build chat context from the last 4 messages (2 turns)
@@ -272,6 +272,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
     </div>
   );
 }
+
 
 
 

@@ -31,6 +31,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
           return (
             <div
               key={tab.id}
+              title={tab.title}
               onClick={() => onSwitch(tab.id)}
               className={`
                 group flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-all border shrink-0
@@ -97,3 +98,4 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
     </div>
   );
 }
+
