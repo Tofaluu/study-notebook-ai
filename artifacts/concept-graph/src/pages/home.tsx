@@ -54,7 +54,7 @@ export default function Home() {
     addTab(chatId, {
       id: crypto.randomUUID(),
       type: 'follow-up',
-      title: `Q: ${question.length > 15 ? question.slice(0, 15) + '...' : question}`,
+      title: `Q: ${question}`,
       selectedText,
       question,
       answerContext,
@@ -181,3 +181,4 @@ export default function Home() {
     </div>
   );
 }
+

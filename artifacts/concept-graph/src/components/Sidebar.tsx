@@ -192,7 +192,7 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
                       onClick={e => e.stopPropagation()}
                     />
                   ) : (
-                    <span className="text-sm truncate block">{chat.title}</span>
+                    <span className="text-sm truncate block" title={chat.title}>{chat.title}</span>
                   )}
                 </div>
                 
@@ -297,3 +297,4 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
     </aside>
   );
 }
+
