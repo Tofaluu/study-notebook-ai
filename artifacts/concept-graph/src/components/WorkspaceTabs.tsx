@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, MessageSquareText, MessageCircle, X, PanelLeft } from 'lucide-react';
+import { FileText, MessageSquareText, MessageCircle, X, PanelLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { WorkspaceTab } from '@/lib/db';
 import type { StudyModel } from '@workspace/api-client-react';
 import { STUDY_MODEL_OPTIONS } from '@/lib/models';
@@ -30,6 +30,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingTabWidth, setEditingTabWidth] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [collapsedParents, setCollapsedParents] = useState<Set<string>>(new Set());
   
   const handleDragStart = (e: React.DragEvent, tabId: string) => {
     setDraggedTabId(tabId);
@@ -39,6 +40,10 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
   const handleDragOver = (e: React.DragEvent, targetTabId: string, isChatTab: boolean) => {
     e.preventDefault();
     if (isChatTab || !draggedTabId || draggedTabId === targetTabId || !onReorderTabs) return;
+
+    const draggedTabObj = tabs.find(t => t.id === draggedTabId);
+    const targetTabObj = tabs.find(t => t.id === targetTabId);
+    if (draggedTabObj?.parentId !== targetTabObj?.parentId) return;
 
     const draggedIndex = tabs.findIndex(t => t.id === draggedTabId);
     const targetIndex = tabs.findIndex(t => t.id === targetTabId);
@@ -53,9 +58,28 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
     if (draggedIndex < targetIndex && !isRightHalf) return;
     if (draggedIndex > targetIndex && isRightHalf) return;
 
+    let draggedSubtreeSize = 1;
+    while (draggedIndex + draggedSubtreeSize < tabs.length && tabs[draggedIndex + draggedSubtreeSize].parentId === draggedTabId) {
+      draggedSubtreeSize++;
+    }
+
+    let targetSubtreeSize = 1;
+    while (targetIndex + targetSubtreeSize < tabs.length && tabs[targetIndex + targetSubtreeSize].parentId === targetTabId) {
+      targetSubtreeSize++;
+    }
+
     const newTabs = [...tabs];
-    const [draggedTab] = newTabs.splice(draggedIndex, 1);
-    newTabs.splice(targetIndex, 0, draggedTab);
+    const draggedChunk = newTabs.splice(draggedIndex, draggedSubtreeSize);
+    
+    const adjustedTargetIndex = targetIndex > draggedIndex 
+      ? targetIndex - draggedSubtreeSize 
+      : targetIndex;
+
+    const insertIndex = targetIndex > draggedIndex 
+      ? adjustedTargetIndex + targetSubtreeSize 
+      : adjustedTargetIndex;
+
+    newTabs.splice(insertIndex, 0, ...draggedChunk);
     onReorderTabs(newTabs);
   };
 
@@ -91,6 +115,17 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
     setEditingTabId(null);
   };
 
+  const isDescendantOfCollapsed = (tabId: string) => {
+    let current = tabs.find(t => t.id === tabId);
+    while (current?.parentId) {
+      if (collapsedParents.has(current.parentId)) return true;
+      current = tabs.find(t => t.id === current?.parentId);
+    }
+    return false;
+  };
+
+  const visibleTabs = tabs.filter(t => !isDescendantOfCollapsed(t.id));
+
   return (
     <div className="flex items-center gap-2 p-2 bg-muted/30 border-b border-border min-h-[48px]">
       <div className="flex items-center justify-center mr-1">
@@ -99,7 +134,10 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
         </button>
       </div>
       <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto scrollbar-none">
-        {tabs.map(tab => {
+        {visibleTabs.map(tab => {
+          const hasChildren = tabs.some(t => t.parentId === tab.id);
+          const isCollapsed = collapsedParents.has(tab.id);
+          const isChild = !!tab.parentId;
           const isActive = tab.id === activeTabId;
           const displayTitle = tab.customName || tab.title;
           const isChatTab = tab.type === 'chat';
@@ -124,11 +162,29 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
                 tab-container relative group flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors border shrink-0
                 ${isActive 
                   ? 'bg-card border-border shadow-sm text-foreground' 
-                  : 'bg-transparent border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'}
+                  : isChild 
+                    ? 'bg-foreground/[0.03] border-transparent text-muted-foreground/80 hover:bg-foreground/[0.08] hover:text-foreground'
+                    : 'bg-transparent border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'}
                 ${draggedTabId === tab.id ? 'opacity-50' : 'opacity-100'}
               `}
               style={tab.customWidth && tab.customWidth > 0 ? { width: tab.customWidth } : (editingTabId === tab.id && editingTabWidth ? { width: editingTabWidth } : {})}
             >
+              {hasChildren && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCollapsedParents(prev => {
+                      const next = new Set(prev);
+                      if (next.has(tab.id)) next.delete(tab.id);
+                      else next.add(tab.id);
+                      return next;
+                    });
+                  }}
+                  className="p-0.5 -ml-1 rounded-sm hover:bg-muted-foreground/20 text-muted-foreground shrink-0 transition-colors"
+                >
+                  {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              )}
               {isChatTab && <MessageCircle className="w-4 h-4 text-primary/70 shrink-0" />}
               {tab.type === 'concept' && <FileText className="w-4 h-4 text-primary/70 shrink-0" />}
               {tab.type === 'follow-up' && <MessageSquareText className="w-4 h-4 text-primary/70 shrink-0" />}
@@ -148,7 +204,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
                 />
               ) : (
                 <span 
-                  className="text-sm font-medium whitespace-nowrap truncate flex-1 min-w-0"
+                  className={`text-sm whitespace-nowrap truncate flex-1 min-w-0 ${!isChild && !isChatTab ? 'font-medium' : ''}`}
                   style={tab.customWidth === undefined || tab.customWidth === 0 ? { maxWidth: '140px' } : {}}
                 >
                   {displayTitle}
@@ -215,5 +271,6 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
     </div>
   );
 }
+
 
 

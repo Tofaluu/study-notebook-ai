@@ -14,6 +14,7 @@ const MODEL_STORAGE_KEY = 'study-notebook-model-v1';
 
 export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+
   const [selectedModel, setSelectedModel] = React.useState<StudyModel>(() => {
     const savedModel = localStorage.getItem(MODEL_STORAGE_KEY);
     return isStudyModel(savedModel) ? savedModel : DEFAULT_STUDY_MODEL;
@@ -30,7 +31,7 @@ export default function Home() {
     return <div className="h-[100dvh] w-full flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
-  const handleTermClick = (chatId: string, term: string, contextSnippet: string) => {
+  const handleTermClick = (chatId: string, term: string, contextSnippet: string, parentId?: string) => {
     const chat = state?.chats.find(candidate => candidate.id === chatId);
     if (!chat) return;
     const existingTab = chat.tabs.find(
@@ -44,13 +45,14 @@ export default function Home() {
       id: crypto.randomUUID(),
       type: 'concept',
       title: term,
+      parentId,
       term,
       contextSnippet,
       model: selectedModel
     });
   };
 
-  const handleFollowUp = (chatId: string, selectedText: string, question: string, answerContext: string) => {
+  const handleFollowUp = (chatId: string, selectedText: string, question: string, answerContext: string, parentId?: string) => {
     if (!state?.chats.some(chat => chat.id === chatId)) return;
     addTab(chatId, {
       id: crypto.randomUUID(),
@@ -59,6 +61,8 @@ export default function Home() {
       selectedText,
       question,
       answerContext,
+      parentId,
+
       model: selectedModel
     });
   };
@@ -99,10 +103,10 @@ export default function Home() {
             sources={chat.sources}
             model={tab.model ?? selectedModel}
             onUpdateTab={(updates) => updateTab(chat.id, tab.id, updates)}
-            onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet)}
+            onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet, tab.parentId || tab.id)}
             onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
             onFollowUp={(selectedText, question, answerContext) =>
-              handleFollowUp(chat.id, selectedText, question, answerContext)
+              handleFollowUp(chat.id, selectedText, question, answerContext, tab.parentId || tab.id)
             }
           />
         </div>
@@ -116,10 +120,12 @@ export default function Home() {
           sources={chat.sources}
           model={tab.model ?? selectedModel}
           onUpdateTab={(updates) => updateTab(chat.id, tab.id, updates)}
-          onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet)}
+          onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet, tab.parentId || tab.id)}
+
           onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
-            onFollowUp={(selectedText, question, answerContext) =>
-            handleFollowUp(chat.id, selectedText, question, answerContext)
+          onFollowUp={(selectedText, question, answerContext) =>
+            handleFollowUp(chat.id, selectedText, question, answerContext, tab.parentId || tab.id)
+
           }
         />
       </div>
@@ -131,7 +137,7 @@ export default function Home() {
       <Sidebar 
         isOpen={isSidebarOpen}
         chats={state.chats}
-        chats={state.chats}
+
         activeChatId={state.activeChatId}
         activeChat={activeChat}
         onCreateChat={createChat}
@@ -187,4 +193,5 @@ export default function Home() {
     </div>
   );
 }
+
 
