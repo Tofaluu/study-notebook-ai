@@ -48,11 +48,35 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
   const [wasTrimmed, setWasTrimmed] = useState(false);
 
   useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      const selection = window.getSelection();
+      const container = answerRef.current;
+      if (!selection || selection.isCollapsed || !container || selection.rangeCount === 0) return;
+
+      const range = selection.getRangeAt(0);
+      if (!container.contains(range.commonAncestorContainer)) return;
+
+      const rawText = extractReadableSelection(range, selection.toString());
+      if (rawText.length < 2) return;
+
+      selectedRangeRef.current = range.cloneRange();
+      selectedTextRef.current = rawText.slice(0, 3000);
+      wasTrimmedRef.current = rawText.length > 3000;
+    };
+
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    document.addEventListener('touchend', handleGlobalMouseUp);
+
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') closePrompt();
     };
     window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
+
+    return () => {
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('touchend', handleGlobalMouseUp);
+      window.removeEventListener('keydown', closeOnEscape);
+    };
   }, []);
 
   const closePrompt = () => {
@@ -66,23 +90,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
     window.getSelection()?.removeAllRanges();
   };
 
-  const captureSelection = (event: React.SyntheticEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest('button')) return;
-
-    const selection = window.getSelection();
-    const container = answerRef.current;
-    if (!selection || selection.isCollapsed || !container || selection.rangeCount === 0) return;
-
-    const range = selection.getRangeAt(0);
-    if (!container.contains(range.commonAncestorContainer)) return;
-
-    const rawText = extractReadableSelection(range, selection.toString());
-    if (rawText.length < 2) return;
-
-    selectedRangeRef.current = range.cloneRange();
-    selectedTextRef.current = rawText.slice(0, 3000);
-    wasTrimmedRef.current = rawText.length > 3000;
-  };
+  
 
   const showPromptForSelection = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0 || (event.target as HTMLElement).closest('button')) return;
@@ -149,8 +157,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
         ref={answerRef}
         className="cursor-text select-text"
         onMouseDown={showPromptForSelection}
-        onMouseUp={captureSelection}
-        onTouchEnd={(event) => window.setTimeout(() => captureSelection(event), 50)}
+        
       >
         <MarkdownRenderer content={content} terms={terms} prerequisiteTerms={prerequisiteTerms} onTermClick={onTermClick} />
       </div>
@@ -215,3 +222,5 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
     </>
   );
 }
+
+
