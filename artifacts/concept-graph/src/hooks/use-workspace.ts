@@ -72,20 +72,38 @@ export function useWorkspace() {
   }, [updateState]);
 
   const addTab = useCallback((chatId: string, tab: WorkspaceTab) => {
-    updateChat(chatId, chat => ({
-      ...chat,
-      tabs: [...chat.tabs, tab],
-      activeTabId: tab.id,
-      updatedAt: Date.now()
-    }));
+    updateChat(chatId, chat => {
+      let newTabs = [...chat.tabs];
+      let insertIndex = newTabs.length;
+      if (tab.parentId) {
+        const parentIndex = newTabs.findIndex(t => t.id === tab.parentId);
+        if (parentIndex !== -1) {
+          let i = parentIndex + 1;
+          while (i < newTabs.length && newTabs[i].parentId === tab.parentId) {
+            i++;
+          }
+          insertIndex = i;
+        }
+      }
+      newTabs.splice(insertIndex, 0, tab);
+      return {
+        ...chat,
+        tabs: newTabs,
+        activeTabId: tab.id,
+        updatedAt: Date.now()
+      };
+    });
   }, [updateChat]);
 
   const closeTab = useCallback((chatId: string, tabId: string) => {
     updateChat(chatId, chat => {
-      const tabs = chat.tabs.filter(t => t.id !== tabId);
-      // Fallback to the last available tab if the active one was closed
-      // Since the 'chat' tab can't be closed, tabs.length will always be >= 1
-      const activeTabId = chat.activeTabId === tabId 
+      const tabsToRemove = new Set([tabId]);
+      chat.tabs.forEach(t => {
+        if (t.parentId === tabId) tabsToRemove.add(t.id);
+      });
+
+      const tabs = chat.tabs.filter(t => !tabsToRemove.has(t.id));
+      const activeTabId = tabsToRemove.has(chat.activeTabId)
         ? tabs[tabs.length - 1].id 
         : chat.activeTabId;
         
@@ -139,4 +157,7 @@ export function useWorkspace() {
     addHistory
   };
 }
+
+
+
 
