@@ -134,7 +134,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
         </button>
       </div>
       <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto scrollbar-none">
-        {visibleTabs.map(tab => {
+        {visibleTabs.map((tab, index) => {
           const hasChildren = tabs.some(t => t.parentId === tab.id);
           const isCollapsed = collapsedParents.has(tab.id);
           const isChild = !!tab.parentId;
@@ -143,9 +143,10 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
           const isChatTab = tab.type === 'chat';
           
           return (
-            <div
-              key={tab.id}
-              title={displayTitle}
+            <React.Fragment key={tab.id}>
+              {!isChild && index > 0 && <div className="w-[2px] h-5 bg-border/60 mx-1 shrink-0 rounded-full" />}
+              <div
+                title={displayTitle}
               onClick={() => onSwitch(tab.id)}
               draggable={!isChatTab}
               onDragStart={(e) => handleDragStart(e, tab.id)}
@@ -234,6 +235,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
                 </>
               )}
             </div>
+            </React.Fragment>
           );
         })}
       </div>
@@ -271,6 +273,8 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
     </div>
   );
 }
+
+
 
 
 
