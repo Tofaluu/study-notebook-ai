@@ -102,6 +102,10 @@ export function useWorkspace() {
     updateChat(chatId, chat => ({ ...chat, activeTabId: tabId, updatedAt: Date.now() }));
   }, [updateChat]);
 
+  const reorderTabs = useCallback((chatId: string, tabs: WorkspaceTab[]) => {
+    updateChat(chatId, chat => ({ ...chat, tabs, updatedAt: Date.now() }));
+  }, [updateChat]);
+
   const updateTab = useCallback((chatId: string, tabId: string, updates: Partial<WorkspaceTab>) => {
     updateChat(chatId, chat => ({
       ...chat,
@@ -130,7 +134,9 @@ export function useWorkspace() {
     closeTab,
     switchTab,
     updateTab,
+    reorderTabs,
     setSources,
     addHistory
   };
 }
+

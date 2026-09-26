@@ -15,6 +15,8 @@ export interface BaseTab {
   id: string;
   type: TabType;
   title: string;
+  customName?: string;
+  customWidth?: number;
 }
 
 export interface ChatTab extends BaseTab {
@@ -122,3 +124,4 @@ export async function setAppState(state: AppState) {
     });
   return saveQueue;
 }
+

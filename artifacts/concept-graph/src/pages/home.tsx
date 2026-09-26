@@ -13,6 +13,7 @@ import { ApiKeyModal } from '@/components/ApiKeyModal';
 const MODEL_STORAGE_KEY = 'study-notebook-model-v1';
 
 export default function Home() {
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const [selectedModel, setSelectedModel] = React.useState<StudyModel>(() => {
     const savedModel = localStorage.getItem(MODEL_STORAGE_KEY);
     return isStudyModel(savedModel) ? savedModel : DEFAULT_STUDY_MODEL;
@@ -22,7 +23,7 @@ export default function Home() {
   }, [selectedModel]);
   const { 
     state, activeChat, createChat, switchChat, deleteChat, deleteAllChats, renameChat, 
-    addTab, closeTab, switchTab, updateTab, setSources, addHistory 
+    addTab, closeTab, switchTab, updateTab, reorderTabs, setSources, addHistory 
   } = useWorkspace();
 
   if (!state) {
@@ -128,6 +129,8 @@ export default function Home() {
   return (
     <div className="flex h-[100dvh] bg-background w-full overflow-hidden font-sans">
       <Sidebar 
+        isOpen={isSidebarOpen}
+        chats={state.chats}
         chats={state.chats}
         activeChatId={state.activeChatId}
         activeChat={activeChat}
@@ -158,6 +161,9 @@ export default function Home() {
               model={selectedModel}
               onSwitch={(tabId) => switchTab(activeChat.id, tabId)}
               onClose={(tabId) => closeTab(activeChat.id, tabId)}
+              onUpdateTab={(tabId, updates) => updateTab(activeChat.id, tabId, updates)}
+              onReorderTabs={(newTabs) => reorderTabs(activeChat.id, newTabs)}
+              onToggleSidebar={() => setIsSidebarOpen(v => !v)}
               onModelChange={(model) => {
                 setSelectedModel(model);
               }}
