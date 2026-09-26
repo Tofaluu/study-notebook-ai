@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface SidebarProps {
+  isOpen: boolean;
   chats: Chat[];
   activeChatId: string | null;
   activeChat: Chat | null;
@@ -28,7 +29,7 @@ interface SidebarProps {
   onSetSources: (sources: LectureSource[]) => void;
 }
 
-export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitchChat, onDeleteChat, onDeleteAllChats, onRenameChat, onSetSources }: SidebarProps) {
+export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat, onSwitchChat, onDeleteChat, onDeleteAllChats, onRenameChat, onSetSources }: SidebarProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
   processFilesRef.current = processFiles;
 
   return (
-    <aside className="w-72 lg:w-80 bg-muted border-r border-border hidden md:flex flex-col shrink-0 transition-colors">
+    <aside className={`bg-muted border-border hidden md:flex flex-col shrink-0 transition-all duration-300 ease-in-out ${isOpen ? "w-72 lg:w-80 border-r opacity-100" : "w-0 border-r-0 opacity-0 overflow-hidden"}`}>
       <div className="p-4 lg:p-6 border-b border-border/50 flex items-center justify-between gap-3 shrink-0">
         <div className="flex min-w-0 items-center gap-3">
           <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
@@ -297,4 +298,7 @@ export function Sidebar({ chats, activeChatId, activeChat, onCreateChat, onSwitc
     </aside>
   );
 }
+
+
+
 
