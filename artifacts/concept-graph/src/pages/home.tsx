@@ -13,7 +13,14 @@ import { ApiKeyModal } from '@/components/ApiKeyModal';
 const MODEL_STORAGE_KEY = 'study-notebook-model-v1';
 
 export default function Home() {
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(() => {
+    const saved = localStorage.getItem('study-notebook-sidebar-open');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('study-notebook-sidebar-open', JSON.stringify(isSidebarOpen));
+  }, [isSidebarOpen]);
 
   const [selectedModel, setSelectedModel] = React.useState<StudyModel>(() => {
     const savedModel = localStorage.getItem(MODEL_STORAGE_KEY);
@@ -193,5 +200,6 @@ export default function Home() {
     </div>
   );
 }
+
 
 
