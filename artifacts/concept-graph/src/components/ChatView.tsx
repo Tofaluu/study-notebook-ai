@@ -55,12 +55,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
     const scrollContainer = scrollContainerRef.current;
     if (!scrollContainer) return;
 
-    const savedScrollTop = getScrollPos(chat.id);
-    if (savedScrollTop !== undefined) {
-      scrollContainer.scrollTop = savedScrollTop;
-    } else {
-      scrollContainer.scrollTop = scrollContainer.scrollHeight;
-    }
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
   }, [chat.id]);
 
   const handlePaste = async (e: React.ClipboardEvent) => {

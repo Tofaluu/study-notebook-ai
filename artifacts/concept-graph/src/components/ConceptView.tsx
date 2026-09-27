@@ -17,14 +17,6 @@ export function ConceptView({ tab, sources, model, onUpdateTab, onTermClick, onF
   const explainMutation = useExplainTechnicalConcept();
   const initRef = useRef(false);
 
-  React.useLayoutEffect(() => {
-    const scrollContainer = document.getElementById("scroll-" + tab.id);
-    if (!scrollContainer) return;
-    const savedScrollTop = getScrollPos(tab.id);
-    if (savedScrollTop !== undefined) {
-      scrollContainer.scrollTop = savedScrollTop;
-    }
-  }, [tab.id]);
 
   useEffect(() => {
     if (!tab.explanation && !explainMutation.isPending && !initRef.current) {
