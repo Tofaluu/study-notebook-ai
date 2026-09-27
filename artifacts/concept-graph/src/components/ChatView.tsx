@@ -17,7 +17,7 @@ interface ChatViewProps {
   onAddSources: (sources: any[]) => void;
 }
 
-export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onFollowUp, onAddSources }: ChatViewProps) {
+export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onFollowUp, onAddSources }: ChatViewProps) {
   const [prompt, setPrompt] = React.useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const explainMutation = useExplainStudyTopic();
@@ -265,13 +265,5 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
       </div>
     </div>
   );
-}
-
-
-
-
-
-
-
-
+}, (prev, next) => prev.chat.history === next.chat.history && prev.chat.sources === next.chat.sources && prev.chat.title === next.chat.title && prev.model === next.model);
 

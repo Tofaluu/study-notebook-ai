@@ -13,7 +13,7 @@ interface FollowUpViewProps {
   onFollowUp: (selectedText: string, question: string, answerContext: string) => void;
 }
 
-export function FollowUpView({ tab, sources, model, onUpdateTab, onTermClick, onFollowUp }: FollowUpViewProps) {
+export const FollowUpView = React.memo(function FollowUpView({ tab, sources, model, onUpdateTab, onTermClick, onFollowUp }: FollowUpViewProps) {
   const explainMutation = useExplainSelectedPassage();
   const initRef = useRef(false);
 
@@ -103,7 +103,5 @@ export function FollowUpView({ tab, sources, model, onUpdateTab, onTermClick, on
       <p className="text-muted-foreground max-w-sm text-center">Looking into your question about the selected text...</p>
     </div>
   );
-}
-
-
+}, (prev, next) => prev.tab === next.tab && prev.sources === next.sources && prev.model === next.model);
 
