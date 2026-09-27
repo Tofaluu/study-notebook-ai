@@ -13,7 +13,7 @@ interface ConceptViewProps {
   onFollowUp: (selectedText: string, question: string, answerContext: string) => void;
 }
 
-export function ConceptView({ tab, sources, model, onUpdateTab, onTermClick, onFollowUp }: ConceptViewProps) {
+export const ConceptView = React.memo(function ConceptView({ tab, sources, model, onUpdateTab, onTermClick, onFollowUp }: ConceptViewProps) {
   const explainMutation = useExplainTechnicalConcept();
   const initRef = useRef(false);
 
@@ -90,7 +90,5 @@ export function ConceptView({ tab, sources, model, onUpdateTab, onTermClick, onF
       <p className="text-muted-foreground">"{tab.term}"</p>
     </div>
   );
-}
-
-
+}, (prev, next) => prev.tab === next.tab && prev.sources === next.sources && prev.model === next.model);
 
