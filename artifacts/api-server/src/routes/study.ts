@@ -118,10 +118,7 @@ async function generateStructured(
 
     body = {
       model,
-      messages: [
-        { role: "system", content: "IMPORTANT: When writing mathematical equations or formulas, ALWAYS use \\( ... \\) for inline math, and $$ ... $$ for display blocks. Never use single $ signs for math." },
-        { role: "user", content: contentArray }
-      ],
+      messages: [{ role: "user", content: contentArray }],
       response_format: {
         type: "json_schema",
         json_schema: {
@@ -150,7 +147,7 @@ async function generateStructured(
     body = {
       model,
       max_tokens: 4096,
-      system: "You must use the provided tool to output your response. IMPORTANT: Never generate XML or HTML tags inside the JSON strings. The 'terms' must be placed inside the proper JSON array. IMPORTANT: When writing mathematical equations or formulas, ALWAYS use \\( ... \\) for inline math, and $$ ... $$ for display blocks. Never use single $ signs for math.",
+      system: "You must use the provided tool to output your response. IMPORTANT: Never generate XML or HTML tags inside the JSON strings. The 'terms' must be placed inside the proper JSON array, NOT hallucinated as XML tags inside the answerMarkdown string.",
       messages: [{ role: "user", content: contentArray }],
       tools: [{
         name: "output_response",
@@ -189,7 +186,6 @@ async function generateStructured(
       parts.push({ inlineData: { mimeType: img.mimeType, data: base64Data } });
     }
     body = {
-      systemInstruction: { parts: [{ text: "IMPORTANT: When writing mathematical equations or formulas, ALWAYS use \\( ... \\) for inline math, and $$ ... $$ for display blocks. Never use single $ signs for math." }] },
       contents: [{ role: "user", parts: parts }],
       generationConfig: {
         temperature: 0.25,
