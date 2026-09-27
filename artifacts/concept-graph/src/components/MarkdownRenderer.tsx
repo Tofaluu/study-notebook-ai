@@ -26,6 +26,9 @@ function normalizeDisplayMath(markdown: string) {
   // Ensure existing $$ blocks have proper blank lines around them for remark-math
   processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (_, math) => `\n\n$$\n${math.trim()}\n$$\n\n`);
   
+  // Escape currency dollar signs (e.g. $10, $5.99) so they don't trigger math rendering
+  processed = processed.replace(/\$(?=\d)/g, '\\$');
+
   // Clean up excessive newlines we might have just created
   processed = processed.replace(/\n{3,}/g, '\n\n');
   return processed;
