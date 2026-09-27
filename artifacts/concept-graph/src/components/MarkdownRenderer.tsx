@@ -2,6 +2,7 @@ import React, { Fragment } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
 import 'katex/dist/katex.min.css';
 import type { ExplainableTerm } from '@workspace/api-client-react';
 
@@ -119,6 +120,12 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
     strong: ({ children }: any) => <strong className="font-semibold text-foreground">{processChildren(children)}</strong>,
     em: ({ children }: any) => <em className="italic">{processChildren(children)}</em>,
     code: ({ children }: any) => <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded text-foreground/80">{children}</code>,
+    table: ({ children }: any) => <div className="overflow-x-auto my-8"><table className="w-full text-left border-collapse">{processChildren(children)}</table></div>,
+    thead: ({ children }: any) => <thead className="bg-muted/50 border-b-2 border-border">{processChildren(children)}</thead>,
+    tbody: ({ children }: any) => <tbody className="divide-y divide-border/50">{processChildren(children)}</tbody>,
+    tr: ({ children }: any) => <tr className="hover:bg-muted/30 transition-colors">{processChildren(children)}</tr>,
+    th: ({ children }: any) => <th className="p-4 font-semibold text-foreground whitespace-nowrap">{processChildren(children)}</th>,
+    td: ({ children }: any) => <td className="p-4 text-muted-foreground align-top">{processChildren(children)}</td>,
   };
 
   const normalizedContent = normalizeDisplayMath(content);
@@ -126,7 +133,7 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
   return (
     <div className="prose prose-stone dark:prose-invert max-w-none [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex-display]:py-2">
       <ReactMarkdown
-        remarkPlugins={[remarkMath]}
+        remarkPlugins={[remarkMath, remarkGfm]}
         rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false, errorColor: 'inherit' }]]}
         components={components}
       >
@@ -135,3 +142,4 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
     </div>
   );
 }
+
