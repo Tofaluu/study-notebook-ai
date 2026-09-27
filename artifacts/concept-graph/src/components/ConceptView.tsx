@@ -3,7 +3,6 @@ import { useExplainTechnicalConcept, LectureSource, type StudyModel } from '@wor
 import { ConceptTab } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { getScrollPos, setScrollPos } from '@/lib/scroll';
 
 interface ConceptViewProps {
   tab: ConceptTab;
@@ -100,5 +99,6 @@ export function ConceptView({ tab, sources, model, onUpdateTab, onTermClick, onF
     </div>
   );
 }
+
 
 

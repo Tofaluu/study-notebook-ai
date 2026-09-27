@@ -3,7 +3,6 @@ import { useExplainSelectedPassage, LectureSource, type StudyModel } from '@work
 import { FollowUpTab } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
 import { Loader2, AlertCircle, Quote } from 'lucide-react';
-import { getScrollPos, setScrollPos } from '@/lib/scroll';
 
 interface FollowUpViewProps {
   tab: FollowUpTab;
@@ -113,5 +112,6 @@ export function FollowUpView({ tab, sources, model, onUpdateTab, onTermClick, on
     </div>
   );
 }
+
 
 
