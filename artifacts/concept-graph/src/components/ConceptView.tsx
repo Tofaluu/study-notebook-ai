@@ -38,7 +38,7 @@ export const ConceptView = React.memo(function ConceptView({ tab, sources, model
 
   if (tab.explanation) {
     return (
-      <div id={`scroll-${tab.id}`} onScroll={(e) => setScrollPos(tab.id, e.currentTarget.scrollTop)} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 bg-background">
+      <div id={`scroll-${tab.id}`} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 bg-background">
         <div className="max-w-3xl mx-auto space-y-6 pb-20">
           <div className="bg-card border border-border/60 rounded-3xl p-6 md:p-10 shadow-sm ">
             <h2 className="text-3xl font-serif font-bold text-foreground mb-6 pb-4 border-b border-border/50">{tab.explanation.title}</h2>
@@ -91,4 +91,5 @@ export const ConceptView = React.memo(function ConceptView({ tab, sources, model
     </div>
   );
 }, (prev, next) => prev.tab === next.tab && prev.sources === next.sources && prev.model === next.model);
+
 
