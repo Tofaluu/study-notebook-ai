@@ -5,8 +5,8 @@ import { SelectableAnswer } from './SelectableAnswer';
 import { BookOpen, Loader2, Send, FileText, MousePointerClick, TextSelect } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { getScrollPos, setScrollPos } from '@/lib/scroll';
 
-const chatScrollPositions = new Map<string, number>();
 
 interface ChatViewProps {
   chat: Chat;
@@ -56,9 +56,11 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
     const scrollContainer = scrollContainerRef.current;
     if (!scrollContainer) return;
 
-    const savedScrollTop = chatScrollPositions.get(chat.id);
+    const savedScrollTop = getScrollPos(chat.id);
     if (savedScrollTop !== undefined) {
       scrollContainer.scrollTop = savedScrollTop;
+    } else {
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
   }, [chat.id]);
 
@@ -167,7 +169,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
     <div
       ref={scrollContainerRef}
       onScroll={(event) => {
-        chatScrollPositions.set(chat.id, event.currentTarget.scrollTop);
+        setScrollPos(chat.id, event.currentTarget.scrollTop);
       }}
       className="flex-1 min-w-0 min-h-0 overflow-y-auto scroll-smooth flex flex-col relative"
     >
@@ -272,6 +274,7 @@ export function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onF
     </div>
   );
 }
+
 
 
 
