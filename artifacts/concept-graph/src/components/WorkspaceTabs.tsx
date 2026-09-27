@@ -162,7 +162,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
               className={`
                 tab-container relative group flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors border shrink-0
                 ${isActive 
-                  ? 'bg-card border-border shadow-sm text-foreground' 
+                  ? 'bg-card border-primary/50 shadow-sm text-foreground outline-none' 
                   : isChild 
                     ? 'bg-foreground/[0.03] border-transparent text-muted-foreground/80 hover:bg-foreground/[0.08] hover:text-foreground'
                     : 'bg-transparent border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'}
@@ -273,6 +273,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
     </div>
   );
 }
+
 
 
 
