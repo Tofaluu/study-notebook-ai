@@ -48,7 +48,7 @@ export function FollowUpView({ tab, sources, model, onUpdateTab, onTermClick, on
 
   if (tab.explanation) {
     return (
-      <div id={scroll-} onScroll={(e) => setScrollPos(tab.id, e.currentTarget.scrollTop)} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 bg-background">
+      <div id={`scroll-${tab.id}`} onScroll={(e) => setScrollPos(tab.id, e.currentTarget.scrollTop)} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 bg-background">
         <div className="max-w-3xl mx-auto space-y-6 pb-20">
           <div className="bg-card border border-border/60 rounded-3xl p-6 md:p-10 shadow-sm ">
             <h2 className="text-3xl font-serif font-bold text-foreground mb-6 pb-4 border-b border-border/50">{tab.explanation.title}</h2>
@@ -113,4 +113,5 @@ export function FollowUpView({ tab, sources, model, onUpdateTab, onTermClick, on
     </div>
   );
 }
+
 
