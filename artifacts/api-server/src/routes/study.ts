@@ -303,6 +303,7 @@ function formatSources(
 router.post("/study/explain", async (req, res) => {
   const parsed = ExplainStudyTopicBody.safeParse(req.body);
   if (!parsed.success) {
+    req.log.error({ err: parsed.error }, "ZOD VALIDATION FAILED!");
     res.status(400).json({ error: "Add a question or lecture PDF." });
     return;
   }
@@ -495,6 +496,8 @@ ${formatSources(sources) || "No lecture sources were uploaded."}`,
 });
 
 export default router;
+
+
 
 
 
