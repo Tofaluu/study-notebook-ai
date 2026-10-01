@@ -140,7 +140,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-[100dvh] bg-background w-full overflow-hidden font-sans">
+    <div className="flex h-[100dvh] bg-background w-full overflow-hidden font-sans relative">
       <Sidebar 
         isOpen={isSidebarOpen}
         chats={state.chats}
@@ -154,6 +154,12 @@ export default function Home() {
         onRenameChat={renameChat}
         onSetSources={(sources) => activeChat && setSources(activeChat.id, sources)}
       />
+      {isSidebarOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
       
       <main 
         className="flex-1 flex flex-col min-w-0 min-h-0 bg-background relative"

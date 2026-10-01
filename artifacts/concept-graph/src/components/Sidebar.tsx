@@ -115,7 +115,14 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
   processFilesRef.current = processFiles;
 
   return (
-    <aside className={`bg-muted border-border hidden md:flex flex-col shrink-0 transition-all duration-300 ease-in-out ${isOpen ? "w-72 lg:w-80 border-r opacity-100" : "w-0 border-r-0 opacity-0 overflow-hidden"}`}>
+    <aside className={`
+      bg-muted border-border flex flex-col shrink-0 transition-all duration-300 ease-in-out
+      absolute md:relative z-50 h-[100dvh]
+      ${isOpen 
+        ? "translate-x-0 w-72 lg:w-80 border-r opacity-100" 
+        : "-translate-x-full md:translate-x-0 md:w-0 border-r-0 opacity-0 overflow-hidden w-72"
+      }
+    `}>
       <div className="p-4 lg:p-6 border-b border-border/50 flex items-center justify-between gap-3 shrink-0">
         <div className="flex min-w-0 items-center gap-3">
           <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
