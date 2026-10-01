@@ -1,10 +1,10 @@
 import type { StudyModel } from '@workspace/api-client-react';
 
-export const DEFAULT_STUDY_MODEL: StudyModel = 'gemini-3.7-flash';
+export const DEFAULT_STUDY_MODEL: StudyModel = 'gemini-3.8-flash';
 
 export const STUDY_MODEL_OPTIONS: Array<{ value: StudyModel; label: string; provider: string }> = [
   { value: 'gemini-3.1-flash-lite', label: '3.1 Flash Lite', provider: 'Google' },
-  { value: 'gemini-3.7-flash', label: '3.7 Flash', provider: 'Google' },
+  { value: 'gemini-3.8-flash', label: '3.8 Flash', provider: 'Google' },
   { value: 'gemini-3.1-pro-preview', label: '3.1 Pro', provider: 'Google' },
   { value: 'gpt-6-luna', label: 'GPT-6 Luna', provider: 'OpenAI' },
   { value: 'gpt-6.1-sol', label: 'GPT-6.1 Sol', provider: 'OpenAI' },
@@ -17,4 +17,5 @@ export const STUDY_MODEL_OPTIONS: Array<{ value: StudyModel; label: string; prov
 export function isStudyModel(value: string | null): value is StudyModel {
   return STUDY_MODEL_OPTIONS.some(option => option.value === value);
 }
+
 

@@ -9,7 +9,7 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
-const DEFAULT_MODEL = "gemini-3.7-flash";
+const DEFAULT_MODEL = "gemini-3.8-flash";
 const MAX_SOURCE_CHARS = 180_000;
 
 type JsonSchema = Record<string, unknown>;
@@ -496,6 +496,7 @@ ${formatSources(sources) || "No lecture sources were uploaded."}`,
 });
 
 export default router;
+
 
 
 
