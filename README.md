@@ -4,9 +4,10 @@ A privacy-first, Bring-Your-Own-Key (BYOK) AI study platform designed to help st
 
 ## Features
 
-* **Multi-Provider LLM Architecture:** Supports the latest models from OpenAI (GPT-6 Astra, GPT-5.6 Sol), Anthropic (Claude Fable 5.1, Claude Sonnet 5), and Google Gemini.
+* **Multi-Provider LLM Architecture:** Supports the latest flagship models from OpenAI (GPT-6.1 Sol, GPT-6 Luna), Anthropic (Claude 5.5 Sonnet, Claude 5.5 Opus), and Google (Gemini 3.8 Flash).
 * **Interactive Explanations:** The AI automatically identifies and highlights technical jargon. Clicking any highlighted term opens a dedicated learning tab explaining the concept in isolation.
 * **Contextual Follow-ups:** Highlight any text within an AI's response to ask a highly specific follow-up question directly related to that passage.
+* **Mobile and Tablet Ready:** Fully responsive design featuring a sliding sidebar and polyfilled touch support for native drag-and-drop tab management on iPads and smartphones.
 * **Privacy-First & Zero-Cost Backend:** All PDF parsing and chat history persistence occur entirely on the client side using IndexedDB. API keys are stored securely in browser LocalStorage. No user data, files, or keys are ever saved to a remote database.
 * **Strict Type Safety:** Utilizes an Express + Zod API orchestration layer to enforce strict JSON schemas across all LLM providers, ensuring the React frontend always receives predictable data structures.
 
