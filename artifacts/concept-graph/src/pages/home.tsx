@@ -93,10 +93,10 @@ export default function Home() {
             onAddHistory={(items) => addHistory(chat.id, items)}
             onRename={(title) => renameChat(chat.id, title)}
             onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet)}
-            onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
             onFollowUp={(selectedText, question, answerContext) =>
               handleFollowUp(chat.id, selectedText, question, answerContext)
             }
+            onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
           />
         </div>
       );
@@ -111,8 +111,7 @@ export default function Home() {
             model={tab.model ?? selectedModel}
             onUpdateTab={(updates) => updateTab(chat.id, tab.id, updates)}
             onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet, tab.parentId || tab.id)}
-            onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
-            onFollowUp={(selectedText, question, answerContext) =>
+                        onFollowUp={(selectedText, question, answerContext) =>
               handleFollowUp(chat.id, selectedText, question, answerContext, tab.parentId || tab.id)
             }
           />
@@ -129,8 +128,7 @@ export default function Home() {
           onUpdateTab={(updates) => updateTab(chat.id, tab.id, updates)}
           onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet, tab.parentId || tab.id)}
 
-          onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
-          onFollowUp={(selectedText, question, answerContext) =>
+                    onFollowUp={(selectedText, question, answerContext) =>
             handleFollowUp(chat.id, selectedText, question, answerContext, tab.parentId || tab.id)
 
           }
@@ -182,7 +180,7 @@ export default function Home() {
               onClose={(tabId) => closeTab(activeChat.id, tabId)}
               onUpdateTab={(tabId, updates) => updateTab(activeChat.id, tabId, updates)}
               onReorderTabs={(newTabs) => reorderTabs(activeChat.id, newTabs)}
-              onToggleSidebar={() => setIsSidebarOpen(v => !v)}
+              onToggleSidebar={() => setIsSidebarOpen((v: boolean) => !v)}
               onModelChange={(model) => {
                 setSelectedModel(model);
               }}
@@ -206,6 +204,9 @@ export default function Home() {
     </div>
   );
 }
+
+
+
 
 
 

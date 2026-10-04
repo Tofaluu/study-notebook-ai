@@ -1,3 +1,6 @@
+import { useAuth } from '@/hooks/use-auth';
+import { AuthView } from '@/components/AuthView';
+import { Loader2 } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
@@ -35,7 +38,16 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 
+import { useState, useEffect } from 'react';
+
 function App() {
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  useEffect(() => {
+    const handler = () => setIsAuthOpen(true);
+    window.addEventListener('open-auth', handler);
+    return () => window.removeEventListener('open-auth', handler);
+  }, []);
+
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="study-notebook-theme">
       <QueryClientProvider client={queryClient}>
@@ -44,6 +56,7 @@ function App() {
             <Router />
           </WouterRouter>
           <Toaster />
+          {isAuthOpen && <AuthView onClose={() => setIsAuthOpen(false)} />}
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>
@@ -51,3 +64,7 @@ function App() {
 }
 
 export default App;
+
+
+
+

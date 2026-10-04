@@ -50,6 +50,7 @@ export function ApiKeyModal() {
     else window.localStorage.removeItem('study-notebook-anthropic-key');
 
     setOpen(false);
+    window.dispatchEvent(new Event('api-keys-updated'));
   };
 
   return (
@@ -102,3 +103,4 @@ export function ApiKeyModal() {
     </Dialog>
   );
 }
+

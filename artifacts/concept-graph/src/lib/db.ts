@@ -80,36 +80,75 @@ export function createEmptyChat(): Chat {
   };
 }
 
+import { supabase } from './supabase';
+import { del } from 'idb-keyval';
+
+let chatCache = new Map<string, string>(); // id -> JSON.stringify(chat)
+
+export async function clearLocalChats() {
+  await del(CHATS_KEY);
+  await del(ACTIVE_CHAT_KEY);
+}
+
+export async function migrateLocalToCloud(userId: string) {
+  const localChats = await get<Chat[]>(CHATS_KEY);
+  if (localChats && localChats.length > 0) {
+    const chatRows = localChats.map(chat => ({
+      id: chat.id,
+      user_id: userId,
+      data: chat,
+      updated_at: new Date(chat.updatedAt).toISOString()
+    }));
+    await supabase.from('chats').upsert(chatRows);
+  }
+  await clearLocalChats();
+}
+
 export async function loadAppState(): Promise<AppState> {
   try {
-    let chats = await get<Chat[]>(CHATS_KEY);
     let activeChatId = await get<string | null>(ACTIVE_CHAT_KEY);
 
-    if (!chats) {
-      // Migrate from v1
-      const oldHistory = await get<HistoryItem[]>(OLD_HISTORY_KEY);
-      const oldSources = await get<LectureSource[]>(OLD_SOURCES_KEY);
-      
-      if (oldHistory?.length || oldSources?.length) {
-        const initialChat: Chat = {
-          ...createEmptyChat(),
-          title: 'Imported Session',
-          history: oldHistory || [],
-          sources: oldSources || []
-        };
-        chats = [initialChat];
-        activeChatId = initialChat.id;
-        await setAppState({ chats, activeChatId });
-      } else {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // GUEST MODE
+    if (!user) {
+      let chats = await get<Chat[]>(CHATS_KEY);
+      if (!chats || chats.length === 0) {
         const initialChat = createEmptyChat();
         chats = [initialChat];
         activeChatId = initialChat.id;
         await setAppState({ chats, activeChatId });
       }
+      return { chats, activeChatId: activeChatId || chats[0].id };
+    }
+
+    // CLOUD MODE
+    const { data: dbChats, error } = await supabase
+      .from('chats')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+
+    let chats: Chat[] = [];
+    if (dbChats && dbChats.length > 0) {
+      chats = dbChats.map(row => row.data as Chat);
+      chats.forEach(c => chatCache.set(c.id, JSON.stringify(c)));
+
+      if (activeChatId && !chats.find(c => c.id === activeChatId)) {
+        activeChatId = chats[0].id;
+      }
+    } else {
+      const initialChat = createEmptyChat();
+      chats = [initialChat];
+      activeChatId = initialChat.id;
+      await setAppState({ chats, activeChatId });
     }
     
-    return { chats: chats || [], activeChatId: activeChatId || null };
+    return { chats, activeChatId: activeChatId || null };
   } catch (e) {
+    console.error('Failed to load from DB:', e);
     return { chats: [], activeChatId: null };
   }
 }
@@ -118,10 +157,46 @@ export async function setAppState(state: AppState) {
   saveQueue = saveQueue
     .catch(() => undefined)
     .then(async () => {
-      await Promise.all([
-        set(CHATS_KEY, state.chats),
-        set(ACTIVE_CHAT_KEY, state.activeChatId)
-      ]);
+      await set(ACTIVE_CHAT_KEY, state.activeChatId);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // GUEST MODE
+      if (!user) {
+        await set(CHATS_KEY, state.chats);
+        return;
+      }
+
+      // CLOUD MODE
+      const currentIds = new Set(state.chats.map(c => c.id));
+      const deletedIds = Array.from(chatCache.keys()).filter(id => !currentIds.has(id));
+
+      if (deletedIds.length > 0) {
+        const { error } = await supabase.from('chats').delete().in('id', deletedIds);
+        if (error) console.error("Failed to delete from Supabase:", error);
+        deletedIds.forEach(id => chatCache.delete(id));
+      }
+
+      const changedChats = state.chats.filter(chat => {
+        const str = JSON.stringify(chat);
+        if (chatCache.get(chat.id) !== str) {
+          chatCache.set(chat.id, str);
+          return true;
+        }
+        return false;
+      });
+
+      if (changedChats.length > 0) {
+        const chatRows = changedChats.map(chat => ({
+          id: chat.id,
+          user_id: user.id,
+          data: chat,
+          updated_at: new Date(chat.updatedAt).toISOString()
+        }));
+
+        const { error } = await supabase.from('chats').upsert(chatRows);
+        if (error) console.error("Failed to sync to Supabase:", error);
+      }
     });
   return saveQueue;
 }
