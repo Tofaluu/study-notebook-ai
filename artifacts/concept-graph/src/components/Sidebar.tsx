@@ -1,3 +1,4 @@
+import { useAuth } from '@/hooks/use-auth';
 import React, { useState } from 'react';
 import { BookOpen, FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Key } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -30,6 +31,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat, onSwitchChat, onDeleteChat, onDeleteAllChats, onRenameChat, onSetSources }: SidebarProps) {
+  const { user } = useAuth();
+  const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
   const [isUploading, setIsUploading] = useState(false);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -293,18 +296,63 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
         )}
       </div>
 
-      <div className="p-4 border-t border-border/50 shrink-0 bg-background/50">
-        <button
-          onClick={() => window.dispatchEvent(new Event('open-api-key-modal'))}
-          className="w-full flex items-center justify-center gap-2 bg-card border border-border rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          <Key className="w-4 h-4" />
-          API Key Settings
-        </button>
+      <div className="p-4 border-t border-border/50 shrink-0 bg-background/50 flex items-center justify-between">
+        {user ? (
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold uppercase">
+              {displayName.charAt(0)}
+            </div>
+            <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
+              {displayName}
+            </span>
+          </div>
+        ) : (
+          <button 
+            onClick={() => window.dispatchEvent(new Event('open-auth'))}
+            className="text-sm text-primary font-medium hover:underline transition-colors flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+            Sign In / Sign Up
+          </button>
+        )}
+
+        <div className="flex items-center gap-1">
+          {user && (
+            <button 
+              onClick={async () => {
+                const { supabase } = await import('@/lib/supabase');
+                const { clearLocalChats } = await import('@/lib/db');
+                await clearLocalChats();
+                await supabase.auth.signOut();
+                window.location.reload();
+              }}
+              className="text-muted-foreground hover:text-destructive transition-colors p-1"
+              title="Sign Out"
+            >
+              <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            </button>
+          )}
+          <button
+            onClick={() => window.dispatchEvent(new Event('open-api-key-modal'))}
+            className="text-muted-foreground hover:text-foreground transition-colors p-1"
+            title="API Key Settings"
+          >
+            <Key className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </aside>
   );
 }
+
+
+
+
+
+
+
+
+
 
 
 

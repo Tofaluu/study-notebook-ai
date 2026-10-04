@@ -26,6 +26,25 @@ interface WorkspaceTabsProps {
 }
 
 export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onModelChange, onReorderTabs, onUpdateTab, onToggleSidebar }: WorkspaceTabsProps) {
+  const [keys, setKeys] = useState({ gemini: false, openai: false, anthropic: false });
+  useEffect(() => {
+    const checkKeys = () => {
+      setKeys({
+        gemini: !!(window.localStorage.getItem('study-notebook-gemini-key') || window.localStorage.getItem('study-notebook-api-key')),
+        openai: !!window.localStorage.getItem('study-notebook-openai-key'),
+        anthropic: !!window.localStorage.getItem('study-notebook-anthropic-key')
+      });
+    };
+    checkKeys();
+    window.addEventListener('storage', checkKeys);
+    window.addEventListener('api-keys-updated', checkKeys);
+    return () => {
+      window.removeEventListener('storage', checkKeys);
+      window.removeEventListener('api-keys-updated', checkKeys);
+    };
+  }, []);
+
+  const noKeysConfigured = !keys.gemini && !keys.openai && !keys.anthropic;
   const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingTabWidth, setEditingTabWidth] = useState<number | null>(null);
@@ -239,40 +258,52 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
           );
         })}
       </div>
-      <Select value={model} onValueChange={(value) => onModelChange(value as StudyModel)}>
-        <SelectTrigger className="h-8 w-[150px] shrink-0 rounded-md border border-border bg-card px-2 text-xs font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/30">
-          <SelectValue placeholder="Select model" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel className="text-xs text-muted-foreground">Google</SelectLabel>
-            {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Google').map(option => (
-              <SelectItem key={option.value} value={option.value} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs">
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel className="text-xs text-muted-foreground mt-1">OpenAI</SelectLabel>
-            {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'OpenAI').map(option => (
-              <SelectItem key={option.value} value={option.value} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs">
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel className="text-xs text-muted-foreground mt-1">Anthropic</SelectLabel>
-            {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Anthropic').map(option => (
-              <SelectItem key={option.value} value={option.value} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs">
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+      {noKeysConfigured ? (
+        <button 
+          onClick={() => window.dispatchEvent(new Event('open-api-key-modal'))}
+          className="h-8 shrink-0 rounded-md border border-primary bg-primary/10 px-3 text-xs font-medium text-primary shadow-sm outline-none hover:bg-primary/20 transition-colors whitespace-nowrap"
+        >
+          Add your AI API
+        </button>
+      ) : (
+        <Select value={model} onValueChange={(value) => onModelChange(value as StudyModel)}>
+          <SelectTrigger className="h-8 w-[150px] shrink-0 rounded-md border border-border bg-card px-2 text-xs font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/30">
+            <SelectValue placeholder="Select model" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel className="text-xs text-muted-foreground">Google</SelectLabel>
+              {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Google').map(option => (
+                <SelectItem key={option.value} value={option.value} disabled={!keys.gemini} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel className="text-xs text-muted-foreground mt-1">OpenAI</SelectLabel>
+              {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'OpenAI').map(option => (
+                <SelectItem key={option.value} value={option.value} disabled={!keys.openai} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel className="text-xs text-muted-foreground mt-1">Anthropic</SelectLabel>
+              {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Anthropic').map(option => (
+                <SelectItem key={option.value} value={option.value} disabled={!keys.anthropic} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      )}
     </div>
   );
 }
+
+
+
 
 
 
