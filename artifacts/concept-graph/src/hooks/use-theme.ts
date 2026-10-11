@@ -20,14 +20,28 @@ export function useThemeCustomization() {
     secondaryForeground: null
   });
 
-  // Load from local storage
+  // Load from local storage and sync across hook instances
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setColors(JSON.parse(saved));
-      } catch (e) {}
-    }
+    const loadSaved = () => {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          setColors(JSON.parse(saved));
+        } catch (e) {}
+      } else {
+        setColors({
+          primary: null,
+          background: null,
+          foreground: null,
+          secondaryBackground: null,
+          secondaryForeground: null
+        });
+      }
+    };
+
+    loadSaved();
+    window.addEventListener('study-notebook-theme-updated', loadSaved);
+    return () => window.removeEventListener('study-notebook-theme-updated', loadSaved);
   }, []);
 
   // Apply to DOM whenever colors change
@@ -78,6 +92,7 @@ export function useThemeCustomization() {
     setColors(prev => {
       const next = { ...prev, [key]: hex };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      window.dispatchEvent(new Event('study-notebook-theme-updated'));
       return next;
     });
   };
@@ -86,9 +101,18 @@ export function useThemeCustomization() {
     const defaultColors = { primary: null, background: null, foreground: null, secondaryBackground: null, secondaryForeground: null };
     setColors(defaultColors);
     localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(new Event('study-notebook-theme-updated'));
   };
 
-  return { colors, updateColor, resetColors };
+  const hasCustomTheme = Boolean(
+    colors.primary ||
+    colors.background ||
+    colors.foreground ||
+    colors.secondaryBackground ||
+    colors.secondaryForeground
+  );
+
+  return { colors, updateColor, resetColors, hasCustomTheme };
 }
 
 
