@@ -8,7 +8,7 @@ import { FollowUpView } from '@/components/FollowUpView';
 import { Loader2 } from 'lucide-react';
 import type { StudyModel } from '@workspace/api-client-react';
 import { DEFAULT_STUDY_MODEL, isStudyModel } from '@/lib/models';
-import { ApiKeyModal } from '@/components/ApiKeyModal';
+import { SettingsModal } from '@/components/SettingsModal';
 
 const MODEL_STORAGE_KEY = 'study-notebook-model-v1';
 
@@ -200,10 +200,11 @@ export default function Home() {
           </div>
         )}
       </main>
-      <ApiKeyModal />
+      <SettingsModal />
     </div>
   );
 }
+
 
 
 

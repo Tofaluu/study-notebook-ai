@@ -260,7 +260,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
       </div>
       {noKeysConfigured ? (
         <button 
-          onClick={() => window.dispatchEvent(new Event('open-api-key-modal'))}
+          onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'api' } }))}
           className="h-8 shrink-0 rounded-md border border-primary bg-primary/10 px-3 text-xs font-medium text-primary shadow-sm outline-none hover:bg-primary/20 transition-colors whitespace-nowrap"
         >
           Add your AI API
@@ -301,6 +301,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
     </div>
   );
 }
+
 
 
 
