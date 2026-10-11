@@ -1,3 +1,4 @@
+import { useThemeCustomization } from '@/hooks/use-theme';
 import { useAuth } from '@/hooks/use-auth';
 import { AuthView } from '@/components/AuthView';
 import { Loader2 } from 'lucide-react';
@@ -41,6 +42,7 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 import { useState, useEffect } from 'react';
 
 function App() {
+  useThemeCustomization();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   useEffect(() => {
     const handler = () => setIsAuthOpen(true);
@@ -64,6 +66,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
