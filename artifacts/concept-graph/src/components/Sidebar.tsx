@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/use-auth';
 import React, { useState } from 'react';
-import { BookOpen, FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Key } from 'lucide-react';
+import { BookOpen, FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Settings } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Chat } from '@/lib/db';
 import type { LectureSource } from '@workspace/api-client-react';
@@ -337,7 +337,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
             className="text-muted-foreground hover:text-foreground transition-colors p-1"
             title="Settings"
           >
-            <Key className="w-4 h-4" />
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </div>
