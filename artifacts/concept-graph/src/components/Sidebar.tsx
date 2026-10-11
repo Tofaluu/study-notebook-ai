@@ -177,7 +177,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                 onClick={() => onSwitchChat(chat.id)}
                 className={`
                   flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors
-                  ${chat.id === activeChatId ? 'bg-primary/10 text-primary font-medium' : 'text-foreground/80 hover:bg-foreground/5'}
+                  ${chat.id === activeChatId ? 'bg-muted text-foreground font-medium shadow-sm' : 'text-foreground/80 hover:bg-muted/50'}
                 `}
               >
                 <div className="flex-1 min-w-0">
@@ -333,9 +333,9 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
             </button>
           )}
           <button
-            onClick={() => window.dispatchEvent(new Event('open-api-key-modal'))}
+            onClick={() => window.dispatchEvent(new Event('open-settings'))}
             className="text-muted-foreground hover:text-foreground transition-colors p-1"
-            title="API Key Settings"
+            title="Settings"
           >
             <Key className="w-4 h-4" />
           </button>
@@ -344,6 +344,10 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
     </aside>
   );
 }
+
+
+
+
 
 
 

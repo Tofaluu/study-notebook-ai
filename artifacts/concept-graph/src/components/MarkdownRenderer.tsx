@@ -62,7 +62,7 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
           <button
             key={i}
             onClick={() => onTermClick?.(matchedTerm.term, matchedTerm.contextSnippet)}
-            className="text-primary font-bold decoration-primary/40 hover:bg-primary/10 border-b-2 border-primary/40 transition-colors inline-block leading-tight rounded-sm px-0.5 -mx-0.5"
+            className="text-foreground font-bold hover:bg-primary/10 border-b-2 border-primary/40 transition-colors inline-block leading-tight rounded-sm px-0.5 -mx-0.5"
             data-testid={`term-${matchedTerm.term}`}
             title={matchedTerm.plainDefinition}
           >
@@ -76,7 +76,7 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
           <button
             key={i}
             onClick={() => onTermClick?.(part, "Prerequisite concept related to the current topic.")}
-            className="text-primary font-bold decoration-primary/40 hover:bg-primary/10 border-b-2 border-primary/40 transition-colors inline-block leading-tight rounded-sm px-0.5 -mx-0.5"
+            className="text-foreground font-bold hover:bg-primary/10 border-b-2 border-primary/40 transition-colors inline-block leading-tight rounded-sm px-0.5 -mx-0.5"
             data-testid={`prereq-${part}`}
           >
             {part}
@@ -114,8 +114,8 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
     h1: ({ children }: any) => <h1 className="text-3xl font-serif font-bold mt-10 mb-6 text-foreground tracking-normal">{processChildren(children)}</h1>,
     h2: ({ children }: any) => <h2 className="text-2xl font-serif font-bold mt-8 mb-4 text-foreground tracking-normal">{processChildren(children)}</h2>,
     h3: ({ children }: any) => <h3 className="text-xl font-serif font-bold mt-6 mb-3 text-foreground tracking-normal">{processChildren(children)}</h3>,
-    ul: ({ children }: any) => <ul className="list-disc pl-6 mb-6 space-y-2 marker:text-primary/60">{processChildren(children)}</ul>,
-    ol: ({ children }: any) => <ol className="list-decimal pl-6 mb-6 space-y-2 marker:text-primary/60">{processChildren(children)}</ol>,
+    ul: ({ children }: any) => <ul className="list-disc pl-6 mb-6 space-y-2 marker:text-foreground/60">{processChildren(children)}</ul>,
+    ol: ({ children }: any) => <ol className="list-decimal pl-6 mb-6 space-y-2 marker:text-foreground/60">{processChildren(children)}</ol>,
     blockquote: ({ children }: any) => <blockquote className="border-l-4 border-primary/40 pl-5 italic text-muted-foreground my-6 py-2 bg-muted/40 rounded-r-xl">{processChildren(children)}</blockquote>,
     strong: ({ children }: any) => <strong className="font-semibold text-foreground">{processChildren(children)}</strong>,
     em: ({ children }: any) => <em className="italic">{processChildren(children)}</em>,
@@ -142,4 +142,5 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
     </div>
   );
 }
+
 
