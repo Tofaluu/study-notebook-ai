@@ -217,11 +217,11 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogContent onClick={(e) => e.stopPropagation()} className="max-h-[85vh] overflow-y-auto w-[90vw] max-w-lg">
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Notebook?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{chat.title}"? This will permanently delete all saved messages, tabs, and PDFs from this browser. This action cannot be undone.
+                        <AlertDialogDescription className="break-words max-h-60 overflow-y-auto">
+                          Are you sure you want to delete <span className="font-semibold text-foreground">"{chat.title}"</span>? This will permanently delete all saved messages, tabs, and PDFs from this browser. This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

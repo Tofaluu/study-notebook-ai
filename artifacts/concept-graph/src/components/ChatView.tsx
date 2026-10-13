@@ -107,7 +107,10 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
 
     onAddHistory([userMessage]);
     if (chat.history.length === 0 && chat.title === 'New Session') {
-      onRename(actualPrompt);
+      const trimmed = actualPrompt.trim();
+      const firstLine = trimmed.split('\n')[0];
+      const title = firstLine.length > 50 ? `${firstLine.slice(0, 50).trim()}...` : firstLine;
+      onRename(title || 'Untitled Session');
     }
 
     // Build chat context from the last 4 messages (2 turns)
