@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { loadAppState, setAppState, createEmptyChat, AppState, Chat, WorkspaceTab, HistoryItem } from '@/lib/db';
 import { LectureSource } from '@workspace/api-client-react';
+import { createDemoChat } from '@/lib/demo';
 
 export function useWorkspace() {
   const [state, setState] = useState<AppState | null>(null);
@@ -24,6 +25,16 @@ export function useWorkspace() {
       return {
         chats: [newChat, ...prev.chats],
         activeChatId: newChat.id
+      };
+    });
+  }, [updateState]);
+
+  const openDemo = useCallback(() => {
+    updateState(prev => {
+      const demoChat = createDemoChat();
+      return {
+        chats: [demoChat, ...prev.chats],
+        activeChatId: demoChat.id
       };
     });
   }, [updateState]);
@@ -144,6 +155,7 @@ export function useWorkspace() {
     state,
     activeChat,
     createChat,
+    openDemo,
     switchChat,
     deleteChat,
     deleteAllChats,
