@@ -82,6 +82,7 @@ export function createEmptyChat(): Chat {
 
 import { supabase } from './supabase';
 import { del } from 'idb-keyval';
+import { createDemoChat } from './demo';
 
 let chatCache = new Map<string, string>(); // id -> JSON.stringify(chat)
 
@@ -104,17 +105,25 @@ export async function migrateLocalToCloud(userId: string) {
   await clearLocalChats();
 }
 
+// Reads the cached session from local storage instead of making a network
+// round-trip on every load and save; Supabase RLS still authorizes each query.
+async function getSignedInUser() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user ?? null;
+}
+
 export async function loadAppState(): Promise<AppState> {
   try {
     let activeChatId = await get<string | null>(ACTIVE_CHAT_KEY);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const user = await getSignedInUser();
+
     // GUEST MODE
     if (!user) {
       let chats = await get<Chat[]>(CHATS_KEY);
       if (!chats || chats.length === 0) {
-        const initialChat = createEmptyChat();
+        // First visit: open the pre-generated demo so the app is explorable without an API key
+        const initialChat = createDemoChat();
         chats = [initialChat];
         activeChatId = initialChat.id;
         await setAppState({ chats, activeChatId });
@@ -159,8 +168,8 @@ export async function setAppState(state: AppState) {
     .then(async () => {
       await set(ACTIVE_CHAT_KEY, state.activeChatId);
       
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const user = await getSignedInUser();
+
       // GUEST MODE
       if (!user) {
         await set(CHATS_KEY, state.chats);

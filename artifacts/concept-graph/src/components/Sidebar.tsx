@@ -131,7 +131,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
           <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
             <BookOpen className="w-5 h-5" />
           </div>
-          <h1 className="truncate font-serif text-xl font-bold text-foreground">Study Notebook</h1>
+          <h1 className="truncate font-serif text-2xl text-foreground">Study Notebook</h1>
         </div>
         <ThemeToggle />
       </div>
