@@ -2,10 +2,10 @@ import React, { useRef, useLayoutEffect } from 'react';
 import { useExplainStudyTopic, type StudyModel } from '@workspace/api-client-react';
 import { Chat, HistoryItem } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
-import { BookOpen, Loader2, Send, FileText, MousePointerClick, TextSelect } from 'lucide-react';
+import { BookOpen, Loader2, Send, FileText, MousePointerClick, TextSelect, Sparkles } from 'lucide-react';
+import { DEMO_SOURCE_ID } from '@/lib/demo';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-
 
 interface ChatViewProps {
   chat: Chat;
@@ -15,13 +15,15 @@ interface ChatViewProps {
   onTermClick: (term: string, contextSnippet: string) => void;
   onFollowUp: (selectedText: string, question: string, answerContext: string) => void;
   onAddSources: (sources: any[]) => void;
+  onOpenDemo: () => void;
 }
 
-export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onFollowUp, onAddSources }: ChatViewProps) {
+export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onFollowUp, onAddSources, onOpenDemo }: ChatViewProps) {
   const [prompt, setPrompt] = React.useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const explainMutation = useExplainStudyTopic();
   const cancelTokenRef = useRef(0);
+  const isDemo = chat.sources.some(source => source.id === DEMO_SOURCE_ID);
 
   const handleCancel = () => {
     cancelTokenRef.current += 1;
@@ -55,7 +57,8 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
     const scrollContainer = scrollContainerRef.current;
     if (!scrollContainer) return;
 
-    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    // The demo should open on its question, not scrolled past the answer
+    scrollContainer.scrollTop = isDemo ? 0 : scrollContainer.scrollHeight;
   }, [chat.id]);
 
   const handlePaste = async (e: React.ClipboardEvent) => {
@@ -175,7 +178,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
               <div className="w-20 h-20 bg-muted rounded-2xl flex items-center justify-center mb-6 shadow-inner rotate-3">
                 <BookOpen className="w-10 h-10 text-primary/80 -rotate-3" />
               </div>
-              <h2 className="text-3xl font-serif font-bold text-foreground mb-3 tracking-tight">{chat.title === 'New Session' ? 'Begin your session.' : chat.title}</h2>
+              <h2 className="text-4xl font-serif text-foreground mb-3">{chat.title === 'New Session' ? 'Begin your session.' : chat.title}</h2>
               <p className="text-muted-foreground max-w-md text-lg mb-10 opacity-80">Upload your reading materials and ask a question, or let the AI summarize the core concepts to get started.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full text-left">
@@ -194,9 +197,30 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                   <p className="text-sm text-muted-foreground leading-relaxed">Highlight any text within the AI's response and left-click on the selected text to ask a highly specific follow-up question directly related to that passage.</p>
                 </div>
               </div>
+              <Button variant="outline" onClick={onOpenDemo} className="mt-8 gap-2 rounded-xl">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Explore the demo notebook
+              </Button>
             </div>
           ) : (
-            chat.history.map((item) => (
+            <>
+            {isDemo && (
+              <div className="flex items-start gap-3 rounded-2xl border border-primary/30 bg-primary/5 px-5 py-4 text-sm leading-relaxed text-foreground/90" data-testid="demo-banner">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <p>
+                  <span className="font-semibold text-foreground">This is a demo notebook with pre-generated answers.</span>{' '}
+                  Click an underlined term to open its concept tab, or highlight any text to ask a follow-up.{' '}
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'api' } }))}
+                    className="font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    Add an API key
+                  </button>{' '}
+                  to ask your own questions.
+                </p>
+              </div>
+            )}
+            {chat.history.map((item) => (
               <div key={item.id} className={`flex w-full  ${item.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {item.type === 'user' ? (
                   <div className="bg-primary text-primary-foreground selection:bg-primary-foreground/30 px-6 py-4 rounded-2xl rounded-br-sm max-w-[85%] md:max-w-[75%] shadow-md">
@@ -206,7 +230,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                   <div className="w-full">
                     {item.explanation && (
                       <div className="bg-card border border-border/60 rounded-3xl p-6 md:p-10 shadow-sm">
-                        <h2 className="text-3xl font-serif font-bold text-foreground mb-6 pb-4 border-b border-border/50">{item.explanation.title}</h2>
+                        <h2 className="text-4xl font-serif text-foreground mb-6 pb-4 border-b border-border/50">{item.explanation.title}</h2>
                         <SelectableAnswer
                           title={item.explanation.title}
                           content={item.explanation.answerMarkdown}
@@ -235,9 +259,10 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                   </div>
                 )}
               </div>
-            ))
+            ))}
+            </>
           )}
-          
+
           {explainMutation.isPending && (
             <div className="flex w-full justify-start animate-in fade-in duration-300">
               <div className="bg-muted px-6 py-5 rounded-3xl rounded-bl-sm flex items-center gap-4 text-muted-foreground font-medium">
@@ -256,7 +281,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown} onPaste={handlePaste}
-            placeholder={chat.sources.length > 0 ? "Ask a question about your materials..." : "Ask a general question..."}
+            placeholder={chat.sources.length > 0 ? "Ask about your materials..." : "Ask a question..."}
             className="min-h-[52px] max-h-48 resize-none border-0 focus-visible:ring-0 bg-transparent text-[1.05rem] py-3.5 px-4 shadow-none font-medium scrollbar-thin"
             rows={1}
           />
