@@ -62,7 +62,14 @@ catalog:
 
 autoInstallPeers: false
 
-# Dependencies allowed to run install scripts (pnpm blocks all others)
+# Dependencies allowed to run install scripts (pnpm blocks all others).
+# onlyBuiltDependencies is read by pnpm 10 (Replit), allowBuilds by pnpm 11+.
+onlyBuiltDependencies:
+  - '@swc/core'
+  - esbuild
+  - msw
+  - unrs-resolver
+
 allowBuilds:
   '@swc/core': true
   esbuild: true
