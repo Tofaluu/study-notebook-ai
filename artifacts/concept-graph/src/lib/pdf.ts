@@ -1,7 +1,9 @@
 // Safari < 16 lacks async iteration on ReadableStream, which causes pdf.js to crash 
 // with "undefined is not a function" during getTextContent. This polyfill fixes it.
-if (typeof ReadableStream !== 'undefined' && !ReadableStream.prototype[Symbol.asyncIterator]) {
-  ReadableStream.prototype[Symbol.asyncIterator] = async function* () {
+type AsyncIterableStream = ReadableStream & { [Symbol.asyncIterator]?: () => AsyncGenerator<unknown> };
+
+if (typeof ReadableStream !== 'undefined' && !(ReadableStream.prototype as AsyncIterableStream)[Symbol.asyncIterator]) {
+  (ReadableStream.prototype as AsyncIterableStream)[Symbol.asyncIterator] = async function* (this: ReadableStream) {
     const reader = this.getReader();
     try {
       while (true) {

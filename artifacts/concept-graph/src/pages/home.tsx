@@ -14,6 +14,8 @@ const MODEL_STORAGE_KEY = 'study-notebook-model-v1';
 
 export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(() => {
+    // On phones the sidebar overlays the whole workspace, so always start closed there
+    if (!window.matchMedia('(min-width: 768px)').matches) return false;
     const saved = localStorage.getItem('study-notebook-sidebar-open');
     return saved !== null ? JSON.parse(saved) : true;
   });
@@ -30,7 +32,7 @@ export default function Home() {
     localStorage.setItem(MODEL_STORAGE_KEY, selectedModel);
   }, [selectedModel]);
   const { 
-    state, activeChat, createChat, switchChat, deleteChat, deleteAllChats, renameChat, 
+    state, activeChat, createChat, openDemo, switchChat, deleteChat, deleteAllChats, renameChat, 
     addTab, closeTab, switchTab, updateTab, reorderTabs, setSources, addHistory 
   } = useWorkspace();
 
@@ -69,7 +71,6 @@ export default function Home() {
       question,
       answerContext,
       parentId,
-
       model: selectedModel
     });
   };
@@ -97,6 +98,7 @@ export default function Home() {
               handleFollowUp(chat.id, selectedText, question, answerContext)
             }
             onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
+            onOpenDemo={openDemo}
           />
         </div>
       );
@@ -111,7 +113,7 @@ export default function Home() {
             model={tab.model ?? selectedModel}
             onUpdateTab={(updates) => updateTab(chat.id, tab.id, updates)}
             onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet, tab.parentId || tab.id)}
-                        onFollowUp={(selectedText, question, answerContext) =>
+            onFollowUp={(selectedText, question, answerContext) =>
               handleFollowUp(chat.id, selectedText, question, answerContext, tab.parentId || tab.id)
             }
           />
@@ -127,10 +129,8 @@ export default function Home() {
           model={tab.model ?? selectedModel}
           onUpdateTab={(updates) => updateTab(chat.id, tab.id, updates)}
           onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet, tab.parentId || tab.id)}
-
-                    onFollowUp={(selectedText, question, answerContext) =>
+          onFollowUp={(selectedText, question, answerContext) =>
             handleFollowUp(chat.id, selectedText, question, answerContext, tab.parentId || tab.id)
-
           }
         />
       </div>
@@ -142,7 +142,6 @@ export default function Home() {
       <Sidebar 
         isOpen={isSidebarOpen}
         chats={state.chats}
-
         activeChatId={state.activeChatId}
         activeChat={activeChat}
         onCreateChat={createChat}
@@ -195,7 +194,11 @@ export default function Home() {
           <div className="flex-1 flex items-center justify-center text-muted-foreground bg-background">
             <div className="text-center animate-in fade-in duration-700">
               <p className="text-lg mb-4">No active notebook.</p>
-              <button onClick={createChat} className="text-primary hover:underline font-medium">Create a new notebook</button>
+              <div className="flex items-center justify-center gap-4">
+                <button onClick={createChat} className="text-primary hover:underline font-medium">Create a new notebook</button>
+                <span aria-hidden>·</span>
+                <button onClick={openDemo} className="text-primary hover:underline font-medium">Open the demo</button>
+              </div>
             </div>
           </div>
         )}
@@ -204,10 +207,3 @@ export default function Home() {
     </div>
   );
 }
-
-
-
-
-
-
-
