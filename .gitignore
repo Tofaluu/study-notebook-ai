@@ -49,3 +49,10 @@ Thumbs.db
 .local/
 
 .env*
+
+# Playwright
+test-results/
+playwright-report/
+
+# Replit Agent drops pasted chat content here; never commit it
+attached_assets/
