@@ -5,7 +5,7 @@
 
 **An AI study notebook that turns lecture PDFs into explanations you can explore.** Every answer underlines the jargon it uses; click a term and it opens as its own beginner-friendly page, which links to the concepts *it* depends on. Highlight any sentence to ask a follow-up about just that passage. Answers cite the exact lecture page they came from.
 
-**[Try the live demo →](https://study.thomasliu.dev)** No sign-up or API key needed; a sample notebook loads on your first visit.
+**[Try the live app →](https://study.thomasliu.dev)** No sign-up or API key needed; a sample notebook loads on your first visit.
 
 ![Study Notebook answering why 0.1 + 0.2 ≠ 0.3, with underlined terms and cited lecture pages](docs/screenshot-light.png)
 
