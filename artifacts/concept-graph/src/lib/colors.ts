@@ -55,3 +55,19 @@ export function getCssVariableHex(variableName: string): string {
   return '#000000';
 }
 
+
+// WCAG contrast ratio between two hex colours (1 to 21).
+export function contrastRatio(hexA: string, hexB: string): number {
+  const luminance = (hex: string) => {
+    const clean = hex.replace(/^#/, '');
+    const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean;
+    const [r, g, b] = [0, 2, 4].map(i => {
+      const v = parseInt(full.substring(i, i + 2), 16) / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const a = luminance(hexA);
+  const b = luminance(hexB);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}

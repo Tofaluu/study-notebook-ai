@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,56 +10,70 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Key, Paintbrush, RotateCcw } from 'lucide-react';
-import { useThemeCustomization } from '@/hooks/use-theme';
-import { getCssVariableHex } from '@/lib/colors';
+import { useThemeCustomization, type ThemeColors } from '@/hooks/use-theme';
+import { contrastRatio, getCssVariableHex } from '@/lib/colors';
+
+type SettingsTab = 'api' | 'appearance';
+
+const COLOR_FIELDS: { key: keyof ThemeColors; label: string; hint: string }[] = [
+  { key: 'primary', label: 'Accent', hint: 'Buttons, links and underlined terms.' },
+  { key: 'background', label: 'Background', hint: 'The main page behind your notes.' },
+  { key: 'secondaryBackground', label: 'Panels', hint: 'Answer cards, the sidebar and menus.' },
+  { key: 'foreground', label: 'Text', hint: 'Body text and icons.' },
+  { key: 'secondaryForeground', label: 'Secondary text', hint: 'Hints, citations and inactive tabs.' },
+];
 
 export function SettingsModal() {
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'api' | 'appearance'>('api');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('api');
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
-  // API Keys state
   const [geminiKey, setGeminiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
   const [anthropicKey, setAnthropicKey] = useState('');
 
-  // Appearance state
   const { colors, updateColor, resetColors } = useThemeCustomization();
-  const [defaultHex, setDefaultHex] = useState({ primary: '#f97316', background: '#000000', secondaryBackground: '#1e293b', foreground: '#ffffff', secondaryForeground: '#94a3b8' });
+  const [defaultHex, setDefaultHex] = useState<Record<keyof ThemeColors, string>>({
+    primary: '#b0482a', background: '#faf8f4', secondaryBackground: '#fdfcfa', foreground: '#211d1b', secondaryForeground: '#6b5f57',
+  });
 
   useEffect(() => {
     const existingGemini = window.localStorage.getItem('study-notebook-gemini-key') || window.localStorage.getItem('study-notebook-api-key');
     const existingOpenai = window.localStorage.getItem('study-notebook-openai-key');
     const existingAnthropic = window.localStorage.getItem('study-notebook-anthropic-key');
-    
+
     if (existingGemini) setGeminiKey(existingGemini);
     if (existingOpenai) setOpenaiKey(existingOpenai);
     if (existingAnthropic) setAnthropicKey(existingAnthropic);
-    
+
     const handleOpen = (e: Event) => {
+      // Opened by an event rather than a Radix trigger, so remember where focus should return
+      returnFocusRef.current = document.activeElement as HTMLElement | null;
       const detail = (e as CustomEvent).detail;
       if (detail?.tab) setActiveTab(detail.tab);
+      // Read the theme's own values, ignoring any custom overrides, so the pickers start from them
       const getTrueDefault = (variable: string) => {
-          const root = document.documentElement;
-          const old = root.style.getPropertyValue(variable);
-          root.style.removeProperty(variable);
-          const hex = getCssVariableHex(variable);
-          if (old) root.style.setProperty(variable, old);
-          return hex;
-        };
-        setDefaultHex({ 
-          primary: getTrueDefault('--primary'), 
-          background: getTrueDefault('--background'), 
-          secondaryBackground: getTrueDefault('--card'), 
-          foreground: getTrueDefault('--foreground'),
-          secondaryForeground: getTrueDefault('--muted-foreground') 
-        });
+        const root = document.documentElement;
+        const old = root.style.getPropertyValue(variable);
+        root.style.removeProperty(variable);
+        const hex = getCssVariableHex(variable);
+        if (old) root.style.setProperty(variable, old);
+        return hex;
+      };
+      setDefaultHex({
+        primary: getTrueDefault('--primary'),
+        background: getTrueDefault('--background'),
+        secondaryBackground: getTrueDefault('--card'),
+        foreground: getTrueDefault('--foreground'),
+        secondaryForeground: getTrueDefault('--muted-foreground'),
+      });
       setOpen(true);
     };
-    
+
     window.addEventListener('open-settings', handleOpen);
-    // Legacy fallback so we don't break existing buttons right away
+    // Legacy event name still used by older buttons
     window.addEventListener('open-api-key-modal', handleOpen);
-    
+
     return () => {
       window.removeEventListener('open-settings', handleOpen);
       window.removeEventListener('open-api-key-modal', handleOpen);
@@ -80,161 +94,119 @@ export function SettingsModal() {
     window.dispatchEvent(new Event('api-keys-updated'));
   };
 
+  const effective = (key: keyof ThemeColors) => colors[key] || defaultHex[key];
+  const contrastChecks = [
+    { label: 'Text on the background', ratio: contrastRatio(effective('foreground'), effective('background')) },
+    { label: 'Text on panels', ratio: contrastRatio(effective('foreground'), effective('secondaryBackground')) },
+    { label: 'Secondary text on panels', ratio: contrastRatio(effective('secondaryForeground'), effective('secondaryBackground')) },
+    { label: 'Accent links on the background', ratio: contrastRatio(effective('primary'), effective('background')) },
+  ];
+  const lowContrast = contrastChecks.filter(check => check.ratio < 4.5);
+
+  const tabButton = (tab: SettingsTab, label: string, Icon: typeof Key) => (
+    <button
+      type="button"
+      role="tab"
+      id={`settings-tab-${tab}`}
+      aria-selected={activeTab === tab}
+      aria-controls={`settings-panel-${tab}`}
+      onClick={() => setActiveTab(tab)}
+      className={`flex items-center gap-2 border-b-2 pb-3 text-sm font-medium transition-colors ${
+        activeTab === tab ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      <Icon className="h-4 w-4" aria-hidden="true" />
+      {label}
+    </button>
+  );
+
   return (
-    <Dialog open={open} onOpenChange={(val) => {
-      if (!val) setOpen(false);
-    }}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden flex flex-col h-[500px]">
-        
-        {/* Header Tabs */}
-        <div className="flex border-b border-border bg-muted/30 pt-4 px-4 gap-4">
-          <button
-            onClick={() => setActiveTab('api')}
-            className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'api' 
-                ? 'border-primary text-foreground' 
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Key className="w-4 h-4" />
-            API Keys
-          </button>
-          <button
-            onClick={() => setActiveTab('appearance')}
-            className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'appearance' 
-                ? 'border-primary text-foreground' 
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Paintbrush className="w-4 h-4" />
-            Appearance
-          </button>
+    <Dialog open={open} onOpenChange={(val) => { if (!val) setOpen(false); }}>
+      <DialogContent
+        className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-[500px]"
+        onCloseAutoFocus={(e) => {
+          if (returnFocusRef.current?.isConnected) {
+            e.preventDefault();
+            returnFocusRef.current.focus();
+          }
+        }}
+      >
+        <DialogHeader className="px-6 pt-6">
+          <DialogTitle className="font-serif text-2xl font-semibold">Settings</DialogTitle>
+          <DialogDescription>API keys and appearance are saved in this browser only.</DialogDescription>
+        </DialogHeader>
+
+        <div role="tablist" aria-label="Settings sections" className="flex gap-4 border-b border-border px-6 pt-2">
+          {tabButton('api', 'API keys', Key)}
+          {tabButton('appearance', 'Appearance', Paintbrush)}
         </div>
 
-        {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'api' && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold leading-none tracking-tight mb-2">AI Providers</h3>
-                <p className="text-sm text-muted-foreground">
-                  Configure one or more API keys to use different models. Keys are saved locally in your browser.
-                </p>
-              </div>
-              <div className="space-y-3 mt-4">
-                <div className="space-y-1">
-                  <Label className="text-xs uppercase text-muted-foreground font-semibold">Google Gemini</Label>
-                  <Input type="password" placeholder="AIza..." value={geminiKey} onChange={e => setGeminiKey(e.target.value)} />
+            <div role="tabpanel" id="settings-panel-api" aria-labelledby="settings-tab-api" className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Add a key for any provider you want to use. Keys are sent only with your own requests and are never stored on the server.
+              </p>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="key-gemini">Google Gemini</Label>
+                  <Input id="key-gemini" type="password" autoComplete="off" placeholder="AIza…" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs uppercase text-muted-foreground font-semibold">OpenAI</Label>
-                  <Input type="password" placeholder="sk-..." value={openaiKey} onChange={e => setOpenaiKey(e.target.value)} />
+                <div className="space-y-1.5">
+                  <Label htmlFor="key-openai">OpenAI</Label>
+                  <Input id="key-openai" type="password" autoComplete="off" placeholder="sk-…" value={openaiKey} onChange={e => setOpenaiKey(e.target.value)} />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs uppercase text-muted-foreground font-semibold">Anthropic Claude</Label>
-                  <Input type="password" placeholder="sk-ant-..." value={anthropicKey} onChange={e => setAnthropicKey(e.target.value)} />
+                <div className="space-y-1.5">
+                  <Label htmlFor="key-anthropic">Anthropic</Label>
+                  <Input id="key-anthropic" type="password" autoComplete="off" placeholder="sk-ant-…" value={anthropicKey} onChange={e => setAnthropicKey(e.target.value)} />
                 </div>
               </div>
-              <Button onClick={handleSaveApiKeys} className="w-full mt-4">Save Keys</Button>
+              <Button onClick={handleSaveApiKeys} className="mt-2 w-full">Save keys</Button>
             </div>
           )}
 
           {activeTab === 'appearance' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold leading-none tracking-tight mb-2">Custom Colors</h3>
-                <p className="text-sm text-muted-foreground">
-                  Personalize your workspace. These changes apply instantly.
-                </p>
+            <div role="tabpanel" id="settings-panel-appearance" aria-labelledby="settings-tab-appearance" className="space-y-6">
+              <p className="text-sm text-muted-foreground">Pick your own colours. Changes apply as you choose them.</p>
+
+              <div className="space-y-4">
+                {COLOR_FIELDS.map(field => (
+                  <div key={field.key} className="flex items-center justify-between gap-4">
+                    <div>
+                      <Label htmlFor={`color-${field.key}`} className="text-sm font-medium">{field.label}</Label>
+                      <p id={`color-${field.key}-hint`} className="text-xs text-muted-foreground">{field.hint}</p>
+                    </div>
+                    <Input
+                      id={`color-${field.key}`}
+                      type="color"
+                      aria-describedby={`color-${field.key}-hint`}
+                      value={effective(field.key)}
+                      onChange={(e) => updateColor(field.key, e.target.value)}
+                      className="h-10 w-12 shrink-0 cursor-pointer p-1"
+                    />
+                  </div>
+                ))}
               </div>
 
-              <div className="space-y-5">
-                {/* Primary Color Picker */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Primary Accent</Label>
-                    <p className="text-xs text-muted-foreground">Main buttons and highlights.</p>
+              <div role="status" aria-live="polite">
+                {lowContrast.length > 0 && (
+                  <div className="rounded-lg border border-destructive/40 px-4 py-3 text-sm">
+                    <p className="font-semibold text-foreground">Some text may be hard to read</p>
+                    <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                      {lowContrast.map(check => (
+                        <li key={check.label}>
+                          {check.label}: {check.ratio.toFixed(1)}:1 (aim for at least 4.5:1)
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Input 
-                      type="color" 
-                      value={colors.primary || defaultHex.primary} 
-                      onChange={(e) => updateColor('primary', e.target.value)}
-                      className="w-12 h-10 p-1 cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                {/* Background Color Picker */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">App Background</Label>
-                    <p className="text-xs text-muted-foreground">The main canvas color.</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input 
-                      type="color" 
-                      value={colors.background || defaultHex.background} 
-                      onChange={(e) => updateColor('background', e.target.value)}
-                      className="w-12 h-10 p-1 cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                {/* Secondary Background Color Picker */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Secondary Background</Label>
-                    <p className="text-xs text-muted-foreground">Chat boxes, sidebars, and panels.</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input 
-                      type="color" 
-                      value={colors.secondaryBackground || defaultHex.secondaryBackground} 
-                      onChange={(e) => updateColor('secondaryBackground', e.target.value)}
-                      className="w-12 h-10 p-1 cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                {/* Secondary Foreground Color Picker */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Secondary Text</Label>
-                    <p className="text-xs text-muted-foreground">Muted text, citations, and inactive tabs.</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input 
-                      type="color" 
-                      value={colors.secondaryForeground || defaultHex.secondaryForeground} 
-                      onChange={(e) => updateColor('secondaryForeground', e.target.value)}
-                      className="w-12 h-10 p-1 cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                {/* Foreground Color Picker */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Text Color</Label>
-                    <p className="text-xs text-muted-foreground">Primary text and icons.</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input 
-                      type="color" 
-                      value={colors.foreground || defaultHex.foreground} 
-                      onChange={(e) => updateColor('foreground', e.target.value)}
-                      className="w-12 h-10 p-1 cursor-pointer"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
-              <div className="pt-4 border-t border-border mt-6">
+              <div className="border-t border-border pt-4">
                 <Button variant="outline" onClick={resetColors} className="w-full gap-2">
-                  <RotateCcw className="w-4 h-4" />
-                  Reset to Defaults
+                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                  Reset to default colours
                 </Button>
               </div>
             </div>
@@ -244,10 +216,3 @@ export function SettingsModal() {
     </Dialog>
   );
 }
-
-
-
-
-
-
-

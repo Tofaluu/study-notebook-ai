@@ -91,7 +91,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
     window.getSelection()?.removeAllRanges();
   };
 
-  
+
 
   const handleModalDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -103,7 +103,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
 
     const startX = e.clientX;
     const startY = e.clientY;
-    
+
     // Read exact pixels to avoid string parsing issues, or just use offsetLeft/Top
     const startLeft = position.left;
     const startTop = position.top;
@@ -117,7 +117,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
     const onMouseUp = (moveEvent: MouseEvent) => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
-      
+
       if (modalRef.current) {
         setPosition({
           left: parseFloat(modalRef.current.style.left),
@@ -195,7 +195,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
         ref={answerRef}
         className="cursor-text select-text"
         onMouseDown={showPromptForSelection}
-        
+
       >
         <MarkdownRenderer content={content} terms={terms} prerequisiteTerms={prerequisiteTerms} onTermClick={onTermClick} />
       </div>
@@ -223,11 +223,11 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
               <X className="h-4 w-4" />
             </button>
           </div>
-          <blockquote className="mb-2 line-clamp-3 border-l-2 border-primary/40 pl-3 text-xs italic leading-relaxed text-muted-foreground">
+          <blockquote className="mb-2 line-clamp-3 rounded-md bg-muted/60 px-3 py-2 font-serif text-sm italic leading-relaxed text-muted-foreground">
             {selectedText}
           </blockquote>
           {wasTrimmed && (
-            <p className="mb-2 text-[11px] text-muted-foreground">Only the first 3,000 characters will be included.</p>
+            <p className="mb-2 text-xs text-muted-foreground">Only the first 3,000 characters will be included.</p>
           )}
           <div className="flex items-end gap-2">
             <Textarea
@@ -255,7 +255,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
               <Send className="h-4 w-4" />
             </Button>
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">Press Enter to investigate further.</p>
+          <p className="mt-2 text-xs text-muted-foreground">Press Enter to open the answer in a new page.</p>
         </div>
       )}
     </>

@@ -25,7 +25,7 @@ function normalizeDisplayMath(markdown: string) {
   processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, (_, math) => `$${math.trim()}$`);
   // Ensure existing $$ blocks have proper blank lines around them for remark-math
   processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (_, math) => `\n\n$$\n${math.trim()}\n$$\n\n`);
-  
+
   // Clean up excessive newlines we might have just created
   processed = processed.replace(/\n{3,}/g, '\n\n');
   return processed;
@@ -62,7 +62,7 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
           <button
             key={i}
             onClick={() => onTermClick?.(matchedTerm.term, matchedTerm.contextSnippet)}
-            className="text-foreground font-bold hover:bg-primary/10 border-b-2 border-primary/40 transition-colors inline-block leading-tight rounded-sm px-0.5 -mx-0.5"
+            className="-mx-0.5 rounded-sm px-0.5 font-semibold text-foreground underline decoration-primary/60 decoration-2 underline-offset-[5px] transition-colors hover:bg-primary/10 hover:decoration-primary"
             data-testid={`term-${matchedTerm.term}`}
             title={matchedTerm.plainDefinition}
           >
@@ -76,7 +76,7 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
           <button
             key={i}
             onClick={() => onTermClick?.(part, "Prerequisite concept related to the current topic.")}
-            className="text-foreground font-bold hover:bg-primary/10 border-b-2 border-primary/40 transition-colors inline-block leading-tight rounded-sm px-0.5 -mx-0.5"
+            className="-mx-0.5 rounded-sm px-0.5 font-semibold text-foreground underline decoration-primary/60 decoration-2 underline-offset-[5px] transition-colors hover:bg-primary/10 hover:decoration-primary"
             data-testid={`prereq-${part}`}
           >
             {part}
@@ -109,19 +109,20 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
   };
 
   const components = {
-    p: ({ children }: any) => <p className="mb-6 leading-relaxed text-lg tracking-wide text-foreground/90">{processChildren(children)}</p>,
-    li: ({ children }: any) => <li className="mb-3 leading-relaxed text-lg tracking-wide text-foreground/90">{processChildren(children)}</li>,
-    h1: ({ children }: any) => <h1 className="text-4xl font-serif mt-10 mb-6 text-foreground tracking-normal">{processChildren(children)}</h1>,
-    h2: ({ children }: any) => <h2 className="text-3xl font-serif mt-8 mb-4 text-foreground tracking-normal">{processChildren(children)}</h2>,
-    h3: ({ children }: any) => <h3 className="text-2xl font-serif mt-6 mb-3 text-foreground tracking-normal">{processChildren(children)}</h3>,
+    p: ({ children }: any) => <p className="mb-5 text-lg leading-[1.7] text-foreground/90">{processChildren(children)}</p>,
+    li: ({ children }: any) => <li className="mb-2 text-lg leading-[1.7] text-foreground/90">{processChildren(children)}</li>,
+    h1: ({ children }: any) => <h3 className="mt-10 mb-4 font-serif text-3xl font-semibold text-foreground">{processChildren(children)}</h3>,
+    h2: ({ children }: any) => <h3 className="mt-8 mb-3 font-serif text-2xl font-semibold text-foreground">{processChildren(children)}</h3>,
+    h3: ({ children }: any) => <h3 className="mt-6 mb-2 font-serif text-xl font-semibold text-foreground">{processChildren(children)}</h3>,
+    h4: ({ children }: any) => <h4 className="mt-5 mb-2 text-base font-semibold text-foreground">{processChildren(children)}</h4>,
     ul: ({ children }: any) => <ul className="list-disc pl-6 mb-6 space-y-2 marker:text-foreground/60">{processChildren(children)}</ul>,
     ol: ({ children }: any) => <ol className="list-decimal pl-6 mb-6 space-y-2 marker:text-foreground/60">{processChildren(children)}</ol>,
-    blockquote: ({ children }: any) => <blockquote className="border-l-4 border-primary/40 pl-5 italic text-muted-foreground my-6 py-2 bg-muted/40 rounded-r-xl">{processChildren(children)}</blockquote>,
+    blockquote: ({ children }: any) => <blockquote className="my-6 border-l border-border pl-5 font-serif italic text-muted-foreground">{processChildren(children)}</blockquote>,
     strong: ({ children }: any) => <strong className="font-semibold text-foreground">{processChildren(children)}</strong>,
     em: ({ children }: any) => <em className="italic">{processChildren(children)}</em>,
     code: ({ children }: any) => <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded text-foreground/80">{children}</code>,
     table: ({ children }: any) => <div className="overflow-x-auto my-8"><table className="w-full text-left border-collapse">{processChildren(children)}</table></div>,
-    thead: ({ children }: any) => <thead className="bg-muted/50 border-b-2 border-border">{processChildren(children)}</thead>,
+    thead: ({ children }: any) => <thead className="border-b border-border bg-muted/50">{processChildren(children)}</thead>,
     tbody: ({ children }: any) => <tbody className="divide-y divide-border/50">{processChildren(children)}</tbody>,
     tr: ({ children }: any) => <tr className="hover:bg-muted/30 transition-colors">{processChildren(children)}</tr>,
     th: ({ children }: any) => <th className="p-4 font-semibold text-foreground whitespace-nowrap">{processChildren(children)}</th>,

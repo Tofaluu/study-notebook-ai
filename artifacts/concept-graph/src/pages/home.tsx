@@ -31,9 +31,9 @@ export default function Home() {
   React.useEffect(() => {
     localStorage.setItem(MODEL_STORAGE_KEY, selectedModel);
   }, [selectedModel]);
-  const { 
-    state, activeChat, createChat, openDemo, switchChat, deleteChat, deleteAllChats, renameChat, 
-    addTab, closeTab, switchTab, updateTab, reorderTabs, setSources, addHistory 
+  const {
+    state, activeChat, createChat, openDemo, switchChat, deleteChat, deleteAllChats, renameChat,
+    addTab, closeTab, switchTab, updateTab, reorderTabs, setSources, addHistory
   } = useWorkspace();
 
   if (!state) {
@@ -139,7 +139,7 @@ export default function Home() {
 
   return (
     <div className="flex h-[100dvh] bg-background w-full overflow-hidden font-sans relative">
-      <Sidebar 
+      <Sidebar
         isOpen={isSidebarOpen}
         chats={state.chats}
         activeChatId={state.activeChatId}
@@ -152,13 +152,13 @@ export default function Home() {
         onSetSources={(sources) => activeChat && setSources(activeChat.id, sources)}
       />
       {isSidebarOpen && (
-        <div 
+        <div
           className="md:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-opacity"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
-      
-      <main 
+
+      <main
         className="flex-1 flex flex-col min-w-0 min-h-0 bg-background relative"
         onDragEnter={(e) => e.preventDefault()}
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
@@ -171,9 +171,9 @@ export default function Home() {
       >
         {activeChat && activeTab ? (
           <>
-            <WorkspaceTabs 
-              tabs={activeChat.tabs} 
-              activeTabId={activeChat.activeTabId} 
+            <WorkspaceTabs
+              tabs={activeChat.tabs}
+              activeTabId={activeChat.activeTabId}
               model={selectedModel}
               onSwitch={(tabId) => switchTab(activeChat.id, tabId)}
               onClose={(tabId) => closeTab(activeChat.id, tabId)}
@@ -191,9 +191,9 @@ export default function Home() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground bg-background">
-            <div className="text-center animate-in fade-in duration-700">
-              <p className="text-lg mb-4">No active notebook.</p>
+          <div className="flex flex-1 items-center justify-center bg-background text-muted-foreground">
+            <div className="text-center">
+              <p className="mb-4 text-lg">No notebook is open.</p>
               <div className="flex items-center justify-center gap-4">
                 <button onClick={createChat} className="text-primary hover:underline font-medium">Create a new notebook</button>
                 <span aria-hidden>·</span>

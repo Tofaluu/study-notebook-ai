@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { migrateLocalToCloud, clearLocalChats } from '@/lib/db';
-import { BookOpen, Loader2, X, CheckCircle2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +12,8 @@ interface AuthViewProps {
 }
 
 export function AuthView({ onClose }: AuthViewProps) {
+  // Opened by an event, so remember the button to return focus to on close
+  const [returnFocusTo] = useState(() => document.activeElement as HTMLElement | null);
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -33,7 +36,7 @@ export function AuthView({ onClose }: AuthViewProps) {
     setLoading(true);
     setError(null);
     setSuccessMsg(null);
-    
+
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -41,8 +44,8 @@ export function AuthView({ onClose }: AuthViewProps) {
         await clearLocalChats();
         window.location.reload();
       } else {
-        const { data, error } = await supabase.auth.signUp({ 
-          email, 
+        const { data, error } = await supabase.auth.signUp({
+          email,
           password,
           options: {
             data: { display_name: username }
@@ -53,43 +56,40 @@ export function AuthView({ onClose }: AuthViewProps) {
           if (data.user) await migrateLocalToCloud(data.user.id);
           window.location.reload();
         } else {
-          setSuccessMsg('Account created! Please check your email for the confirmation link.');
+          setSuccessMsg('Account created. Check your email for a confirmation link, then sign in.');
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      setError(err.message || 'That didn’t work. Check your email and password, then try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-md bg-card p-8 rounded-xl border shadow-sm">
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-            <BookOpen className="w-6 h-6" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Study Notebook AI</h1>
-          <p className="text-sm text-muted-foreground text-center">
-            {isLogin ? 'Sign in to access your cloud notebooks.' : 'Create an account to save your local chats to the cloud.'}
-          </p>
-        </div>
+    <Dialog open onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+      <DialogContent
+        className="max-w-md p-8"
+        onCloseAutoFocus={(e) => {
+          if (returnFocusTo?.isConnected) {
+            e.preventDefault();
+            returnFocusTo.focus();
+          }
+        }}
+      >
+        <DialogHeader>
+          <DialogTitle className="font-serif text-2xl font-semibold">{isLogin ? 'Sign in' : 'Create an account'}</DialogTitle>
+          <DialogDescription>
+            {isLogin ? 'Sign in to open your notebooks on any device.' : 'Your notebooks in this browser will be copied to your new account.'}
+          </DialogDescription>
+        </DialogHeader>
 
         {successMsg ? (
-          <div className="mt-8 flex flex-col items-center gap-4 p-4 bg-green-500/10 text-green-600 rounded-lg border border-green-500/20 text-center">
-            <CheckCircle2 className="w-8 h-8" />
-            <p className="text-sm font-medium">{successMsg}</p>
+          <div role="status" className="mt-4 rounded-lg bg-accent/60 p-4 text-sm text-foreground">
+            <p className="font-medium">{successMsg}</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 mt-8">
+          <form onSubmit={handleSubmit} className="mt-2 space-y-4">
             {!isLogin && (
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
@@ -130,28 +130,26 @@ export function AuthView({ onClose }: AuthViewProps) {
               />
             </div>
 
-            {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+            {error && <p role="alert" className="text-sm font-medium text-destructive">{error}</p>}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              {isLogin ? 'Sign In' : 'Sign Up'}
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+              {isLogin ? 'Sign in' : 'Create account'}
             </Button>
           </form>
         )}
 
-        <div className="text-center mt-4">
-          <button 
-            type="button" 
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          {isLogin ? 'New here? ' : 'Already have an account? '}
+          <button
+            type="button"
             onClick={toggleAuthMode}
-            className="text-sm text-muted-foreground transition-colors"
+            className="rounded font-medium text-primary underline-offset-4 hover:underline"
           >
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <span className="text-orange-500 hover:underline font-medium">
-              {isLogin ? 'Sign up' : 'Sign in'}
-            </span>
+            {isLogin ? 'Create an account' : 'Sign in'}
           </button>
-        </div>
-      </div>
-    </div>
+        </p>
+      </DialogContent>
+    </Dialog>
   );
 }
