@@ -2,8 +2,9 @@ import React, { useRef, useLayoutEffect } from 'react';
 import { useExplainStudyTopic, type StudyModel } from '@workspace/api-client-react';
 import { Chat, HistoryItem } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
-import { BookOpen, Loader2, Send, FileText, MousePointerClick, TextSelect, Sparkles } from 'lucide-react';
+import { Loader2, Send, Square } from 'lucide-react';
 import { DEMO_SOURCE_ID } from '@/lib/demo';
+import { SourcesCited } from './SourcesCited';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -94,6 +95,22 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
     }
   };
 
+  const runExplain = (variables: Parameters<typeof explainMutation.mutate>[0]) => {
+    const currentToken = cancelTokenRef.current;
+    explainMutation.mutate(variables, {
+      onSuccess: (data) => {
+        if (currentToken !== cancelTokenRef.current) return;
+        onAddHistory([{
+          id: crypto.randomUUID(),
+          type: 'ai',
+          content: data.title,
+          explanation: data,
+          timestamp: Date.now()
+        }]);
+      }
+    });
+  };
+
   const handleSubmit = () => {
     if (explainMutation.isPending) return;
     const isDefaultPrompt = !prompt.trim() && chat.sources.length > 0;
@@ -127,22 +144,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
       : actualPrompt;
 
     setPrompt('');
-
-    const currentToken = cancelTokenRef.current;
-
-    explainMutation.mutate({ data: { prompt: fullPrompt, model, sources: chat.sources } }, {
-      onSuccess: (data) => {
-        if (currentToken !== cancelTokenRef.current) return;
-        const aiMessage: HistoryItem = {
-          id: crypto.randomUUID(),
-          type: 'ai',
-          content: data.title,
-          explanation: data,
-          timestamp: Date.now()
-        };
-        onAddHistory([aiMessage]);
-      }
-    });
+    runExplain({ data: { prompt: fullPrompt, model, sources: chat.sources } });
 
     setTimeout(() => {
       if (scrollContainerRef.current) {
@@ -172,47 +174,39 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
       className="flex-1 min-w-0 min-h-0 overflow-y-auto scroll-smooth flex flex-col relative"
     >
       <div className="p-4 md:p-8 flex-1">
-        <div className="max-w-3xl mx-auto space-y-10 pb-32">
+        <div className="max-w-[46rem] mx-auto space-y-10 pb-32">
           {chat.history.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-center animate-in fade-in zoom-in duration-700">
-              <div className="w-20 h-20 bg-muted rounded-2xl flex items-center justify-center mb-6 shadow-inner rotate-3">
-                <BookOpen className="w-10 h-10 text-primary/80 -rotate-3" />
+            <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col justify-center">
+              <h2 className="mb-3 font-serif text-4xl font-semibold tracking-[-0.01em] text-foreground">{chat.title === 'New Session' ? 'Begin your session.' : chat.title}</h2>
+              <p className="mb-8 text-lg leading-relaxed text-muted-foreground">
+                Add lecture PDFs or images in the sidebar, then ask a question. Leave the box empty and press Send to get a summary of the key concepts instead.
+              </p>
+              <ol className="mb-8 space-y-4 text-base leading-relaxed">
+                <li>
+                  <span className="font-semibold text-foreground">Click an underlined term</span>
+                  <span className="text-muted-foreground"> to open it as its own beginner-friendly page, with links to the concepts it builds on.</span>
+                </li>
+                <li>
+                  <span className="font-semibold text-foreground">Highlight a passage and click it</span>
+                  <span className="text-muted-foreground"> to ask a follow-up about just that part of the answer.</span>
+                </li>
+              </ol>
+              <div>
+                <Button variant="outline" onClick={onOpenDemo}>
+                  Explore the demo notebook
+                </Button>
               </div>
-              <h2 className="text-4xl font-serif text-foreground mb-3">{chat.title === 'New Session' ? 'Begin your session.' : chat.title}</h2>
-              <p className="text-muted-foreground max-w-md text-lg mb-10 opacity-80">Upload your reading materials and ask a question, or let the AI summarize the core concepts to get started.</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full text-left">
-                <div className="bg-card/50 border border-border rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center gap-3 mb-2 text-foreground font-semibold">
-                    <MousePointerClick className="w-5 h-5 text-primary" />
-                    Interactive Concepts
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">The AI will automatically underline technical jargon in its answers. Click on any underlined term to open a dedicated tab that explains the concept in isolation.</p>
-                </div>
-                <div className="bg-card/50 border border-border rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center gap-3 mb-2 text-foreground font-semibold">
-                    <TextSelect className="w-5 h-5 text-primary" />
-                    Contextual Follow-ups
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">Highlight any text within the AI's response and left-click on the selected text to ask a highly specific follow-up question directly related to that passage.</p>
-                </div>
-              </div>
-              <Button variant="outline" onClick={onOpenDemo} className="mt-8 gap-2 rounded-xl">
-                <Sparkles className="w-4 h-4 text-primary" />
-                Explore the demo notebook
-              </Button>
             </div>
           ) : (
             <>
             {isDemo && (
-              <div className="flex items-start gap-3 rounded-2xl border border-primary/30 bg-primary/5 px-5 py-4 text-sm leading-relaxed text-foreground/90" data-testid="demo-banner">
-                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div className="rounded-xl bg-accent/60 px-5 py-4 text-sm leading-relaxed text-foreground" data-testid="demo-banner">
                 <p>
-                  <span className="font-semibold text-foreground">This is a demo notebook with pre-generated answers.</span>{' '}
-                  Click an underlined term to open its concept tab, or highlight any text to ask a follow-up.{' '}
+                  <span className="font-semibold">This is a demo notebook with pre-written answers.</span>{' '}
+                  Click an underlined term to open its concept page, or highlight any text to ask a follow-up.{' '}
                   <button
                     onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'api' } }))}
-                    className="font-medium text-primary underline-offset-4 hover:underline"
+                    className="font-semibold text-accent-foreground underline decoration-accent-foreground/40 underline-offset-4 hover:decoration-accent-foreground"
                   >
                     Add an API key
                   </button>{' '}
@@ -221,16 +215,16 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
               </div>
             )}
             {chat.history.map((item) => (
-              <div key={item.id} className={`flex w-full  ${item.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={item.id} className={`flex w-full ${item.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {item.type === 'user' ? (
-                  <div className="bg-primary text-primary-foreground selection:bg-primary-foreground/30 px-6 py-4 rounded-2xl rounded-br-sm max-w-[85%] md:max-w-[75%] shadow-md">
-                    <p className="font-medium text-[1.05rem] leading-relaxed">{item.content}</p>
+                  <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-5 py-3.5 text-primary-foreground shadow-sm selection:bg-primary-foreground/30 md:max-w-[75%]">
+                    <p className="text-[1.0625rem] font-medium leading-relaxed">{item.content}</p>
                   </div>
                 ) : (
                   <div className="w-full">
                     {item.explanation && (
-                      <div className="bg-card border border-border/60 rounded-3xl p-6 md:p-10 shadow-sm">
-                        <h2 className="text-4xl font-serif text-foreground mb-6 pb-4 border-b border-border/50">{item.explanation.title}</h2>
+                      <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
+                        <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">{item.explanation.title}</h2>
                         <SelectableAnswer
                           title={item.explanation.title}
                           content={item.explanation.answerMarkdown}
@@ -238,23 +232,8 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                           onTermClick={onTermClick}
                           onFollowUp={onFollowUp}
                         />
-                        
-                        {item.explanation.sourceRefs && item.explanation.sourceRefs.length > 0 && (
-                          <div className="mt-10 pt-6 border-t border-border/50">
-                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-                              <FileText className="w-3.5 h-3.5" /> Sources Cited
-                            </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {item.explanation.sourceRefs.map((ref, i) => (
-                                <div key={i} className="bg-muted/40 border border-border/50 px-4 py-3 rounded-xl text-sm flex flex-col gap-1.5 hover:bg-muted/60 transition-colors">
-                                  <span className="font-semibold text-foreground line-clamp-1" title={ref.sourceName}>{ref.sourceName} <span className="text-muted-foreground font-normal ml-1">p.{ref.pageNumber}</span></span>
-                                  <span className="text-muted-foreground italic line-clamp-2 leading-relaxed">"{ref.excerpt}"</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                        <SourcesCited refs={item.explanation.sourceRefs} />
+                      </article>
                     )}
                   </div>
                 )}
@@ -264,32 +243,62 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
           )}
 
           {explainMutation.isPending && (
-            <div className="flex w-full justify-start animate-in fade-in duration-300">
-              <div className="bg-muted px-6 py-5 rounded-3xl rounded-bl-sm flex items-center gap-4 text-muted-foreground font-medium">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                Synthesizing knowledge...
+            <div className="flex w-full justify-start" role="status">
+              <div className="flex items-center gap-3 rounded-2xl rounded-bl-sm bg-muted px-5 py-4 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+                Reading your materials and writing an answer…
+              </div>
+            </div>
+          )}
+
+          {explainMutation.isError && (
+            <div role="alert" className="rounded-xl border border-destructive/40 px-5 py-4 text-sm">
+              <p className="font-semibold text-foreground">The answer didn’t come through.</p>
+              <p className="mt-1 text-muted-foreground">
+                {explainMutation.error instanceof Error && explainMutation.error.message
+                  ? explainMutation.error.message
+                  : 'The server didn’t respond. Check your connection and try again.'}
+              </p>
+              <div className="mt-3 flex gap-2">
+                {explainMutation.variables && (
+                  <Button size="sm" variant="outline" onClick={() => runExplain(explainMutation.variables!)}>
+                    Try again
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => explainMutation.reset()}>
+                  Dismiss
+                </Button>
               </div>
             </div>
           )}
         </div>
       </div>
-      
-      <div className="sticky bottom-0 w-full p-4 bg-gradient-to-t from-background via-background/90 to-transparent pt-10 mt-auto">
-        <div className="max-w-3xl mx-auto relative flex items-end gap-3 bg-card border border-border/80 p-2 rounded-2xl shadow-lg focus-within:ring-2 focus-within:ring-primary/30 transition-all">
-          <Textarea 
+
+      <div className="sticky bottom-0 mt-auto w-full bg-gradient-to-t from-background from-70% to-transparent px-4 pb-4 pt-8">
+        <div className="relative mx-auto flex max-w-[46rem] items-end gap-3 rounded-2xl border border-border/80 bg-card p-2 shadow-lg transition-shadow focus-within:ring-2 focus-within:ring-ring/40">
+          <Textarea
             autoFocus
+            aria-label={chat.sources.length > 0 ? 'Ask about your materials' : 'Ask a question'}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown} onPaste={handlePaste}
             placeholder={chat.sources.length > 0 ? "Ask about your materials..." : "Ask a question..."}
-            className="min-h-[52px] max-h-48 resize-none border-0 focus-visible:ring-0 bg-transparent text-[1.05rem] py-3.5 px-4 shadow-none font-medium scrollbar-thin"
+            className="min-h-[52px] max-h-48 resize-none border-0 bg-transparent px-4 py-3.5 text-[1.0625rem] shadow-none focus-visible:outline-none focus-visible:ring-0 scrollbar-thin"
             rows={1}
           />
-          {explainMutation.isPending ? (<Button size="icon" variant="outline" className="bg-background border-border/80 h-[52px] w-[52px] rounded-xl shrink-0 shadow-md transition-all active:scale-95" onClick={handleCancel}><div className="w-4 h-4 bg-current rounded-[2px]" /></Button>) : (<Button size="icon" className="h-[52px] w-[52px] rounded-xl shrink-0 shadow-md transition-all active:scale-95" disabled={!prompt.trim() && chat.sources.length === 0} onClick={handleSubmit}><Send className="w-5 h-5 ml-0.5" /></Button>)}
+          {explainMutation.isPending ? (
+            <Button size="icon" variant="outline" aria-label="Stop generating (Escape)" title="Stop (Esc)" className="h-[52px] w-[52px] shrink-0 rounded-xl border-border/80 bg-background" onClick={handleCancel}>
+              <Square className="h-4 w-4 fill-current" aria-hidden="true" />
+            </Button>
+          ) : (
+            <Button size="icon" aria-label="Send" className="h-[52px] w-[52px] shrink-0 rounded-xl" disabled={!prompt.trim() && chat.sources.length === 0} onClick={handleSubmit}>
+              <Send className="ml-0.5 h-5 w-5" aria-hidden="true" />
+            </Button>
+          )}
         </div>
-        <div className="max-w-3xl mx-auto mt-2 text-center hidden md:block">
-          <p className="text-xs font-medium text-muted-foreground drop-shadow-sm">Highlight and click on any text from an explanation to ask a focused follow-up question.</p>
-        </div>
+        <p className="mx-auto mt-2 hidden max-w-[46rem] text-center text-xs text-muted-foreground md:block">
+          Highlight any part of an answer and click it to ask a follow-up about that passage.
+        </p>
       </div>
     </div>
   );
