@@ -217,7 +217,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
                 onDragEnd={() => setDraggedTabId(null)}
                 className={`tab-container group relative flex shrink-0 items-center gap-1 rounded-md border px-2 transition-colors ${
                   isActive
-                    ? 'border-primary/50 bg-card text-foreground shadow-sm'
+                    ? 'border-border bg-card text-foreground'
                     : isChild
                       ? 'border-transparent bg-foreground/[0.03] text-muted-foreground hover:bg-foreground/[0.07] hover:text-foreground'
                       : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground'
@@ -246,7 +246,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
 
                 {editingTabId === tab.id ? (
                   <div className="flex min-w-0 flex-1 items-center gap-2 py-1.5">
-                    <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    <Icon className="h-4 w-4 shrink-0 text-foreground" aria-hidden="true" />
                     <input
                       autoFocus
                       aria-label="Page name"
@@ -281,7 +281,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
                     }}
                     className="flex min-w-0 flex-1 items-center gap-2 rounded-sm py-1.5 text-left"
                   >
-                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} aria-hidden="true" />
+                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} aria-hidden="true" />
                     <span
                       className={`min-w-0 flex-1 truncate whitespace-nowrap text-sm ${!isChild && !isChatTab ? 'font-medium' : ''}`}
                       style={tab.customWidth === undefined || tab.customWidth === 0 ? { maxWidth: '140px' } : {}}
@@ -328,7 +328,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'api' } }))}
           aria-label="Add API key"
-          className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-primary/60 bg-primary/10 px-3 text-sm font-medium text-primary transition-colors hover:bg-primary/15 max-sm:w-9 max-sm:justify-center max-sm:px-0"
+          className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-foreground/5 max-sm:w-9 max-sm:justify-center max-sm:px-0"
         >
           <KeyRound className="h-4 w-4 sm:hidden" aria-hidden="true" />
           <span className="max-sm:hidden">Add API key</span>
@@ -342,7 +342,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
             <SelectGroup>
               <SelectLabel className="text-xs text-muted-foreground">Google</SelectLabel>
               {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Google').map(option => (
-                <SelectItem key={option.value} value={option.value} disabled={!keys.gemini} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
+                <SelectItem key={option.value} value={option.value} disabled={!keys.gemini} className="focus:bg-foreground/5 focus:text-foreground cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
                   {option.label}
                 </SelectItem>
               ))}
@@ -350,7 +350,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
             <SelectGroup>
               <SelectLabel className="text-xs text-muted-foreground mt-1">OpenAI</SelectLabel>
               {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'OpenAI').map(option => (
-                <SelectItem key={option.value} value={option.value} disabled={!keys.openai} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
+                <SelectItem key={option.value} value={option.value} disabled={!keys.openai} className="focus:bg-foreground/5 focus:text-foreground cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
                   {option.label}
                 </SelectItem>
               ))}
@@ -358,7 +358,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
             <SelectGroup>
               <SelectLabel className="text-xs text-muted-foreground mt-1">Anthropic</SelectLabel>
               {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Anthropic').map(option => (
-                <SelectItem key={option.value} value={option.value} disabled={!keys.anthropic} className="focus:bg-primary/10 focus:text-primary cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
+                <SelectItem key={option.value} value={option.value} disabled={!keys.anthropic} className="focus:bg-foreground/5 focus:text-foreground cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
                   {option.label}
                 </SelectItem>
               ))}
