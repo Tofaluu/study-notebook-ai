@@ -18,6 +18,8 @@ interface FollowUpViewProps {
 export const FollowUpView = React.memo(function FollowUpView({ tab, sources, model, onUpdateTab, onTermClick, onFollowUp }: FollowUpViewProps) {
   const explainMutation = useExplainSelectedPassage();
   const initRef = useRef(false);
+  // A page that was still being written when the tab opened fades in; one restored from storage just appears
+  const writtenHereRef = useRef(!tab.explanation);
 
 
   const requestExplanation = () => {
@@ -47,7 +49,7 @@ export const FollowUpView = React.memo(function FollowUpView({ tab, sources, mod
     return (
       <div id={`scroll-${tab.id}`} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 bg-background">
         <div className="max-w-[46rem] mx-auto space-y-6 pb-20">
-          <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
+          <article className={`rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10 ${writtenHereRef.current ? 'animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out' : ''}`}>
             <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">{tab.explanation.title}</h2>
 
             <figure className="mb-8 rounded-xl bg-muted/50 px-5 py-4">

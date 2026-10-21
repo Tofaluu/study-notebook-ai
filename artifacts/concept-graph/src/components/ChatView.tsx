@@ -25,6 +25,9 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
   const explainMutation = useExplainStudyTopic();
   const cancelTokenRef = useRef(0);
   const isDemo = chat.sources.some(source => source.id === DEMO_SOURCE_ID);
+  // Only messages that arrive while the chat is open animate in; reopening a chat shows its history as it was
+  const openedAtRef = useRef(Date.now());
+  const enters = (item: HistoryItem) => item.timestamp > openedAtRef.current;
 
   const handleCancel = () => {
     cancelTokenRef.current += 1;
@@ -177,11 +180,11 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
         <div className="max-w-[46rem] mx-auto space-y-10 pb-32">
           {chat.history.length === 0 ? (
             <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col justify-center">
-              <h2 className="mb-3 font-serif text-4xl font-semibold tracking-[-0.01em] text-foreground">{chat.title === 'New Session' ? 'Begin your session.' : chat.title}</h2>
-              <p className="mb-8 text-lg leading-relaxed text-muted-foreground">
+              <h2 className="mb-3 font-serif text-4xl font-semibold tracking-[-0.01em] text-foreground animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out">{chat.title === 'New Session' ? 'Begin your session.' : chat.title}</h2>
+              <p className="mb-8 text-lg leading-relaxed text-muted-foreground animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out delay-75 fill-mode-backwards">
                 Add lecture PDFs or images in the sidebar, then ask a question. Leave the box empty and press Send to get a summary of the key concepts instead.
               </p>
-              <ol className="mb-8 space-y-4 text-base leading-relaxed">
+              <ol className="mb-8 space-y-4 text-base leading-relaxed animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out delay-150 fill-mode-backwards">
                 <li>
                   <span className="font-semibold text-foreground">Click an underlined term</span>
                   <span className="text-muted-foreground"> to open it as its own beginner-friendly page, with links to the concepts it builds on.</span>
@@ -191,7 +194,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                   <span className="text-muted-foreground"> to ask a follow-up about just that part of the answer.</span>
                 </li>
               </ol>
-              <div>
+              <div className="animate-in fade-in duration-500 ease-out delay-200 fill-mode-backwards">
                 <Button variant="outline" onClick={onOpenDemo}>
                   Explore the demo notebook
                 </Button>
@@ -217,13 +220,13 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
             {chat.history.map((item) => (
               <div key={item.id} className={`flex w-full ${item.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {item.type === 'user' ? (
-                  <div className="max-w-[85%] rounded-2xl rounded-br-sm border border-border/70 bg-muted px-5 py-3.5 text-foreground md:max-w-[75%]">
+                  <div className={`max-w-[85%] rounded-2xl rounded-br-sm border border-border/70 bg-muted px-5 py-3.5 text-foreground md:max-w-[75%] ${enters(item) ? 'animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out' : ''}`}>
                     <p className="text-[1.0625rem] font-medium leading-relaxed">{item.content}</p>
                   </div>
                 ) : (
                   <div className="w-full">
                     {item.explanation && (
-                      <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
+                      <article className={`rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10 ${enters(item) ? 'animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out' : ''}`}>
                         <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">{item.explanation.title}</h2>
                         <SelectableAnswer
                           title={item.explanation.title}
@@ -244,7 +247,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
 
           {explainMutation.isPending && (
             <div className="flex w-full justify-start" role="status">
-              <div className="flex items-center gap-3 rounded-2xl rounded-bl-sm bg-muted px-5 py-4 text-muted-foreground">
+              <div className="flex items-center gap-3 rounded-2xl rounded-bl-sm bg-muted px-5 py-4 text-muted-foreground animate-in fade-in duration-300 ease-out">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
                 Reading your materials and writing an answer…
               </div>
@@ -252,7 +255,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
           )}
 
           {explainMutation.isError && (
-            <div role="alert" className="rounded-xl border border-destructive/40 px-5 py-4 text-sm">
+            <div role="alert" className="rounded-xl border border-destructive/40 px-5 py-4 text-sm animate-in fade-in duration-200 ease-out">
               <p className="font-semibold text-foreground">The answer didn’t come through.</p>
               <p className="mt-1 text-muted-foreground">
                 {explainMutation.error instanceof Error && explainMutation.error.message
