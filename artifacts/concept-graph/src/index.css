@@ -46,32 +46,33 @@
 }
 
 :root {
-  /* Study Notebook: parchment, ink and terracotta. Every text pairing passes WCAG AA. */
-  --background: 40 40% 97%;
-  --foreground: 24 10% 12%;
+  /* Study Notebook: bone paper, black ink and fountain-pen teal. The accent goes on the send button, links and the
+     concept terms, little else. Every text pairing passes WCAG AA. */
+  --background: 40 10% 97%;
+  --foreground: 222 18% 13%;
 
-  --card: 40 30% 99%;
-  --card-foreground: 24 10% 12%;
-  --card-border: 40 20% 88%;
+  --card: 40 12% 99.5%;
+  --card-foreground: 222 18% 13%;
+  --card-border: 40 8% 87%;
 
-  --popover: 40 30% 99%;
-  --popover-foreground: 24 10% 12%;
-  --popover-border: 40 20% 88%;
+  --popover: 40 12% 99.5%;
+  --popover-foreground: 222 18% 13%;
+  --popover-border: 40 8% 87%;
 
-  --primary: 13 64% 42%; /* Terracotta: 5.4:1 as text on parchment, 5.7:1 under white text */
+  --primary: 172 72% 25%; /* Ink teal: 5.8:1 as text on the paper, 6.1:1 under white text */
   --primary-foreground: 0 0% 100%;
 
   --secondary: 102 15% 65%; /* Soft sage */
-  --secondary-foreground: 24 10% 12%;
+  --secondary-foreground: 222 18% 13%;
 
-  --muted: 36 30% 93%; /* Slightly darker parchment for the sidebar */
-  --muted-foreground: 24 10% 38%; /* Soft ink */
+  --muted: 40 8% 94%; /* One step down from the paper, for the sidebar */
+  --muted-foreground: 222 8% 38%; /* Soft ink: 5.7:1 on the sidebar */
 
   --destructive: 0 68% 45%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 40 20% 86%;
-  --input: 40 20% 84%;
+  --border: 40 8% 86%;
+  --input: 40 8% 82%;
   --ring: var(--primary);
 
   --app-font-sans: 'Source Sans 3 Variable', 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
@@ -82,32 +83,32 @@
 }
 
 .dark {
-  /* Midnight study */
-  --background: 224 20% 10%;
-  --foreground: 40 20% 90%;
+  /* Desk lamp at night: neutral near-black (no navy), off-white ink, the teal lifted for dark */
+  --background: 220 6% 9%;
+  --foreground: 40 6% 91%;
 
-  --card: 224 20% 14%;
-  --card-foreground: 40 20% 90%;
-  --card-border: 224 20% 22%;
+  --card: 220 5% 13%;
+  --card-foreground: 40 6% 91%;
+  --card-border: 220 5% 20%;
 
-  --popover: 224 20% 14%;
-  --popover-foreground: 40 20% 90%;
-  --popover-border: 224 20% 22%;
+  --popover: 220 5% 13%;
+  --popover-foreground: 40 6% 91%;
+  --popover-border: 220 5% 20%;
 
-  --primary: 20 80% 60%;
-  --primary-foreground: 224 20% 10%;
+  --primary: 168 52% 55%; /* 8.8:1 on the ground; dark text on it is 8.8:1 too */
+  --primary-foreground: 220 6% 9%;
 
   --secondary: 102 15% 35%;
-  --secondary-foreground: 40 20% 90%;
+  --secondary-foreground: 40 6% 91%;
 
-  --muted: 224 20% 16%;
-  --muted-foreground: 40 10% 65%;
+  --muted: 220 6% 11%;
+  --muted-foreground: 40 4% 66%; /* 7.4:1 on the sidebar */
 
   --destructive: 0 75% 66%;
-  --destructive-foreground: 224 20% 10%;
+  --destructive-foreground: 220 6% 9%;
 
-  --border: 224 20% 22%;
-  --input: 224 20% 26%;
+  --border: 220 5% 20%;
+  --input: 220 5% 25%;
   --ring: var(--primary);
 }
 

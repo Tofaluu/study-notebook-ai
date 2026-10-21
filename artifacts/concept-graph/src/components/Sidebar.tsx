@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/use-auth';
 import React, { useState } from 'react';
-import { BookOpen, FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Settings } from 'lucide-react';
+import { FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Settings, MoreHorizontal } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Chat } from '@/lib/db';
 import type { LectureSource } from '@workspace/api-client-react';
@@ -15,6 +15,79 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+// The notebook mark: a closed notebook with its ribbon bookmark in the accent (public/favicon.svg is the same drawing)
+function NotebookMark() {
+  return (
+    <svg className="h-7 w-7 shrink-0 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4.5" y="2.5" width="15" height="19" rx="2.5" />
+      <path d="M8.5 2.5v19" />
+      <path d="M13.5 2.5v8l2-1.6 2 1.6v-8z" className="fill-primary stroke-primary" />
+    </svg>
+  );
+}
+
+// A section's bulk actions behind a "⋯" button, so destructive ones don't sit beside the heading in red
+function SectionMenu({ label, items, buttonRef }: {
+  label: string;
+  items: { label: string; onSelect: () => void }[];
+  buttonRef: React.RefObject<HTMLButtonElement | null>;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+    const onPointerDown = (e: PointerEvent) => {
+      if (!menuRef.current?.parentElement?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open, buttonRef]);
+
+  return (
+    <div className="relative">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={label}
+        title={label}
+        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+      >
+        <MoreHorizontal className="h-4 w-4" />
+      </button>
+      {open && (
+        <div ref={menuRef} role="menu" aria-label={label} className="absolute right-0 top-9 z-20 min-w-40 rounded-lg border border-border bg-popover p-1 shadow-md">
+          {items.map(item => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              onClick={() => { setOpen(false); item.onSelect(); }}
+              className="block w-full whitespace-nowrap rounded-md px-3 py-2 text-left text-sm text-destructive hover:bg-destructive/10 focus-visible:bg-destructive/10"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface SidebarProps {
   isOpen: boolean;
@@ -37,6 +110,10 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  // Which bulk removal is waiting for confirmation (opened from a section's ⋯ menu)
+  const [confirming, setConfirming] = useState<'notebooks' | 'materials' | null>(null);
+  const notebooksMenuRef = React.useRef<HTMLButtonElement>(null);
+  const materialsMenuRef = React.useRef<HTMLButtonElement>(null);
 
   const processFilesRef = React.useRef<((files: File[]) => Promise<void>) | null>(null);
 
@@ -125,10 +202,8 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
       }
     `}>
       <div className="p-4 lg:p-6 border-b border-border/50 flex items-center justify-between gap-3 shrink-0">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
-            <BookOpen className="w-5 h-5" />
-          </div>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <NotebookMark />
           <h1 className="truncate font-serif text-2xl text-foreground">Study Notebook</h1>
         </div>
         <ThemeToggle />
@@ -138,28 +213,32 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
         {/* Chats Section */}
         <div className="p-4 border-b border-border/50 shrink-0">
           <div className="flex items-center justify-between px-2 mb-3">
-            <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">Notebooks</h2>
-            <div className="flex items-center gap-2">
+            <h2 className="text-sm font-medium text-muted-foreground">Notebooks</h2>
+            <div className="flex items-center gap-1">
               {chats.length > 1 || chats[0]?.history?.length > 0 || chats[0]?.sources?.length > 0 ? (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <button className="rounded px-1 text-xs font-medium text-destructive hover:underline">Delete all</button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete all notebooks?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Every notebook, with its messages, pages and PDFs, will be removed from this browser. This can’t be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={onDeleteAllChats} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                        Delete all
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <>
+                  <SectionMenu
+                    label="More notebook actions"
+                    buttonRef={notebooksMenuRef}
+                    items={[{ label: 'Delete all notebooks…', onSelect: () => setConfirming('notebooks') }]}
+                  />
+                  <AlertDialog open={confirming === 'notebooks'} onOpenChange={(open) => { if (!open) setConfirming(null); }}>
+                    <AlertDialogContent onCloseAutoFocus={(e) => { e.preventDefault(); notebooksMenuRef.current?.focus(); }}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete all notebooks?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Every notebook, with its messages, pages and PDFs, will be removed from this browser. This can’t be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={onDeleteAllChats} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Delete all
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
               ) : null}
               <button onClick={onCreateChat} className="flex h-8 w-8 items-center justify-center rounded-md text-foreground transition-colors hover:bg-foreground/5" aria-label="New Notebook" title="New notebook">
                 <Plus className="w-4 h-4" />
@@ -244,27 +323,31 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
         {activeChat && (
           <div className="p-4 space-y-4 shrink-0">
             <div className="flex items-center justify-between px-2">
-              <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">Materials</h2>
+              <h2 className="text-sm font-medium text-muted-foreground">Materials</h2>
               {activeChat.sources.length > 0 && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <button className="rounded px-1 text-xs font-medium text-destructive hover:underline">Remove all</button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remove all materials?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        The {activeChat.sources.length === 1 ? 'file' : `${activeChat.sources.length} files`} attached to this notebook will be removed. Answers you already have stay, but new questions won’t see these files.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onSetSources([])} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                        Remove all
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <>
+                  <SectionMenu
+                    label="More material actions"
+                    buttonRef={materialsMenuRef}
+                    items={[{ label: 'Remove all materials…', onSelect: () => setConfirming('materials') }]}
+                  />
+                  <AlertDialog open={confirming === 'materials'} onOpenChange={(open) => { if (!open) setConfirming(null); }}>
+                    <AlertDialogContent onCloseAutoFocus={(e) => { e.preventDefault(); materialsMenuRef.current?.focus(); }}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remove all materials?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          The {activeChat.sources.length === 1 ? 'file' : `${activeChat.sources.length} files`} attached to this notebook will be removed. Answers you already have stay, but new questions won’t see these files.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onSetSources([])} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Remove all
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
               )}
             </div>
 
@@ -278,13 +361,13 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                 processFiles(Array.from(e.dataTransfer.files));
               }}
               className={`group flex h-28 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed bg-card transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring ${
-                isUploading ? 'cursor-wait opacity-70 border-primary/30'
+                isUploading ? 'cursor-wait opacity-70 border-border'
                   : isDraggingFiles ? 'cursor-copy border-primary bg-primary/10'
-                  : 'cursor-pointer border-primary/30 hover:bg-primary/5 hover:border-primary/60'
+                  : 'cursor-pointer border-border hover:border-foreground/30 hover:bg-foreground/[0.03]'
               }`}
             >
               <div className="flex flex-col items-center justify-center pt-4 pb-4">
-                {isUploading ? <Loader2 className="w-6 h-6 text-primary animate-spin mb-2" /> : <UploadCloud className="w-6 h-6 text-primary/70 group-hover:text-primary mb-2 transition-colors" />}
+                {isUploading ? <Loader2 className="w-6 h-6 text-muted-foreground animate-spin mb-2" /> : <UploadCloud className="w-6 h-6 text-muted-foreground group-hover:text-foreground mb-2 transition-colors" />}
                 <p className="px-2 text-center text-sm font-medium text-foreground">
                   {isUploading ? 'Reading files…' : isDraggingFiles ? 'Drop to add' : 'Add PDFs or images'}
                 </p>
@@ -300,7 +383,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                   key={s.id}
                   className="group relative flex items-start gap-3 rounded-xl border border-border bg-card p-3 shadow-sm"
                 >
-                  {s.type === 'image' && s.base64Data ? <div className="w-8 h-8 rounded shrink-0 overflow-hidden bg-muted flex items-center justify-center"><img src={s.base64Data} alt={s.name} className="w-full h-full object-cover" /></div> : <FileText className="w-5 h-5 text-primary/70 shrink-0 mt-0.5" />}
+                  {s.type === 'image' && s.base64Data ? <div className="w-8 h-8 rounded shrink-0 overflow-hidden bg-muted flex items-center justify-center"><img src={s.base64Data} alt={s.name} className="w-full h-full object-cover" /></div> : <FileText className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />}
                   <div className="flex-1 min-w-0 pr-8">
                     <p className="text-sm font-medium text-foreground truncate" title={s.name}>{s.name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{s.type === 'image' ? 'Image' : s.pageCount + ' pages'}</p>
@@ -333,7 +416,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
         ) : (
           <button
             onClick={() => window.dispatchEvent(new Event('open-auth'))}
-            className="flex items-center gap-2 rounded px-1 text-sm font-medium text-primary hover:underline"
+            className="flex items-center gap-2 rounded px-1 text-sm font-medium text-foreground underline-offset-4 hover:underline"
           >
             <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
             Sign In / Sign Up

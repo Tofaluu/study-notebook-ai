@@ -217,7 +217,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
             {chat.history.map((item) => (
               <div key={item.id} className={`flex w-full ${item.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {item.type === 'user' ? (
-                  <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-5 py-3.5 text-primary-foreground shadow-sm selection:bg-primary-foreground/30 md:max-w-[75%]">
+                  <div className="max-w-[85%] rounded-2xl rounded-br-sm border border-border/70 bg-muted px-5 py-3.5 text-foreground md:max-w-[75%]">
                     <p className="text-[1.0625rem] font-medium leading-relaxed">{item.content}</p>
                   </div>
                 ) : (
@@ -274,8 +274,8 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
         </div>
       </div>
 
-      <div className="sticky bottom-0 mt-auto w-full bg-gradient-to-t from-background from-70% to-transparent px-4 pb-4 pt-8">
-        <div className="relative mx-auto flex max-w-[46rem] items-end gap-3 rounded-2xl border border-border/80 bg-card p-2 shadow-lg transition-shadow focus-within:ring-2 focus-within:ring-ring/40">
+      <div className="sticky bottom-0 mt-auto w-full bg-background px-4 pb-4 pt-3">
+        <div className="relative mx-auto flex max-w-[46rem] items-end gap-3 rounded-2xl border border-border bg-card p-2 shadow-lg transition-colors focus-within:border-foreground/30">
           <Textarea
             autoFocus
             aria-label={chat.sources.length > 0 ? 'Ask about your materials' : 'Ask a question'}

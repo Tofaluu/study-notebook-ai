@@ -34,7 +34,7 @@ export function SettingsModal() {
 
   const { colors, updateColor, resetColors } = useThemeCustomization();
   const [defaultHex, setDefaultHex] = useState<Record<keyof ThemeColors, string>>({
-    primary: '#b0482a', background: '#faf8f4', secondaryBackground: '#fdfcfa', foreground: '#211d1b', secondaryForeground: '#6b5f57',
+    primary: '#126e61', background: '#f8f8f7', secondaryBackground: '#fefefe', foreground: '#1b1f27', secondaryForeground: '#595e69',
   });
 
   useEffect(() => {
