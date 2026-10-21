@@ -7,7 +7,7 @@
 
 **[Try the live app →](https://study.thomasliu.dev)** No sign-up or API key needed; a sample notebook loads on your first visit.
 
-![Study Notebook answering why 0.1 + 0.2 ≠ 0.3, with underlined terms and cited lecture pages](docs/screenshot-light.png)
+![Study Notebook answering why 0.1 + 0.2 ≠ 0.3, with underlined terms and cited lecture pages](docs/screenshot-dark.png)
 
 <table>
   <tr>
