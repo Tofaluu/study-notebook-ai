@@ -139,6 +139,36 @@
   }
 }
 
+/* An answer that has just arrived writes itself onto the page: the card fades in, then the title, each block of
+   the answer and the sources follow 45ms apart. The cascade is capped at about half a second, so a long answer is
+   never held back from being read. */
+@keyframes answer-card-in {
+  from { opacity: 0; }
+}
+@keyframes answer-block-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.answer-reveal {
+  animation: answer-card-in 200ms ease-out;
+}
+.answer-reveal > :is(h2, figure, section),
+.answer-reveal .prose > * {
+  animation: answer-block-in 450ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+.answer-reveal > figure { --reveal-delay: 45ms; }
+.answer-reveal .prose > :nth-child(1) { --reveal-delay: 90ms; }
+.answer-reveal .prose > :nth-child(2) { --reveal-delay: 135ms; }
+.answer-reveal .prose > :nth-child(3) { --reveal-delay: 180ms; }
+.answer-reveal .prose > :nth-child(4) { --reveal-delay: 225ms; }
+.answer-reveal .prose > :nth-child(5) { --reveal-delay: 270ms; }
+.answer-reveal .prose > :nth-child(6) { --reveal-delay: 315ms; }
+.answer-reveal .prose > :nth-child(7) { --reveal-delay: 360ms; }
+.answer-reveal .prose > :nth-child(8) { --reveal-delay: 405ms; }
+.answer-reveal .prose > :nth-child(9) { --reveal-delay: 450ms; }
+.answer-reveal .prose > :nth-child(n + 10),
+.answer-reveal > section { --reveal-delay: 495ms; }
+
 /* Reduced motion: no zooms, slides or spins; fades stay so state changes remain visible. */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -226,7 +226,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                 ) : (
                   <div className="w-full">
                     {item.explanation && (
-                      <article className={`rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10 ${enters(item) ? 'animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out' : ''}`}>
+                      <article className={`rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10 ${enters(item) ? 'answer-reveal' : ''}`}>
                         <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">{item.explanation.title}</h2>
                         <SelectableAnswer
                           title={item.explanation.title}
