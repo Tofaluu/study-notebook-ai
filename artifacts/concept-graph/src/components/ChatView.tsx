@@ -5,6 +5,7 @@ import { SelectableAnswer } from './SelectableAnswer';
 import { Loader2, Send, Square } from 'lucide-react';
 import { DEMO_SOURCE_ID } from '@/lib/demo';
 import { SourcesCited } from './SourcesCited';
+import { Reveal } from './Reveal';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -180,11 +181,12 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
         <div className="max-w-[46rem] mx-auto space-y-10 pb-32">
           {chat.history.length === 0 ? (
             <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col justify-center">
-              <h2 className="mb-3 font-serif text-4xl font-semibold tracking-[-0.01em] text-foreground animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out">{chat.title === 'New Session' ? 'Begin your session.' : chat.title}</h2>
-              <p className="mb-8 text-lg leading-relaxed text-muted-foreground animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out delay-75 fill-mode-backwards">
+              <Reveal once={`chat:${chat.id}`}>
+              <h2 className="mb-3 font-serif text-4xl font-semibold tracking-[-0.01em] text-foreground">{chat.title === 'New Session' ? 'Begin your session.' : chat.title}</h2>
+              <p className="mb-8 text-lg leading-relaxed text-muted-foreground">
                 Add lecture PDFs or images in the sidebar, then ask a question. Leave the box empty and press Send to get a summary of the key concepts instead.
               </p>
-              <ol className="mb-8 space-y-4 text-base leading-relaxed animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out delay-150 fill-mode-backwards">
+              <ol className="mb-8 space-y-4 text-base leading-relaxed">
                 <li>
                   <span className="font-semibold text-foreground">Click an underlined term</span>
                   <span className="text-muted-foreground"> to open it as its own beginner-friendly page, with links to the concepts it builds on.</span>
@@ -194,14 +196,16 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                   <span className="text-muted-foreground"> to ask a follow-up about just that part of the answer.</span>
                 </li>
               </ol>
-              <div className="animate-in fade-in duration-500 ease-out delay-200 fill-mode-backwards">
-                <Button variant="outline" onClick={onOpenDemo}>
-                  Explore the demo notebook
-                </Button>
-              </div>
+              <Button variant="outline" onClick={onOpenDemo}>
+                Explore the demo notebook
+              </Button>
+              </Reveal>
             </div>
           ) : (
-            <>
+            <Reveal once={`chat:${chat.id}`} effect={isDemo ? undefined : 'animate-in fade-in duration-500 ease-out'} className="space-y-10">
+            {/* A notebook's history comes in once per page load; the welcome above shares its name, so a notebook
+                started this visit doesn't play it again. The demo opens at the top and writes itself in, while
+                other notebooks open at their latest answer and fade in. */}
             {isDemo && (
               <div className="rounded-xl bg-accent/60 px-5 py-4 text-sm leading-relaxed text-foreground" data-testid="demo-banner">
                 <p>
@@ -220,13 +224,18 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
             {chat.history.map((item) => (
               <div key={item.id} className={`flex w-full ${item.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {item.type === 'user' ? (
-                  <div className={`max-w-[85%] rounded-2xl rounded-br-sm border border-border/70 bg-muted px-5 py-3.5 text-foreground md:max-w-[75%] ${enters(item) ? 'animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out' : ''}`}>
+                  <Reveal
+                    once={item.id}
+                    play={enters(item)}
+                    effect="animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out"
+                    className="max-w-[85%] rounded-2xl rounded-br-sm border border-border/70 bg-muted px-5 py-3.5 text-foreground md:max-w-[75%]"
+                  >
                     <p className="text-[1.0625rem] font-medium leading-relaxed">{item.content}</p>
-                  </div>
+                  </Reveal>
                 ) : (
                   <div className="w-full">
                     {item.explanation && (
-                      <article className={`rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10 ${enters(item) ? 'answer-reveal' : ''}`}>
+                      <Reveal as="article" once={item.id} play={enters(item)} className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
                         <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">{item.explanation.title}</h2>
                         <SelectableAnswer
                           title={item.explanation.title}
@@ -236,13 +245,13 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                           onFollowUp={onFollowUp}
                         />
                         <SourcesCited refs={item.explanation.sourceRefs} />
-                      </article>
+                      </Reveal>
                     )}
                   </div>
                 )}
               </div>
             ))}
-            </>
+            </Reveal>
           )}
 
           {explainMutation.isPending && (
