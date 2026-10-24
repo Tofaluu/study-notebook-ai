@@ -181,7 +181,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
         <div className="max-w-[46rem] mx-auto space-y-10 pb-32">
           {chat.history.length === 0 ? (
             <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col justify-center">
-              <Reveal once={`chat:${chat.id}`}>
+              <Reveal once={`welcome:${chat.id}`}>
               <h2 className="mb-3 font-serif text-4xl font-semibold tracking-[-0.01em] text-foreground">{chat.title === 'New Session' ? 'Begin your session.' : chat.title}</h2>
               <p className="mb-8 text-lg leading-relaxed text-muted-foreground">
                 Add lecture PDFs or images in the sidebar, then ask a question. Leave the box empty and press Send to get a summary of the key concepts instead.
@@ -202,10 +202,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
               </Reveal>
             </div>
           ) : (
-            <Reveal once={`chat:${chat.id}`} effect={isDemo ? undefined : 'animate-in fade-in duration-500 ease-out'} className="space-y-10">
-            {/* A notebook's history comes in once per page load; the welcome above shares its name, so a notebook
-                started this visit doesn't play it again. The demo opens at the top and writes itself in, while
-                other notebooks open at their latest answer and fade in. */}
+            <>
             {isDemo && (
               <div className="rounded-xl bg-accent/60 px-5 py-4 text-sm leading-relaxed text-foreground" data-testid="demo-banner">
                 <p>
@@ -235,7 +232,11 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                 ) : (
                   <div className="w-full">
                     {item.explanation && (
-                      <Reveal as="article" once={item.id} play={enters(item)} className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
+                      <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
+                        {/* The card is there at once and its text comes in, once per page load. A new answer and the
+                            demo, which opens at the top, write themselves in; a saved notebook opens at its latest
+                            answer, so its text fades in instead. */}
+                        <Reveal once={item.id} effect={enters(item) || isDemo ? undefined : 'animate-in fade-in duration-500 ease-out'}>
                         <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">{item.explanation.title}</h2>
                         <SelectableAnswer
                           title={item.explanation.title}
@@ -245,13 +246,14 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                           onFollowUp={onFollowUp}
                         />
                         <SourcesCited refs={item.explanation.sourceRefs} />
-                      </Reveal>
+                        </Reveal>
+                      </article>
                     )}
                   </div>
                 )}
               </div>
             ))}
-            </Reveal>
+            </>
           )}
 
           {explainMutation.isPending && (
