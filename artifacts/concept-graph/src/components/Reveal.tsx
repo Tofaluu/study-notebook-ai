@@ -15,7 +15,6 @@ interface RevealProps extends React.HTMLAttributes<HTMLElement> {
   /** Names what is being revealed; each name plays once per page load */
   once: string;
   play?: boolean;
-  as?: 'div' | 'article';
   /** Classes that play instead of the top-to-bottom sweep */
   effect?: string;
 }
@@ -26,7 +25,7 @@ interface RevealProps extends React.HTMLAttributes<HTMLElement> {
  * tab is first opened. It counts as seen as soon as it starts, so leaving the tab partway through doesn't play it
  * again on the way back.
  */
-export function Reveal({ once, play = true, as: Tag = 'div', effect, className, onAnimationStart, onAnimationEnd, ...rest }: RevealProps) {
+export function Reveal({ once, play = true, effect, className, onAnimationStart, onAnimationEnd, ...rest }: RevealProps) {
   const ref = useRef<HTMLElement>(null);
   const [playing, setPlaying] = useState(() => play && !played.has(once));
 
@@ -55,8 +54,8 @@ export function Reveal({ once, play = true, as: Tag = 'div', effect, className, 
   };
 
   return (
-    <Tag
-      ref={ref as React.Ref<never>}
+    <div
+      ref={ref as React.Ref<HTMLDivElement>}
       className={cn(className, playing && (effect ?? 'reveal-sweep'))}
       onAnimationStart={paceSweep}
       onAnimationEnd={finish}
