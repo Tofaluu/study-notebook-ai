@@ -22,6 +22,7 @@ interface ChatViewProps {
 
 export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onFollowUp, onAddSources, onOpenDemo }: ChatViewProps) {
   const [prompt, setPrompt] = React.useState('');
+  const [expandedMessages, setExpandedMessages] = React.useState<Set<string>>(new Set());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const explainMutation = useExplainStudyTopic();
   const cancelTokenRef = useRef(0);
@@ -220,16 +221,44 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
             )}
             {chat.history.map((item) => (
               <div key={item.id} className={`flex w-full ${item.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {item.type === 'user' ? (
-                  <Reveal
-                    once={item.id}
-                    play={enters(item)}
-                    effect="animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out"
-                    className="max-w-[85%] rounded-2xl rounded-br-sm border border-border/70 bg-muted px-5 py-3.5 text-foreground md:max-w-[75%]"
-                  >
-                    <p className="text-[1.0625rem] font-medium leading-relaxed">{item.content}</p>
-                  </Reveal>
-                ) : (
+                {item.type === 'user' ? (() => {
+                  const isLongMessage = item.content.length > 260 || item.content.split('\n').length > 4;
+                  const isExpanded = expandedMessages.has(item.id);
+                  return (
+                    <Reveal
+                      once={item.id}
+                      play={enters(item)}
+                      effect="animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out"
+                      className="max-w-[85%] rounded-2xl rounded-br-sm border border-border/70 bg-muted px-5 py-3.5 text-foreground md:max-w-[75%]"
+                    >
+                      <p
+                        className={`text-[1.0625rem] font-medium leading-relaxed break-words ${
+                          !isExpanded && isLongMessage
+                            ? 'line-clamp-4 whitespace-pre-line'
+                            : 'whitespace-pre-wrap'
+                        }`}
+                      >
+                        {item.content}
+                      </p>
+                      {isLongMessage && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedMessages((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(item.id)) next.delete(item.id);
+                              else next.add(item.id);
+                              return next;
+                            })
+                          }
+                          className="mt-2 text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+                        >
+                          {isExpanded ? 'Collapse message' : 'Show full message'}
+                        </button>
+                      )}
+                    </Reveal>
+                  );
+                })() : (
                   <div className="w-full">
                     {item.explanation && (
                       <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
