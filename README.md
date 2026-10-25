@@ -24,11 +24,12 @@
 
 - **Clickable concepts.** The model returns the technical terms it used alongside its answer. The client underlines them, and clicking one opens a dedicated explanation tab. Concept pages list their own prerequisite terms, so you can drill down as far as you need.
 - **Highlight-to-ask follow-ups.** Select any text in an answer (math included; KaTeX is converted back to readable text) and ask a question scoped to that passage. Each follow-up opens in its own tab, nested under the concept page it came from.
-- **Grounded in your lectures.** PDFs are parsed page by page in the browser, so every citation points to a real source and page number.
+- **Compiled Notebook Reader & LaTeX PDF export.** Click **Read Notebook** to assemble your entire session—chat chapters, inline follow-up notes, concept deep-dives, a consolidated glossary, and cited lecture excerpts—into one continuous study guide with a Notion-style floating Table of Contents, `.md` export, and a Computer Modern LaTeX-style course notes PDF export.
+- **Grounded in your lectures.** PDFs and pasted images are parsed page by page in the browser, so every citation points to a real source and page number.
 - **Three providers, one contract.** Choose models from OpenAI, Anthropic, or Google Gemini. All three return the same validated JSON shape.
 - **Bring your own key.** API keys stay in your browser and are forwarded per request; the server never stores them.
 - **Notebooks that sync.** Use it as a guest (stored locally in IndexedDB), or sign in to sync notebooks across devices with Supabase.
-- **A workspace, not a chat log.** Draggable, resizable, renamable tabs; multiple notebooks; custom themes; and a mobile layout with touch drag-and-drop.
+- **A workspace, not a chat log.** Draggable, resizable, renamable tabs; multiple notebooks; real-time theme color customization with automatic contrast adjustment; and a mobile layout with touch drag-and-drop.
 
 ## Architecture
 

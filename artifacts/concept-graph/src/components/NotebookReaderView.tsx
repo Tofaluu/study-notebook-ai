@@ -13,10 +13,10 @@ import {
   Copy,
   Download,
   ExternalLink,
+  FileDown,
   List,
   Loader2,
   Pin,
-  Printer,
 } from 'lucide-react';
 
 interface NotebookReaderViewProps {
@@ -99,6 +99,7 @@ export function NotebookReaderView({
   onOpenDemo,
 }: NotebookReaderViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const printableContentRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const [highlightedSectionId, setHighlightedSectionId] = useState<string | null>(null);
   const [activeScrollId, setActiveScrollId] = useState<string | null>(null);
@@ -487,6 +488,635 @@ export function NotebookReaderView({
     URL.revokeObjectURL(url);
   };
 
+  const handleExportPdf = () => {
+    const sourceEl = printableContentRef.current;
+    if (!sourceEl) return;
+
+    const printWin = window.open('', '_blank');
+    if (!printWin) return;
+
+    const escapeHtml = (str: string) =>
+      str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    // Helper to extract and clean the already-rendered Markdown+KaTeX HTML from an element
+    const extractLatexBodyHtml = (containerId: string, chapterIndex?: number) => {
+      const articleEl = document.getElementById(containerId);
+      const proseEl = articleEl?.querySelector('.prose');
+      if (!proseEl) return '';
+
+      const clone = proseEl.cloneNode(true) as HTMLElement;
+
+      // Replace interactive underlined term buttons with classic LaTeX italics (like CS 370 notes)
+      clone.querySelectorAll('button').forEach((btn) => {
+        const em = document.createElement('em');
+        em.className = 'latex-term';
+        em.innerHTML = btn.innerHTML;
+        btn.replaceWith(em);
+      });
+
+      // Strip Tailwind classes from headings/paragraphs/lists so pure LaTeX stylesheet rules govern
+      let subIdx = 0;
+      clone.querySelectorAll('h1, h2, h3, h4').forEach((heading) => {
+        const text = (heading.textContent || '').trim();
+        // If the AI repeated the chapter title as the first h1, remove it to avoid duplication
+        if (
+          chapterIndex !== undefined &&
+          heading === clone.firstElementChild &&
+          heading.tagName === 'H3' &&
+          heading.className.includes('text-3xl')
+        ) {
+          heading.remove();
+          return;
+        }
+
+        const isMajorSection = heading.className.includes('text-2xl') || heading.className.includes('text-3xl');
+        heading.removeAttribute('class');
+
+        if (isMajorSection && chapterIndex !== undefined) {
+          subIdx += 1;
+          heading.className = 'latex-section';
+          // Prefix with 1.1, 1.2 if not already numbered like "1.1"
+          if (!/^\d+\.\d+/.test(text)) {
+            heading.innerHTML = `<span class="latex-sec-num">${chapterIndex}.${subIdx}</span> ${heading.innerHTML}`;
+          }
+        } else {
+          heading.className = 'latex-subsection';
+        }
+      });
+
+      clone.querySelectorAll('p, li, ul, ol, blockquote, table, thead, tbody, tr, th, td, code, pre').forEach((el) => {
+        if (!el.classList.contains('katex') && !el.closest('.katex')) {
+          el.removeAttribute('class');
+        }
+      });
+
+      return clone.innerHTML;
+    };
+
+    const headStyles = Array.from(
+      document.head.querySelectorAll('link[rel="stylesheet"], style')
+    )
+      .map((node) => {
+        if (node.tagName.toLowerCase() === 'link') {
+          const link = node as HTMLLinkElement;
+          return `<link rel="stylesheet" href="${link.href}" />`;
+        }
+        return node.outerHTML;
+      })
+      .join('\n');
+
+    const formattedDate = new Date(chat.updatedAt || Date.now()).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    // Build LaTeX Table of Contents rows
+    const tocRows: string[] = [];
+    chapters.forEach((ch) => {
+      const exp = ch.aiItem.explanation!;
+      tocRows.push(`
+        <div class="toc-chapter">
+          <a href="# notebook-chapter-${ch.id}" class="toc-line toc-bold">
+            <span class="toc-num">${ch.index}</span>
+            <span class="toc-title">${escapeHtml(exp.title)}</span>
+            <span class="toc-dots"></span>
+          </a>
+        </div>
+      `);
+      ch.subheadings.forEach((sub, sIdx) => {
+        tocRows.push(`
+          <div class="toc-section">
+            <a href="#${sub.id}" class="toc-line">
+              <span class="toc-num">${ch.index}.${sIdx + 1}</span>
+              <span class="toc-title">${escapeHtml(sub.text)}</span>
+              <span class="toc-dots"></span>
+            </a>
+          </div>
+        `);
+      });
+      ch.followUps.forEach((fu, fIdx) => {
+        tocRows.push(`
+          <div class="toc-subsection">
+            <a href="#notebook-followup-${fu.id}" class="toc-line">
+              <span class="toc-num">${ch.index}.${ch.subheadings.length + fIdx + 1}</span>
+              <span class="toc-title">Remark: ${escapeHtml(fu.explanation?.title || fu.question)}</span>
+              <span class="toc-dots"></span>
+            </a>
+          </div>
+        `);
+      });
+    });
+
+    if (conceptTabs.length > 0) {
+      const conceptChNum = chapters.length + 1;
+      tocRows.push(`
+        <div class="toc-chapter">
+          <a href="#latex-concepts" class="toc-line toc-bold">
+            <span class="toc-num">${conceptChNum}</span>
+            <span class="toc-title">Concept Reference &amp; Deep-Dives</span>
+            <span class="toc-dots"></span>
+          </a>
+        </div>
+      `);
+      conceptTabs.forEach((ct, cIdx) => {
+        tocRows.push(`
+          <div class="toc-section">
+            <a href="#notebook-concept-${ct.id}" class="toc-line">
+              <span class="toc-num">${conceptChNum}.${cIdx + 1}</span>
+              <span class="toc-title">${escapeHtml(ct.explanation?.title || ct.term)}</span>
+              <span class="toc-dots"></span>
+            </a>
+          </div>
+        `);
+      });
+    }
+
+    if (glossaryTerms.length > 0) {
+      tocRows.push(`
+        <div class="toc-chapter">
+          <a href="#latex-glossary" class="toc-line toc-bold">
+            <span class="toc-num">A</span>
+            <span class="toc-title">Glossary of Technical Terms</span>
+            <span class="toc-dots"></span>
+          </a>
+        </div>
+      `);
+    }
+
+    if (allCitedRefs.length > 0) {
+      tocRows.push(`
+        <div class="toc-chapter">
+          <a href="#latex-sources" class="toc-line toc-bold">
+            <span class="toc-num">${glossaryTerms.length > 0 ? 'B' : 'A'}</span>
+            <span class="toc-title">Sources &amp; Lecture Excerpts</span>
+            <span class="toc-dots"></span>
+          </a>
+        </div>
+      `);
+    }
+
+    // Build Chapters HTML
+    const chaptersHtml = chapters
+      .map((ch) => {
+        const exp = ch.aiItem.explanation!;
+        const bodyHtml = extractLatexBodyHtml(`notebook-chapter-${ch.id}`, ch.index);
+
+        const followUpsHtml = ch.followUps
+          .map((fu, fIdx) => {
+            const fuBody = extractLatexBodyHtml(`notebook-followup-${fu.id}`);
+            const secNum = `${ch.index}.${ch.subheadings.length + fIdx + 1}`;
+            return `
+              <div class="latex-remark-box" id="notebook-followup-${fu.id}">
+                <div class="latex-remark-header">
+                  <strong>Remark ${secNum} (${escapeHtml(fu.explanation?.title || fu.question)}).</strong>
+                </div>
+                <div class="latex-remark-quote">
+                  <em>Regarding:</em> “${escapeHtml(fu.selectedText)}” — <em>${escapeHtml(fu.question)}</em>
+                </div>
+                <div class="latex-body">
+                  ${fuBody}
+                </div>
+              </div>
+            `;
+          })
+          .join('\n');
+
+        return `
+          <section class="latex-chapter" id="notebook-chapter-${ch.id}">
+            <div class="latex-chapter-label">Chapter ${ch.index}</div>
+            <h1 class="latex-chapter-title">${escapeHtml(exp.title)}</h1>
+            <div class="latex-body">
+              ${bodyHtml}
+            </div>
+            ${followUpsHtml}
+          </section>
+        `;
+      })
+      .join('\n');
+
+    // Build Concepts Chapter HTML if any
+    const conceptChNum = chapters.length + 1;
+    const conceptsHtml =
+      conceptTabs.length > 0
+        ? `
+          <section class="latex-chapter" id="latex-concepts">
+            <div class="latex-chapter-label">Chapter ${conceptChNum}</div>
+            <h1 class="latex-chapter-title">Concept Reference &amp; Deep-Dives</h1>
+            ${conceptTabs
+              .map((ct, idx) => {
+                const ctBody = extractLatexBodyHtml(`notebook-concept-${ct.id}`);
+                const prereqs =
+                  ct.explanation?.prerequisiteTerms && ct.explanation.prerequisiteTerms.length > 0
+                    ? `<p class="latex-prereq"><em>Prerequisites:</em> ${escapeHtml(
+                        ct.explanation.prerequisiteTerms.join(', ')
+                      )}.</p>`
+                    : '';
+                return `
+                  <div class="latex-concept-block" id="notebook-concept-${ct.id}">
+                    <h2 class="latex-section">
+                      <span class="latex-sec-num">${conceptChNum}.${idx + 1}</span>
+                      ${escapeHtml(ct.explanation?.title || ct.term)}
+                    </h2>
+                    ${prereqs}
+                    <div class="latex-body">${ctBody}</div>
+                  </div>
+                `;
+              })
+              .join('\n')}
+          </section>
+        `
+        : '';
+
+    // Build Appendix A: Glossary
+    const glossaryHtml =
+      glossaryTerms.length > 0
+        ? `
+          <section class="latex-chapter" id="latex-glossary">
+            <div class="latex-chapter-label">Appendix A</div>
+            <h1 class="latex-chapter-title">Glossary of Technical Terms</h1>
+            <div class="latex-body">
+              <dl class="latex-glossary-list">
+                ${glossaryTerms
+                  .map(
+                    (t) => `
+                  <div class="latex-glossary-item">
+                    <dt><strong>${escapeHtml(t.term)}.</strong></dt>
+                    <dd>${escapeHtml(t.plainDefinition)}</dd>
+                  </div>
+                `
+                  )
+                  .join('\n')}
+              </dl>
+            </div>
+          </section>
+        `
+        : '';
+
+    // Build Appendix B: Sources
+    const sourcesHtml =
+      allCitedRefs.length > 0
+        ? `
+          <section class="latex-chapter" id="latex-sources">
+            <div class="latex-chapter-label">Appendix ${glossaryTerms.length > 0 ? 'B' : 'A'}</div>
+            <h1 class="latex-chapter-title">Sources &amp; Lecture Excerpts</h1>
+            <div class="latex-body">
+              <ol class="latex-sources-list">
+                ${allCitedRefs
+                  .map(
+                    (ref) => `
+                  <li>
+                    <strong>${escapeHtml(ref.sourceName)}</strong> (p. ${ref.pageNumber}):
+                    <em>“${escapeHtml(ref.excerpt)}”</em>
+                  </li>
+                `
+                  )
+                  .join('\n')}
+              </ol>
+            </div>
+          </section>
+        `
+        : '';
+
+    printWin.document.open();
+    printWin.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(chat.title)}</title>
+  ${headStyles}
+  <style>
+    @page {
+      size: letter;
+      margin: 25mm 25mm 25mm 25mm;
+      @bottom-center {
+        content: counter(page);
+        font-family: 'KaTeX_Main', 'Times New Roman', Georgia, serif;
+        font-size: 10pt;
+        color: #000000;
+      }
+    }
+
+    html, body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-family: 'KaTeX_Main', 'Source Serif 4 Variable', 'Times New Roman', Georgia, serif !important;
+      font-size: 11pt;
+      line-height: 1.55;
+      margin: 0 !important;
+      padding: 0 !important;
+      height: auto !important;
+      overflow: visible !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .latex-container {
+      max-width: 6.2in;
+      margin: 0 auto;
+    }
+
+    /* Page 1: LaTeX Title Page */
+    .latex-title-page {
+      min-height: 8.6in;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      text-align: center;
+      padding: 1.4in 0 0.8in 0;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    .latex-title-main {
+      font-size: 24pt;
+      font-weight: 700;
+      line-height: 1.25;
+      margin: 0 0 14pt 0;
+      letter-spacing: -0.01em;
+    }
+
+    .latex-title-sub {
+      font-size: 15pt;
+      font-weight: 400;
+      margin: 0 0 28pt 0;
+    }
+
+    .latex-title-meta {
+      font-size: 11pt;
+      color: #222222;
+    }
+
+    .latex-title-date {
+      font-size: 12pt;
+    }
+
+    /* Page 2: LaTeX Table of Contents */
+    .latex-toc-page {
+      padding-top: 0.4in;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    .latex-toc-heading {
+      font-size: 22pt;
+      font-weight: 700;
+      margin: 0 0 24pt 0;
+    }
+
+    .toc-chapter {
+      margin-top: 12pt;
+    }
+
+    .toc-section {
+      margin-top: 3pt;
+      padding-left: 22pt;
+    }
+
+    .toc-subsection {
+      margin-top: 2pt;
+      padding-left: 46pt;
+    }
+
+    .toc-line {
+      display: flex;
+      align-items: baseline;
+      text-decoration: none;
+      color: #000000;
+      font-size: 10.5pt;
+    }
+
+    .toc-bold {
+      font-weight: 700;
+      font-size: 11pt;
+    }
+
+    .toc-num {
+      min-width: 26pt;
+      flex-shrink: 0;
+    }
+
+    .toc-title {
+      flex-shrink: 0;
+      max-width: 82%;
+    }
+
+    .toc-dots {
+      flex: 1;
+      border-bottom: 1px dotted #555555;
+      margin: 0 6pt;
+      height: 1em;
+    }
+
+    /* Chapter Pages */
+    .latex-chapter {
+      padding-top: 0.35in;
+      page-break-before: always;
+      break-before: page;
+    }
+
+    .latex-chapter-label {
+      font-size: 18pt;
+      font-weight: 700;
+      margin: 0 0 14pt 0;
+    }
+
+    .latex-chapter-title {
+      font-size: 22pt;
+      font-weight: 700;
+      line-height: 1.2;
+      margin: 0 0 24pt 0;
+    }
+
+    .latex-section {
+      font-size: 14pt;
+      font-weight: 700;
+      margin: 22pt 0 10pt 0;
+      line-height: 1.3;
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+
+    .latex-sec-num {
+      margin-right: 10pt;
+    }
+
+    .latex-subsection {
+      font-size: 11.5pt;
+      font-weight: 700;
+      margin: 16pt 0 6pt 0;
+      line-height: 1.3;
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+
+    /* Body & Math */
+    .latex-body p {
+      margin: 0 0 9pt 0;
+      text-align: justify;
+      hyphens: auto;
+    }
+
+    .latex-body ul, .latex-body ol {
+      margin: 6pt 0 10pt 22pt;
+      padding: 0;
+    }
+
+    .latex-body li {
+      margin-bottom: 4pt;
+      text-align: justify;
+    }
+
+    .latex-body blockquote {
+      margin: 10pt 20pt;
+      font-style: italic;
+    }
+
+    .latex-body code {
+      font-family: 'KaTeX_Typewriter', 'Courier New', monospace;
+      font-size: 10pt;
+    }
+
+    .latex-body table {
+      margin: 14pt auto;
+      border-collapse: collapse;
+      font-size: 10pt;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .latex-body th, .latex-body td {
+      border: 0.8pt solid #000000;
+      padding: 4pt 8pt;
+      text-align: center;
+    }
+
+    .latex-body th {
+      font-weight: 700;
+    }
+
+    .katex-display {
+      margin: 12pt 0 !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* Follow-Up Remark Box (styled like CS 370 boxed algorithms/summaries) */
+    .latex-remark-box {
+      margin: 18pt 0;
+      border: 0.8pt solid #000000;
+      padding: 10pt 14pt;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .latex-remark-header {
+      margin-bottom: 4pt;
+      font-size: 11pt;
+    }
+
+    .latex-remark-quote {
+      margin-bottom: 8pt;
+      padding-bottom: 6pt;
+      border-bottom: 0.5pt solid #888888;
+      font-size: 10pt;
+    }
+
+    .latex-prereq {
+      margin: -4pt 0 10pt 0;
+      font-size: 10.5pt;
+    }
+
+    /* Glossary & Sources */
+    .latex-glossary-list {
+      margin: 0;
+    }
+
+    .latex-glossary-item {
+      margin-bottom: 8pt;
+      text-align: justify;
+    }
+
+    .latex-glossary-item dt {
+      display: inline;
+    }
+
+    .latex-glossary-item dd {
+      display: inline;
+      margin: 0 0 0 4pt;
+    }
+
+    .latex-sources-list {
+      margin: 0 0 0 18pt;
+      padding: 0;
+    }
+
+    .latex-sources-list li {
+      margin-bottom: 8pt;
+      text-align: justify;
+    }
+  </style>
+</head>
+<body>
+  <div class="latex-container">
+    <!-- Page 1: LaTeX Course Notes Title Page -->
+    <div class="latex-title-page">
+      <div></div>
+      <div>
+        <h1 class="latex-title-main">${escapeHtml(chat.title)}</h1>
+        <div class="latex-title-sub">Course Notes &amp; Study Guide</div>
+        <div class="latex-title-meta">
+          ${chapters.length} ${chapters.length === 1 ? 'Chapter' : 'Chapters'}
+          ${conceptTabs.length > 0 ? ` · ${conceptTabs.length} Concept ${conceptTabs.length === 1 ? 'Note' : 'Notes'}` : ''}
+          ${followUpTabs.length > 0 ? ` · ${followUpTabs.length} ${followUpTabs.length === 1 ? 'Remark' : 'Remarks'}` : ''}
+          ${glossaryTerms.length > 0 ? ` · ${glossaryTerms.length} Defined Terms` : ''}
+        </div>
+      </div>
+      <div class="latex-title-date">${escapeHtml(formattedDate)}</div>
+    </div>
+
+    <!-- Page 2: LaTeX Table of Contents -->
+    <div class="latex-toc-page">
+      <div class="latex-toc-heading">Contents</div>
+      ${tocRows.join('\n')}
+    </div>
+
+    <!-- Chapters -->
+    ${chaptersHtml}
+
+    <!-- Concepts -->
+    ${conceptsHtml}
+
+    <!-- Appendices -->
+    ${glossaryHtml}
+    ${sourcesHtml}
+  </div>
+
+  <script>
+    window.addEventListener('load', function () {
+      var triggerPrint = function () {
+        setTimeout(function () {
+          window.focus();
+          window.print();
+        }, 250);
+      };
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(triggerPrint).catch(triggerPrint);
+      } else {
+        triggerPrint();
+      }
+    });
+  </script>
+</body>
+</html>`);
+    printWin.document.close();
+  };
+
   const isEmpty =
     chapters.length === 0 && conceptTabs.length === 0 && followUpTabs.length === 0;
 
@@ -754,7 +1384,10 @@ export function NotebookReaderView({
 
       {/* Centered Editorial Column (matches ConceptView & FollowUpView 46rem measure) */}
       <div>
-        <div className="mx-auto max-w-[46rem] px-4 py-6 md:px-8 md:py-10 space-y-8 pb-24">
+        <div
+          ref={printableContentRef}
+          className="mx-auto max-w-[46rem] px-4 py-6 md:px-8 md:py-10 space-y-8 pb-24"
+        >
           {/* Document Header */}
           <header className="border-b border-border pb-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -788,16 +1421,16 @@ export function NotebookReaderView({
                   className="h-8 gap-1.5 text-xs"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Export
+                  Export .md
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.print()}
+                  onClick={handleExportPdf}
                   className="h-8 gap-1.5 text-xs"
                 >
-                  <Printer className="h-3.5 w-3.5" />
-                  Print
+                  <FileDown className="h-3.5 w-3.5" />
+                  Export PDF
                 </Button>
               </div>
             </div>
