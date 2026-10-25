@@ -12,6 +12,7 @@ interface SelectableAnswerProps {
   prerequisiteTerms?: string[];
   onTermClick: (term: string, contextSnippet: string) => void;
   onFollowUp?: (selectedText: string, question: string, answerContext: string) => void;
+  headingIdPrefix?: string;
 }
 
 interface SelectionPosition {
@@ -37,7 +38,7 @@ function extractReadableSelection(range: Range, fallback: string) {
     .trim();
 }
 
-export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms = [], onTermClick, onFollowUp }: SelectableAnswerProps) {
+export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms = [], onTermClick, onFollowUp, headingIdPrefix }: SelectableAnswerProps) {
   const answerRef = useRef<HTMLDivElement>(null);
   const selectedRangeRef = useRef<Range | null>(null);
   const selectedTextRef = useRef('');
@@ -197,7 +198,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
         onMouseDown={showPromptForSelection}
 
       >
-        <MarkdownRenderer content={content} terms={terms} prerequisiteTerms={prerequisiteTerms} onTermClick={onTermClick} />
+        <MarkdownRenderer content={content} terms={terms} prerequisiteTerms={prerequisiteTerms} onTermClick={onTermClick} headingIdPrefix={headingIdPrefix} />
       </div>
 
       {position && (
