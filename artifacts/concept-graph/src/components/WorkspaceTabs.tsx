@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, MessageSquareText, MessageCircle, X, PanelLeft, ChevronRight, ChevronDown, KeyRound } from 'lucide-react';
+import { FileText, MessageSquareText, MessageCircle, X, PanelLeft, ChevronRight, ChevronDown, KeyRound, BookOpen } from 'lucide-react';
 import { WorkspaceTab } from '@/lib/db';
 import type { StudyModel } from '@workspace/api-client-react';
 import { STUDY_MODEL_OPTIONS } from '@/lib/models';
@@ -23,9 +23,11 @@ interface WorkspaceTabsProps {
   onModelChange: (model: StudyModel) => void;
   onReorderTabs?: (newTabs: WorkspaceTab[]) => void;
   onUpdateTab?: (tabId: string, updates: Partial<WorkspaceTab>) => void;
+  isReaderMode?: boolean;
+  onToggleReaderMode?: () => void;
 }
 
-export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onModelChange, onReorderTabs, onUpdateTab, onToggleSidebar }: WorkspaceTabsProps) {
+export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onModelChange, onReorderTabs, onUpdateTab, onToggleSidebar, isReaderMode, onToggleReaderMode }: WorkspaceTabsProps) {
   const [keys, setKeys] = useState({ gemini: false, openai: false, anthropic: false });
   useEffect(() => {
     const checkKeys = () => {
@@ -202,7 +204,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
           const hasChildren = tabs.some(t => t.parentId === tab.id);
           const isCollapsed = collapsedParents.has(tab.id);
           const isChild = !!tab.parentId;
-          const isActive = tab.id === activeTabId;
+          const isActive = !isReaderMode && tab.id === activeTabId;
           const displayTitle = tab.customName || tab.title;
           const isChatTab = tab.type === 'chat';
           const Icon = isChatTab ? MessageCircle : tab.type === 'concept' ? FileText : MessageSquareText;
@@ -324,6 +326,22 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
           );
         })}
       </div>
+      {onToggleReaderMode && (
+        <button
+          type="button"
+          onClick={onToggleReaderMode}
+          aria-pressed={isReaderMode}
+          title={isReaderMode ? 'Exit Notebook Reader view' : 'Combine chat and tabs into a readable notebook'}
+          className={`flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 text-xs font-medium shadow-sm transition-colors ${
+            isReaderMode
+              ? 'border-primary bg-primary text-primary-foreground'
+              : 'border-border bg-card text-foreground hover:border-primary/40 hover:bg-primary/5'
+          }`}
+        >
+          <BookOpen className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span className="max-sm:hidden">Read Notebook</span>
+        </button>
+      )}
       {noKeysConfigured ? (
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'api' } }))}

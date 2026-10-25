@@ -11,6 +11,24 @@ interface MarkdownRendererProps {
   terms?: ExplainableTerm[];
   prerequisiteTerms?: string[];
   onTermClick?: (term: string, contextSnippet: string) => void;
+  headingIdPrefix?: string;
+}
+
+function extractPlainText(node: React.ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(extractPlainText).join('');
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return extractPlainText(node.props.children);
+  }
+  return '';
+}
+
+export function slugifyHeading(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[`*_~[\]()]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 function escapeRegExp(string: string) {
@@ -31,8 +49,14 @@ function normalizeDisplayMath(markdown: string) {
   return processed;
 }
 
-export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], onTermClick }: MarkdownRendererProps) {
+export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], onTermClick, headingIdPrefix }: MarkdownRendererProps) {
   const highlightedTerms = new Set<string>();
+
+  const getHeadingId = (children: React.ReactNode) => {
+    if (!headingIdPrefix) return undefined;
+    const slug = slugifyHeading(extractPlainText(children));
+    return slug ? `${headingIdPrefix}-${slug}` : undefined;
+  };
 
   const renderWithHighlights = (text: string) => {
     if (typeof text !== 'string') return text;
@@ -111,9 +135,9 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
   const components = {
     p: ({ children }: any) => <p className="mb-5 text-lg leading-[1.7] text-foreground/90">{processChildren(children)}</p>,
     li: ({ children }: any) => <li className="mb-2 text-lg leading-[1.7] text-foreground/90">{processChildren(children)}</li>,
-    h1: ({ children }: any) => <h3 className="mt-10 mb-4 font-serif text-3xl font-semibold text-foreground">{processChildren(children)}</h3>,
-    h2: ({ children }: any) => <h3 className="mt-8 mb-3 font-serif text-2xl font-semibold text-foreground">{processChildren(children)}</h3>,
-    h3: ({ children }: any) => <h3 className="mt-6 mb-2 font-serif text-xl font-semibold text-foreground">{processChildren(children)}</h3>,
+    h1: ({ children }: any) => <h3 id={getHeadingId(children)} className="scroll-mt-6 mt-10 mb-4 font-serif text-3xl font-semibold text-foreground">{processChildren(children)}</h3>,
+    h2: ({ children }: any) => <h3 id={getHeadingId(children)} className="scroll-mt-6 mt-8 mb-3 font-serif text-2xl font-semibold text-foreground">{processChildren(children)}</h3>,
+    h3: ({ children }: any) => <h3 id={getHeadingId(children)} className="scroll-mt-6 mt-6 mb-2 font-serif text-xl font-semibold text-foreground">{processChildren(children)}</h3>,
     h4: ({ children }: any) => <h4 className="mt-5 mb-2 text-base font-semibold text-foreground">{processChildren(children)}</h4>,
     ul: ({ children }: any) => <ul className="list-disc pl-6 mb-6 space-y-2 marker:text-foreground/60">{processChildren(children)}</ul>,
     ol: ({ children }: any) => <ol className="list-decimal pl-6 mb-6 space-y-2 marker:text-foreground/60">{processChildren(children)}</ol>,

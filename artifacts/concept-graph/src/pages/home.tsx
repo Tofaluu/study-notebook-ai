@@ -5,6 +5,7 @@ import { WorkspaceTabs } from '@/components/WorkspaceTabs';
 import { ChatView } from '@/components/ChatView';
 import { ConceptView } from '@/components/ConceptView';
 import { FollowUpView } from '@/components/FollowUpView';
+import { NotebookReaderView } from '@/components/NotebookReaderView';
 import { Loader2 } from 'lucide-react';
 import type { StudyModel } from '@workspace/api-client-react';
 import { DEFAULT_STUDY_MODEL, isStudyModel } from '@/lib/models';
@@ -28,6 +29,7 @@ export default function Home() {
     const savedModel = localStorage.getItem(MODEL_STORAGE_KEY);
     return isStudyModel(savedModel) ? savedModel : DEFAULT_STUDY_MODEL;
   });
+  const [isReaderMode, setIsReaderMode] = React.useState(false);
   React.useEffect(() => {
     localStorage.setItem(MODEL_STORAGE_KEY, selectedModel);
   }, [selectedModel]);
@@ -80,7 +82,7 @@ export default function Home() {
 
   const renderTabContent = (chat: NonNullable<typeof activeChat>, tab: NonNullable<typeof activeTab>) => {
     const tabKey = `${chat.id}:${tab.id}`;
-    const isVisible = tabKey === activeTabKey;
+    const isVisible = !isReaderMode && tabKey === activeTabKey;
     const visibilityClass = isVisible
       ? 'absolute inset-0 flex min-h-0 flex-col'
       : 'hidden';
@@ -175,7 +177,12 @@ export default function Home() {
               tabs={activeChat.tabs}
               activeTabId={activeChat.activeTabId}
               model={selectedModel}
-              onSwitch={(tabId) => switchTab(activeChat.id, tabId)}
+              isReaderMode={isReaderMode}
+              onToggleReaderMode={() => setIsReaderMode((v) => !v)}
+              onSwitch={(tabId) => {
+                setIsReaderMode(false);
+                switchTab(activeChat.id, tabId);
+              }}
               onClose={(tabId) => closeTab(activeChat.id, tabId)}
               onUpdateTab={(tabId, updates) => updateTab(activeChat.id, tabId, updates)}
               onReorderTabs={(newTabs) => reorderTabs(activeChat.id, newTabs)}
@@ -187,6 +194,24 @@ export default function Home() {
             <div className="flex-1 min-h-0 relative">
               {state.chats.flatMap(chat =>
                 chat.tabs.map(tab => renderTabContent(chat, tab))
+              )}
+              {isReaderMode && (
+                <div className="absolute inset-0 flex min-h-0 flex-col">
+                  <NotebookReaderView
+                    chat={activeChat}
+                    onTermClick={(term, contextSnippet, parentId) =>
+                      handleTermClick(activeChat.id, term, contextSnippet, parentId)
+                    }
+                    onFollowUp={(selectedText, question, answerContext, parentId) =>
+                      handleFollowUp(activeChat.id, selectedText, question, answerContext, parentId)
+                    }
+                    onJumpToTab={(tabId) => {
+                      setIsReaderMode(false);
+                      switchTab(activeChat.id, tabId);
+                    }}
+                    onOpenDemo={openDemo}
+                  />
+                </div>
               )}
             </div>
           </>
