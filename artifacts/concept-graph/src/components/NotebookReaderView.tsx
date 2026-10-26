@@ -1262,7 +1262,7 @@ export function NotebookReaderView({
                         <button
                           type="button"
                           onClick={() => scrollToSection(chSectionId)}
-                          className={`flex-1 rounded px-1.5 py-1 text-left transition-colors duration-150 line-clamp-2 ${
+                          className={`flex-1 rounded px-1.5 py-1 text-left transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.99] line-clamp-2 ${
                             isChActive
                               ? 'bg-muted font-medium text-foreground'
                               : 'text-foreground/85 hover:bg-muted/60 hover:text-foreground'
@@ -1281,7 +1281,7 @@ export function NotebookReaderView({
                                 <button
                                   type="button"
                                   onClick={() => scrollToSection(sub.id)}
-                                  className={`w-full rounded px-1.5 py-0.5 text-left transition-colors duration-150 line-clamp-1 ${
+                                  className={`w-full rounded px-1.5 py-0.5 text-left transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.99] line-clamp-1 ${
                                     isSubActive
                                       ? 'bg-muted font-medium text-foreground'
                                       : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -1300,7 +1300,7 @@ export function NotebookReaderView({
                                 <button
                                   type="button"
                                   onClick={() => scrollToSection(fuId)}
-                                  className={`w-full rounded px-1.5 py-0.5 text-left transition-colors duration-150 line-clamp-1 ${
+                                  className={`w-full rounded px-1.5 py-0.5 text-left transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.99] line-clamp-1 ${
                                     isFuActive
                                       ? 'bg-muted font-medium text-foreground'
                                       : 'text-muted-foreground/85 hover:bg-muted/50 hover:text-foreground'
@@ -1333,7 +1333,7 @@ export function NotebookReaderView({
                         <button
                           type="button"
                           onClick={() => scrollToSection(ctId)}
-                          className={`w-full rounded px-1.5 py-0.5 text-left transition-colors duration-150 line-clamp-1 ${
+                          className={`w-full rounded px-1.5 py-0.5 text-left transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.99] line-clamp-1 ${
                             isCtActive
                               ? 'bg-muted font-medium text-foreground'
                               : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -1354,7 +1354,7 @@ export function NotebookReaderView({
                   <button
                     type="button"
                     onClick={() => scrollToSection('notebook-glossary')}
-                    className={`w-full rounded px-1.5 py-1 text-left transition-colors duration-150 ${
+                    className={`w-full rounded px-1.5 py-1 text-left transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.99] ${
                       activeScrollId === 'notebook-glossary'
                         ? 'bg-muted font-medium text-foreground'
                         : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -1367,7 +1367,7 @@ export function NotebookReaderView({
                   <button
                     type="button"
                     onClick={() => scrollToSection('notebook-sources')}
-                    className={`w-full rounded px-1.5 py-1 text-left transition-colors duration-150 ${
+                    className={`w-full rounded px-1.5 py-1 text-left transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.99] ${
                       activeScrollId === 'notebook-sources'
                         ? 'bg-muted font-medium text-foreground'
                         : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
