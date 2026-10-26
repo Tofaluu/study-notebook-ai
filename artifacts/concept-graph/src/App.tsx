@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useThemeCustomization } from '@/hooks/use-theme';
-import { AuthView } from '@/components/AuthView';
+import { AuthView, type AuthMode } from '@/components/AuthView';
+import { supabase } from '@/lib/supabase';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -33,13 +34,38 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 
+function isRecoveryUrl(): boolean {
+  return (
+    window.location.hash.includes('type=recovery') ||
+    new URLSearchParams(window.location.search).get('type') === 'recovery'
+  );
+}
+
 function App() {
   useThemeCustomization();
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>(() =>
+    isRecoveryUrl() ? 'update-password' : 'login'
+  );
+  const [isAuthOpen, setIsAuthOpen] = useState(() => isRecoveryUrl());
+
   useEffect(() => {
-    const handler = () => setIsAuthOpen(true);
+    const handler = () => {
+      setAuthMode('login');
+      setIsAuthOpen(true);
+    };
     window.addEventListener('open-auth', handler);
-    return () => window.removeEventListener('open-auth', handler);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setAuthMode('update-password');
+        setIsAuthOpen(true);
+      }
+    });
+
+    return () => {
+      window.removeEventListener('open-auth', handler);
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
@@ -50,7 +76,15 @@ function App() {
             <Router />
           </WouterRouter>
           <Toaster />
-          {isAuthOpen && <AuthView onClose={() => setIsAuthOpen(false)} />}
+          {isAuthOpen && (
+            <AuthView
+              initialMode={authMode}
+              onClose={() => {
+                setIsAuthOpen(false);
+                setAuthMode('login');
+              }}
+            />
+          )}
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>
