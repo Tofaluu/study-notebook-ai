@@ -289,7 +289,9 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
             <div className="flex w-full justify-start" role="status">
               <div className="flex items-center gap-3 rounded-2xl rounded-bl-sm bg-muted px-5 py-4 text-muted-foreground animate-in fade-in duration-300 ease-out">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
-                Reading your materials and writing an answer…
+                {chat.sources.length > 0
+                  ? 'Reading your materials and writing an answer…'
+                  : 'Writing an answer…'}
               </div>
             </div>
           )}
