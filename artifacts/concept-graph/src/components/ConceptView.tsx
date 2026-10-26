@@ -88,7 +88,11 @@ export const ConceptView = React.memo(function ConceptView({ tab, sources, model
     <div role="status" className="flex min-h-0 flex-1 flex-col items-center justify-center p-8 text-center">
       <Loader2 className="mb-5 h-8 w-8 animate-spin text-primary" aria-hidden="true" />
       <h2 className="mb-2 font-serif text-2xl font-semibold text-foreground">Explaining “{tab.term}”</h2>
-      <p className="text-muted-foreground">Writing a beginner-friendly page from your materials…</p>
+      <p className="text-muted-foreground">
+        {sources.length > 0
+          ? 'Writing a beginner-friendly page from your materials…'
+          : 'Writing a beginner-friendly explanation…'}
+      </p>
     </div>
   );
 }, (prev, next) => prev.tab === next.tab && prev.sources === next.sources && prev.model === next.model);
