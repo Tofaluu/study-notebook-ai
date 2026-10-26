@@ -206,7 +206,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
           ref={modalRef}
           role="dialog"
           aria-label="Ask about selected text"
-          className="fixed z-50 w-[calc(100vw-1.5rem)] max-w-sm -translate-x-1/2 rounded-2xl border border-border bg-card p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-150 cursor-move select-none"
+          className="fixed z-50 w-[calc(100vw-1.5rem)] max-w-sm -translate-x-1/2 rounded-2xl border border-border/80 bg-card p-3.5 shadow-[0_16px_50px_rgba(0,0,0,0.14)] dark:shadow-[0_16px_50px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-move select-none"
           style={{ left: position.left, top: position.top }}
           onMouseDown={handleModalDragStart}
         >
@@ -218,7 +218,7 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
             <button
               type="button"
               onClick={closePrompt}
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="rounded-md p-1 text-muted-foreground transition-[transform,background-color,color] duration-150 ease-out hover:bg-muted hover:text-foreground active:scale-90"
               aria-label="Close follow-up prompt"
             >
               <X className="h-4 w-4" />

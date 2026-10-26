@@ -194,7 +194,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
     <div className="flex items-center gap-2 border-b border-border bg-muted/30 p-2 min-h-[48px]">
       <button
         onClick={onToggleSidebar}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-[transform,background-color,color] duration-150 ease-out hover:bg-muted hover:text-foreground active:scale-90"
         aria-label="Toggle Sidebar"
       >
         <PanelLeft className="h-4 w-4" />
@@ -217,7 +217,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
                 onDragStart={(e) => handleDragStart(e, tab.id)}
                 onDragOver={(e) => handleDragOver(e, tab.id, isChatTab)}
                 onDragEnd={() => setDraggedTabId(null)}
-                className={`tab-container group relative flex shrink-0 items-center gap-1 rounded-md border px-2 transition-colors ${
+                className={`tab-container group relative flex shrink-0 items-center gap-1 rounded-md border px-2 transition-[background-color,border-color,color,transform] duration-150 ease-out ${
                   isActive
                     ? 'border-border bg-card text-foreground'
                     : isChild
@@ -240,7 +240,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
                     }}
                     aria-expanded={!isCollapsed}
                     aria-label={isCollapsed ? `Show pages opened from ${displayTitle}` : `Hide pages opened from ${displayTitle}`}
-                    className="-ml-1 flex h-7 w-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted-foreground/15"
+                    className="-ml-1 flex h-7 w-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-[transform,background-color,color] duration-150 ease-out hover:bg-muted-foreground/15 active:scale-90"
                   >
                     {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                   </button>
@@ -281,7 +281,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
                     onDoubleClick={(e) => {
                       if (!isChatTab) startEditing(tab.id, displayTitle, e.currentTarget.closest('.tab-container'));
                     }}
-                    className="flex min-w-0 flex-1 items-center gap-2 rounded-sm py-1.5 text-left"
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-sm py-1.5 text-left transition-transform duration-150 ease-out active:scale-[0.98]"
                   >
                     <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} aria-hidden="true" />
                     <span
@@ -302,7 +302,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
                         e.stopPropagation();
                         onClose(tab.id);
                       }}
-                      className={`flex h-7 w-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-opacity hover:bg-muted-foreground/15 hover:text-foreground [@media(hover:none)]:opacity-100 ${
+                      className={`flex h-7 w-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-[transform,opacity,background-color,color] duration-150 ease-out hover:bg-muted-foreground/15 hover:text-foreground active:scale-90 [@media(hover:none)]:opacity-100 ${
                         isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
                       }`}
                       aria-label={`Close ${displayTitle}`}
@@ -332,7 +332,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
           onClick={onToggleReaderMode}
           aria-pressed={isReaderMode}
           title={isReaderMode ? 'Exit Notebook Reader view' : 'Combine chat and tabs into a readable notebook'}
-          className={`flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 text-xs font-medium shadow-sm transition-colors ${
+          className={`flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 text-xs font-medium shadow-sm transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.97] ${
             isReaderMode
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border bg-card text-foreground hover:border-primary/40 hover:bg-primary/5'
@@ -346,7 +346,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'api' } }))}
           aria-label="Add API key"
-          className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-foreground/5 max-sm:w-9 max-sm:justify-center max-sm:px-0"
+          className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition-[transform,background-color] duration-150 ease-out hover:bg-foreground/5 active:scale-95 max-sm:w-9 max-sm:justify-center max-sm:px-0"
         >
           <KeyRound className="h-4 w-4 sm:hidden" aria-hidden="true" />
           <span className="max-sm:hidden">Add API key</span>

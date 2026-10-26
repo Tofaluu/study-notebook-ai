@@ -66,19 +66,19 @@ function SectionMenu({ label, items, buttonRef }: {
         aria-expanded={open}
         aria-label={label}
         title={label}
-        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-[transform,background-color,color] duration-150 ease-out hover:bg-foreground/5 hover:text-foreground active:scale-90"
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
       {open && (
-        <div ref={menuRef} role="menu" aria-label={label} className="absolute right-0 top-9 z-20 min-w-40 rounded-lg border border-border bg-popover p-1 shadow-md">
+        <div ref={menuRef} role="menu" aria-label={label} className="absolute right-0 top-9 z-20 min-w-40 rounded-lg border border-border bg-popover p-1 shadow-md animate-in fade-in zoom-in-95 duration-100 ease-out">
           {items.map(item => (
             <button
               key={item.label}
               type="button"
               role="menuitem"
               onClick={() => { setOpen(false); item.onSelect(); }}
-              className="block w-full whitespace-nowrap rounded-md px-3 py-2 text-left text-sm text-destructive hover:bg-destructive/10 focus-visible:bg-destructive/10"
+              className="block w-full whitespace-nowrap rounded-md px-3 py-2 text-left text-sm text-destructive transition-[transform,background-color] duration-150 ease-out hover:bg-destructive/10 focus-visible:bg-destructive/10 active:scale-[0.98]"
             >
               {item.label}
             </button>
@@ -194,7 +194,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
 
   return (
     <aside className={`
-      bg-muted border-border flex flex-col shrink-0 transition-all duration-300 ease-in-out
+      bg-muted border-border flex flex-col shrink-0 transition-[transform,width,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]
       absolute md:relative z-50 h-[100dvh]
       ${isOpen
         ? "translate-x-0 w-72 lg:w-80 border-r opacity-100"
@@ -240,7 +240,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                   </AlertDialog>
                 </>
               ) : null}
-              <button onClick={onCreateChat} className="flex h-8 w-8 items-center justify-center rounded-md text-foreground transition-colors hover:bg-foreground/5" aria-label="New Notebook" title="New notebook">
+              <button onClick={onCreateChat} className="flex h-8 w-8 items-center justify-center rounded-md text-foreground transition-[transform,background-color] duration-150 ease-out hover:bg-foreground/5 active:scale-90" aria-label="New Notebook" title="New notebook">
                 <Plus className="w-4 h-4" />
               </button>
             </div>
@@ -281,7 +281,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                       type="button"
                       onClick={() => onSwitchChat(chat.id)}
                       aria-current={chat.id === activeChatId ? 'page' : undefined}
-                      className={`block w-full truncate rounded-lg px-3 py-2 text-left text-sm ${chat.id === activeChatId ? 'font-medium' : ''}`}
+                      className={`block w-full truncate rounded-lg px-3 py-2 text-left text-sm transition-[transform,background-color] duration-150 ease-out active:scale-[0.99] ${chat.id === activeChatId ? 'font-medium' : ''}`}
                     >
                       <span title={chat.title}>{chat.title}</span>
                     </button>
@@ -289,12 +289,12 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                 </div>
 
                 <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
-                  <button onClick={(e) => { e.stopPropagation(); setEditingChatId(chat.id); setEditTitle(chat.title); }} className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-foreground/10" aria-label={`Rename ${chat.title}`} title="Rename">
+                  <button onClick={(e) => { e.stopPropagation(); setEditingChatId(chat.id); setEditTitle(chat.title); }} className="flex h-8 w-8 items-center justify-center rounded-md transition-[transform,background-color] duration-150 ease-out hover:bg-foreground/10 active:scale-90" aria-label={`Rename ${chat.title}`} title="Rename">
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <button onClick={(e) => e.stopPropagation()} className="flex h-8 w-8 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10" aria-label={`Delete ${chat.title}`} title="Delete">
+                      <button onClick={(e) => e.stopPropagation()} className="flex h-8 w-8 items-center justify-center rounded-md text-destructive transition-[transform,background-color] duration-150 ease-out hover:bg-destructive/10 active:scale-90" aria-label={`Delete ${chat.title}`} title="Delete">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </AlertDialogTrigger>
@@ -360,7 +360,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                 setIsDraggingFiles(false);
                 processFiles(Array.from(e.dataTransfer.files));
               }}
-              className={`group flex h-28 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed bg-card transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring ${
+              className={`group flex h-28 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed bg-card transition-[transform,border-color,background-color] duration-150 ease-out active:scale-[0.99] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring ${
                 isUploading ? 'cursor-wait opacity-70 border-border'
                   : isDraggingFiles ? 'cursor-copy border-primary bg-primary/10'
                   : 'cursor-pointer border-border hover:border-foreground/30 hover:bg-foreground/[0.03]'
@@ -392,7 +392,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                     onClick={() => onSetSources(activeChat.sources.filter(src => src.id !== s.id))}
                     aria-label={`Remove ${s.name}`}
                     title="Remove"
-                    className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
+                    className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 transition-[transform,opacity,background-color,color] duration-150 ease-out group-hover:opacity-100 group-focus-within:opacity-100 active:scale-90 [@media(hover:none)]:opacity-100"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -416,7 +416,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
         ) : (
           <button
             onClick={() => window.dispatchEvent(new Event('open-auth'))}
-            className="flex items-center gap-2 rounded px-1 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+            className="flex items-center gap-2 rounded px-1 text-sm font-medium text-foreground underline-offset-4 transition-[transform,opacity] duration-150 ease-out hover:underline active:scale-95"
           >
             <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
             Sign In / Sign Up
@@ -433,7 +433,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                 await supabase.auth.signOut();
                 window.location.reload();
               }}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-destructive"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-[transform,background-color,color] duration-150 ease-out hover:bg-foreground/5 hover:text-destructive active:scale-90"
               aria-label="Sign out"
               title="Sign out"
             >
@@ -442,7 +442,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
           )}
           <button
             onClick={() => window.dispatchEvent(new Event('open-settings'))}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-[transform,background-color,color] duration-150 ease-out hover:bg-foreground/5 hover:text-foreground active:scale-90"
             aria-label="Settings"
             title="Settings"
           >

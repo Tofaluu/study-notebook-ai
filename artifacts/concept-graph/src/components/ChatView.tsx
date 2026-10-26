@@ -183,23 +183,45 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
           {chat.history.length === 0 ? (
             <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col justify-center">
               <Reveal once={`welcome:${chat.id}`}>
-              <h2 className="mb-3 font-serif text-4xl font-semibold tracking-[-0.01em] text-foreground">{chat.title === 'New Session' ? 'Begin your session.' : chat.title}</h2>
-              <p className="mb-8 text-lg leading-relaxed text-muted-foreground">
-                Add lecture PDFs or images in the sidebar, then ask a question. Leave the box empty and press Send to get a summary of the key concepts instead.
-              </p>
-              <ol className="mb-8 space-y-4 text-base leading-relaxed">
-                <li>
-                  <span className="font-semibold text-foreground">Click an underlined term</span>
-                  <span className="text-muted-foreground"> to open it as its own beginner-friendly page, with links to the concepts it builds on.</span>
-                </li>
-                <li>
-                  <span className="font-semibold text-foreground">Highlight a passage and click it</span>
-                  <span className="text-muted-foreground"> to ask a follow-up about just that part of the answer.</span>
-                </li>
-              </ol>
-              <Button variant="outline" onClick={onOpenDemo}>
-                Explore the demo notebook
-              </Button>
+                <div className="space-y-2 mb-6">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    Study Session Guide
+                  </div>
+                  <h2 className="font-serif text-3xl md:text-4xl font-semibold tracking-[-0.015em] text-foreground">
+                    {chat.title === 'New Session' ? 'Begin your session.' : chat.title}
+                  </h2>
+                  <p className="text-base md:text-lg leading-relaxed text-muted-foreground">
+                    Add lecture PDFs or images in the sidebar, then ask a question. Leave the box empty and press Send to get a summary of key concepts instead.
+                  </p>
+                </div>
+
+                <div className="mb-8 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-border/60 bg-card/60 p-4 transition-colors hover:border-border hover:bg-card">
+                    <div className="mb-2 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 font-mono text-xs font-semibold text-primary">
+                      01
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground mb-1">Click underlined terms</h3>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Opens a dedicated page explaining the concept simply, with prerequisites it builds upon.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-card/60 p-4 transition-colors hover:border-border hover:bg-card">
+                    <div className="mb-2 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 font-mono text-xs font-semibold text-primary">
+                      02
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground mb-1">Highlight &amp; ask follow-up</h3>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Select any text passage and click it to ask a targeted question about that specific section.
+                    </p>
+                  </div>
+                </div>
+
+                {onOpenDemo && (
+                  <Button variant="outline" onClick={onOpenDemo} className="self-start gap-2 shadow-xs">
+                    Explore the demo notebook
+                  </Button>
+                )}
               </Reveal>
             </div>
           ) : (
@@ -251,7 +273,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                               return next;
                             })
                           }
-                          className="mt-2 text-xs font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+                          className="mt-2 text-xs font-medium text-muted-foreground underline underline-offset-4 transition-[color,transform] duration-150 ease-out hover:text-foreground active:scale-[0.97]"
                         >
                           {isExpanded ? 'Collapse message' : 'Show full message'}
                         </button>
@@ -319,8 +341,8 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
         </div>
       </div>
 
-      <div className="sticky bottom-0 mt-auto w-full bg-background px-4 pb-4 pt-3">
-        <div className="relative mx-auto flex max-w-[46rem] items-end gap-3 rounded-2xl border border-border bg-card p-2 shadow-lg transition-colors focus-within:border-foreground/30">
+      <div className="sticky bottom-0 mt-auto w-full bg-background/95 backdrop-blur-xs px-4 pb-4 pt-3">
+        <div className="relative mx-auto flex max-w-[46rem] items-end gap-3 rounded-2xl border border-border/80 bg-card p-2 shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-[border-color,box-shadow] duration-200 focus-within:border-foreground/30 focus-within:shadow-[0_12px_36px_rgb(0,0,0,0.1)] dark:focus-within:shadow-[0_12px_36px_rgb(0,0,0,0.4)]">
           <Textarea
             autoFocus
             aria-label={chat.sources.length > 0 ? 'Ask about your materials' : 'Ask a question'}
