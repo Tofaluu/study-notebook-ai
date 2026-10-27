@@ -151,6 +151,14 @@ export function useWorkspace() {
     updateChat(chatId, chat => ({ ...chat, history: [...chat.history, ...items], updatedAt: Date.now() }));
   }, [updateChat]);
 
+  const removeHistoryItem = useCallback((chatId: string, itemId: string) => {
+    updateChat(chatId, chat => ({
+      ...chat,
+      history: chat.history.filter(h => h.id !== itemId),
+      updatedAt: Date.now()
+    }));
+  }, [updateChat]);
+
   return {
     state,
     activeChat,
@@ -166,7 +174,8 @@ export function useWorkspace() {
     updateTab,
     reorderTabs,
     setSources,
-    addHistory
+    addHistory,
+    removeHistoryItem
   };
 }
 
