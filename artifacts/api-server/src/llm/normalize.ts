@@ -50,7 +50,16 @@ export function normalizeExplanation(raw: unknown): unknown {
   }
 
   if (typeof raw.title !== "string") raw.title = "Study Explanation";
-  if (typeof raw.answerMarkdown !== "string") raw.answerMarkdown = "No explanation provided.";
+  if (typeof raw.answerMarkdown !== "string") {
+    raw.answerMarkdown = "No explanation provided.";
+  } else {
+    // Repair double-escaped newlines (e.g. Gemini Flash escaping '\n' inside JSON strings)
+    if (raw.answerMarkdown.includes("\\n") && !raw.answerMarkdown.includes("\n")) {
+      raw.answerMarkdown = raw.answerMarkdown.replace(/\\n/g, "\n");
+    } else if (raw.answerMarkdown.includes("\\n\\n")) {
+      raw.answerMarkdown = raw.answerMarkdown.replace(/\\n\\n/g, "\n\n");
+    }
+  }
 
   return raw;
 }

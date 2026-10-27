@@ -37,6 +37,14 @@ function escapeRegExp(string: string) {
 
 function normalizeDisplayMath(markdown: string) {
   let processed = markdown;
+
+  // Repair double-escaped newlines from LLMs (e.g. Gemini Flash escaping '\n' inside JSON strings)
+  if (processed.includes('\\n') && !processed.includes('\n')) {
+    processed = processed.replace(/\\n/g, '\n');
+  } else if (processed.includes('\\n\\n')) {
+    processed = processed.replace(/\\n\\n/g, '\n\n');
+  }
+
   // Convert \[ \] to $$ $$
   processed = processed.replace(/\\\[([\s\S]*?)\\\]/g, (_, math) => `\n\n$$\n${math.trim()}\n$$\n\n`);
   // Convert \( \) to $ $
