@@ -60,6 +60,18 @@ describe("normalizeExplanation", () => {
     });
   });
 
+  it("repairs double-escaped newlines from structured outputs", () => {
+    const raw = {
+      title: "Understanding JSON",
+      answerMarkdown: "Line 1\\n\\nLine 2\\n### Heading\\n1. Item",
+      terms: [],
+    };
+    expect(normalizeExplanation(raw)).toMatchObject({
+      title: "Understanding JSON",
+      answerMarkdown: "Line 1\n\nLine 2\n### Heading\n1. Item",
+    });
+  });
+
   it("passes non-objects through untouched", () => {
     expect(normalizeExplanation(null)).toBeNull();
     expect(normalizeExplanation("text")).toBe("text");
