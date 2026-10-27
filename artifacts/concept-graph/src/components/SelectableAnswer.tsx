@@ -13,6 +13,7 @@ interface SelectableAnswerProps {
   onTermClick: (term: string, contextSnippet: string) => void;
   onFollowUp?: (selectedText: string, question: string, answerContext: string) => void;
   headingIdPrefix?: string;
+  header?: React.ReactNode;
 }
 
 interface SelectionPosition {
@@ -38,7 +39,16 @@ function extractReadableSelection(range: Range, fallback: string) {
     .trim();
 }
 
-export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms = [], onTermClick, onFollowUp, headingIdPrefix }: SelectableAnswerProps) {
+export function SelectableAnswer({
+  title,
+  content,
+  terms = [],
+  prerequisiteTerms = [],
+  onTermClick,
+  onFollowUp,
+  headingIdPrefix,
+  header,
+}: SelectableAnswerProps) {
   const answerRef = useRef<HTMLDivElement>(null);
   const selectedRangeRef = useRef<Range | null>(null);
   const selectedTextRef = useRef('');
@@ -56,7 +66,13 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
       if (!selection || selection.isCollapsed || !container || selection.rangeCount === 0) return;
 
       const range = selection.getRangeAt(0);
-      if (!container.contains(range.commonAncestorContainer)) return;
+      const intersectsContainer =
+        container.contains(range.commonAncestorContainer) ||
+        (typeof range.intersectsNode === 'function' &&
+          range.intersectsNode(container) &&
+          (container.contains(range.startContainer) || container.contains(range.endContainer)));
+
+      if (!intersectsContainer) return;
 
       const rawText = extractReadableSelection(range, selection.toString());
       if (rawText.length < 2) return;
@@ -137,10 +153,10 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
     if (!range || !selectedTextRef.current) return;
 
     const clickedSelection = Array.from(range.getClientRects()).some((rect) => (
-      event.clientX >= rect.left &&
-      event.clientX <= rect.right &&
-      event.clientY >= rect.top &&
-      event.clientY <= rect.bottom
+      event.clientX >= rect.left - 4 &&
+      event.clientX <= rect.right + 4 &&
+      event.clientY >= rect.top - 4 &&
+      event.clientY <= rect.bottom + 4
     ));
     if (!clickedSelection) return;
 
@@ -149,16 +165,15 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
     selection?.removeAllRanges();
     selection?.addRange(range);
 
-    const rect = range.getBoundingClientRect();
     const cardWidth = Math.min(384, window.innerWidth - 24);
     const estimatedHeight = 250;
     const left = Math.min(
-      Math.max(rect.left + rect.width / 2, cardWidth / 2 + 12),
+      Math.max(event.clientX, cardWidth / 2 + 12),
       window.innerWidth - cardWidth / 2 - 12
     );
-    const top = rect.bottom + estimatedHeight + 16 > window.innerHeight
-      ? Math.max(12, rect.top - estimatedHeight - 10)
-      : rect.bottom + 10;
+    const top = event.clientY + estimatedHeight + 20 > window.innerHeight
+      ? Math.max(12, event.clientY - estimatedHeight - 12)
+      : event.clientY + 12;
 
     setSelectedText(selectedTextRef.current);
     setWasTrimmed(wasTrimmedRef.current);
@@ -196,8 +211,8 @@ export function SelectableAnswer({ title, content, terms = [], prerequisiteTerms
         ref={answerRef}
         className="cursor-text select-text"
         onMouseDown={showPromptForSelection}
-
       >
+        {header}
         <MarkdownRenderer content={content} terms={terms} prerequisiteTerms={prerequisiteTerms} onTermClick={onTermClick} headingIdPrefix={headingIdPrefix} />
       </div>
 

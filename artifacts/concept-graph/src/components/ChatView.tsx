@@ -297,9 +297,13 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                               demo, which opens at the top, write themselves in; a saved notebook opens at its latest
                               answer, so its text fades in instead. */}
                           <Reveal once={item.id} effect={enters(item) || isDemo ? undefined : 'animate-in fade-in duration-500 ease-out'}>
-                          <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">{item.explanation.title}</h2>
                           <SelectableAnswer
                             title={item.explanation.title}
+                            header={
+                              <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">
+                                {item.explanation.title}
+                              </h2>
+                            }
                             content={item.explanation.answerMarkdown}
                             terms={item.explanation.terms}
                             onTermClick={onTermClick}

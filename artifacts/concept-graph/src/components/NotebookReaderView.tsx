@@ -1646,12 +1646,13 @@ export function NotebookReaderView({
                       );
                     })()}
 
-                  <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">
-                    {exp.title}
-                  </h2>
-
                   <SelectableAnswer
                     title={exp.title}
+                    header={
+                      <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">
+                        {exp.title}
+                      </h2>
+                    }
                     content={exp.answerMarkdown}
                     terms={exp.terms}
                     headingIdPrefix={sectionId}
@@ -1758,74 +1759,77 @@ export function NotebookReaderView({
                         isHighlighted ? 'border-primary' : 'border-border/60'
                       }`}
                     >
-                      <div className="mb-6 flex items-start justify-between gap-4 border-b border-border/50 pb-4">
-                        <div>
-                          <h3 className="font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">
-                            {ct.explanation?.title || ct.term}
-                          </h3>
-                          {parentConcept && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                scrollToSection(`notebook-concept-${parentConcept.id}`)
-                              }
-                              className="mt-1.5 text-xs text-muted-foreground hover:text-foreground hover:underline"
-                            >
-                              ← From {parentConcept.explanation?.title || parentConcept.term}
-                            </button>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => onJumpToTab(ct.id)}
-                          className="shrink-0 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground print:hidden"
-                          title="Open in isolated tab"
-                        >
-                          <span>Open tab</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </button>
-                      </div>
-
                       {ct.explanation ? (
                         <>
-                          {ct.explanation.prerequisiteTerms &&
-                            ct.explanation.prerequisiteTerms.length > 0 && (
-                              <div className="mb-6 flex flex-wrap items-center gap-1.5">
-                                <span className="text-xs text-muted-foreground mr-1">
-                                  Builds on:
-                                </span>
-                                {ct.explanation.prerequisiteTerms.map((prereq) => {
-                                  const isExplored = conceptTabs.some(
-                                    (t) =>
-                                      t.term.trim().toLowerCase() ===
-                                      prereq.trim().toLowerCase()
-                                  );
-                                  return (
-                                    <button
-                                      key={prereq}
-                                      type="button"
-                                      onClick={() =>
-                                        handleReaderTermClick(
-                                          prereq,
-                                          `Prerequisite concept for ${ct.term}.`,
-                                          ct.id
-                                        )
-                                      }
-                                      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs transition-colors ${
-                                        isExplored
-                                          ? 'border-border bg-muted text-foreground'
-                                          : 'border-border/60 text-muted-foreground hover:border-border hover:text-foreground'
-                                      }`}
-                                    >
-                                      <span>{prereq}</span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-
                           <SelectableAnswer
                             title={ct.explanation.title}
+                            header={
+                              <>
+                                <div className="mb-6 flex items-start justify-between gap-4 border-b border-border/50 pb-4">
+                                  <div>
+                                    <h3 className="font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">
+                                      {ct.explanation?.title || ct.term}
+                                    </h3>
+                                    {parentConcept && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          scrollToSection(`notebook-concept-${parentConcept.id}`)
+                                        }
+                                        className="mt-1.5 text-xs text-muted-foreground hover:text-foreground hover:underline"
+                                      >
+                                        ← From {parentConcept.explanation?.title || parentConcept.term}
+                                      </button>
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => onJumpToTab(ct.id)}
+                                    className="shrink-0 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground print:hidden"
+                                    title="Open in isolated tab"
+                                  >
+                                    <span>Open tab</span>
+                                    <ExternalLink className="h-3 w-3" />
+                                  </button>
+                                </div>
+
+                                {ct.explanation.prerequisiteTerms &&
+                                  ct.explanation.prerequisiteTerms.length > 0 && (
+                                    <div className="mb-6 flex flex-wrap items-center gap-1.5">
+                                      <span className="text-xs text-muted-foreground mr-1">
+                                        Builds on:
+                                      </span>
+                                      {ct.explanation.prerequisiteTerms.map((prereq) => {
+                                        const isExplored = conceptTabs.some(
+                                          (t) =>
+                                            t.term.trim().toLowerCase() ===
+                                            prereq.trim().toLowerCase()
+                                        );
+                                        return (
+                                          <button
+                                            key={prereq}
+                                            type="button"
+                                            onClick={() =>
+                                              handleReaderTermClick(
+                                                prereq,
+                                                `Prerequisite concept for ${ct.term}.`,
+                                                ct.id
+                                              )
+                                            }
+                                            className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs transition-colors ${
+                                              isExplored
+                                                ? 'border-border bg-muted text-foreground'
+                                                : 'border-border/60 text-muted-foreground hover:border-border hover:text-foreground'
+                                            }`}
+                                          >
+                                            <span>{prereq}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                              </>
+                            }
                             content={ct.explanation.answerMarkdown}
                             prerequisiteTerms={ct.explanation.prerequisiteTerms}
                             headingIdPrefix={sectionId}
@@ -1845,12 +1849,41 @@ export function NotebookReaderView({
                           <SourcesCited refs={ct.explanation.sourceRefs} />
                         </>
                       ) : (
-                        <div className="flex items-center gap-3 py-8 text-muted-foreground">
-                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                          <span>
-                            Opening <strong className="text-foreground">“{ct.term}”</strong>…
-                          </span>
-                        </div>
+                        <>
+                          <div className="mb-6 flex items-start justify-between gap-4 border-b border-border/50 pb-4">
+                            <div>
+                              <h3 className="font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">
+                                {ct.term}
+                              </h3>
+                              {parentConcept && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    scrollToSection(`notebook-concept-${parentConcept.id}`)
+                                  }
+                                  className="mt-1.5 text-xs text-muted-foreground hover:text-foreground hover:underline"
+                                >
+                                  ← From {parentConcept.explanation?.title || parentConcept.term}
+                                </button>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => onJumpToTab(ct.id)}
+                              className="shrink-0 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground print:hidden"
+                              title="Open in isolated tab"
+                            >
+                              <span>Open tab</span>
+                              <ExternalLink className="h-3 w-3" />
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-3 py-8 text-muted-foreground">
+                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                            <span>
+                              Opening <strong className="text-foreground">“{ct.term}”</strong>…
+                            </span>
+                          </div>
+                        </>
                       )}
                     </article>
 
@@ -1948,20 +1981,20 @@ export function NotebookReaderView({
                     </p>
                   </figure>
                   {fu.explanation && (
-                    <>
-                      <h3 className="mb-4 font-serif text-2xl font-semibold text-foreground">
-                        {fu.explanation.title}
-                      </h3>
-                      <SelectableAnswer
-                        title={fu.explanation.title}
-                        content={fu.explanation.answerMarkdown}
-                        terms={fu.explanation.terms}
-                        onTermClick={(term, snippet) => handleReaderTermClick(term, snippet)}
-                        onFollowUp={(selectedText, question, answerContext) =>
-                          handleReaderFollowUp(selectedText, question, answerContext)
-                        }
-                      />
-                    </>
+                    <SelectableAnswer
+                      title={fu.explanation.title}
+                      header={
+                        <h3 className="mb-4 font-serif text-2xl font-semibold text-foreground">
+                          {fu.explanation.title}
+                        </h3>
+                      }
+                      content={fu.explanation.answerMarkdown}
+                      terms={fu.explanation.terms}
+                      onTermClick={(term, snippet) => handleReaderTermClick(term, snippet)}
+                      onFollowUp={(selectedText, question, answerContext) =>
+                        handleReaderFollowUp(selectedText, question, answerContext)
+                      }
+                    />
                   )}
                 </article>
               );
