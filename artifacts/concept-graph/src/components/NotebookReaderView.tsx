@@ -21,8 +21,8 @@ import {
 
 interface NotebookReaderViewProps {
   chat: Chat;
-  onTermClick: (term: string, contextSnippet: string, parentId?: string) => void;
-  onFollowUp: (selectedText: string, question: string, answerContext: string, parentId?: string) => void;
+  onTermClick: (term: string, contextSnippet: string, parentId?: string) => string | undefined | void;
+  onFollowUp: (selectedText: string, question: string, answerContext: string, parentId?: string) => string | undefined | void;
   onJumpToTab: (tabId: string) => void;
   onOpenDemo?: () => void;
 }
@@ -143,12 +143,26 @@ export function NotebookReaderView({
   const isTocPanelOpen = isTocPinned || isTocHovered;
 
   const conceptTabs = useMemo(
-    () => chat.tabs.filter((t): t is ConceptTab => t.type === 'concept'),
+    () =>
+      chat.tabs.filter(
+        (t): t is ConceptTab =>
+          t.type === 'concept' &&
+          t.term?.toLowerCase() !== 'cancelled' &&
+          t.explanation?.title?.toLowerCase() !== 'cancelled' &&
+          !t.explanation?.answerMarkdown?.includes('stopped this response')
+      ),
     [chat.tabs]
   );
 
   const followUpTabs = useMemo(
-    () => chat.tabs.filter((t): t is FollowUpTab => t.type === 'follow-up'),
+    () =>
+      chat.tabs.filter(
+        (t): t is FollowUpTab =>
+          t.type === 'follow-up' &&
+          t.question?.toLowerCase() !== 'cancelled' &&
+          t.explanation?.title?.toLowerCase() !== 'cancelled' &&
+          !t.explanation?.answerMarkdown?.includes('stopped this response')
+      ),
     [chat.tabs]
   );
 
@@ -161,6 +175,19 @@ export function NotebookReaderView({
       if (item.type === 'user') {
         pendingUserQuestion = item.content;
       } else if (item.type === 'ai' && item.explanation) {
+        const titleLower = (item.explanation.title || '').trim().toLowerCase();
+        const contentLower = (item.content || '').trim().toLowerCase();
+        const isCancelled =
+          titleLower === 'cancelled' ||
+          contentLower === 'cancelled' ||
+          item.explanation.answerMarkdown.includes('stopped this response');
+
+        if (isCancelled) {
+          // Discard pending user prompt and skip creating a chapter for cancelled responses
+          pendingUserQuestion = undefined;
+          continue;
+        }
+
         const chapterPrefix = `notebook-chapter-${item.id}`;
         builtChapters.push({
           index: builtChapters.length + 1,
@@ -356,13 +383,38 @@ export function NotebookReaderView({
     }
     const el = document.getElementById(elementId);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (scrollContainerRef.current) {
+        const container = scrollContainerRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const targetScrollTop = container.scrollTop + (elRect.top - containerRect.top) - 24;
+        container.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: 'smooth',
+        });
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
       setActiveScrollId(elementId);
       setHighlightedSectionId(elementId);
       window.setTimeout(() => {
         setHighlightedSectionId((prev) => (prev === elementId ? null : prev));
       }, 1600);
     }
+  };
+
+  const scrollToTargetWhenReady = (elementId: string, maxAttempts = 30) => {
+    let attempts = 0;
+    const checkAndScroll = () => {
+      const el = document.getElementById(elementId);
+      if (el) {
+        scrollToSection(elementId);
+      } else if (attempts < maxAttempts) {
+        attempts++;
+        requestAnimationFrame(checkAndScroll);
+      }
+    };
+    requestAnimationFrame(checkAndScroll);
   };
 
   const handleReaderTermClick = (term: string, contextSnippet: string, parentId?: string) => {
@@ -373,11 +425,23 @@ export function NotebookReaderView({
       scrollToSection(`notebook-concept-${existing.id}`);
       return;
     }
-    onTermClick(term, contextSnippet, parentId);
-    window.setTimeout(() => {
-      const conceptsContainer = document.getElementById('notebook-concepts-end');
-      conceptsContainer?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 120);
+    const newId = onTermClick(term, contextSnippet, parentId);
+    if (newId) {
+      scrollToTargetWhenReady(`notebook-concept-${newId}`);
+    } else {
+      let attempts = 0;
+      const checkLast = () => {
+        const conceptArticles = document.querySelectorAll('[id^="notebook-concept-"]');
+        if (conceptArticles.length > conceptTabs.length) {
+          const last = conceptArticles[conceptArticles.length - 1];
+          scrollToSection(last.id);
+        } else if (attempts < 30) {
+          attempts++;
+          requestAnimationFrame(checkLast);
+        }
+      };
+      requestAnimationFrame(checkLast);
+    }
   };
 
   const handleReaderFollowUp = (
@@ -386,7 +450,23 @@ export function NotebookReaderView({
     answerContext: string,
     parentId?: string
   ) => {
-    onFollowUp(selectedText, question, answerContext, parentId);
+    const newId = onFollowUp(selectedText, question, answerContext, parentId);
+    if (newId) {
+      scrollToTargetWhenReady(`notebook-followup-${newId}`);
+    } else {
+      let attempts = 0;
+      const checkLast = () => {
+        const fuElements = document.querySelectorAll('[id^="notebook-followup-"]');
+        if (fuElements.length > followUpTabs.length) {
+          const last = fuElements[fuElements.length - 1];
+          scrollToSection(last.id);
+        } else if (attempts < 30) {
+          attempts++;
+          requestAnimationFrame(checkLast);
+        }
+      };
+      requestAnimationFrame(checkLast);
+    }
   };
 
   const buildCompiledMarkdown = () => {
@@ -1776,64 +1856,69 @@ export function NotebookReaderView({
 
                     {childFollowUps.length > 0 && (
                       <div className="space-y-4 pl-4 md:pl-6 border-l border-border">
-                        {childFollowUps.map((fu) => (
-                          <aside
-                            key={fu.id}
-                            id={`notebook-followup-${fu.id}`}
-                            className="scroll-mt-6 rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-10 md:py-8"
-                          >
-                            <div className="mb-4 flex items-center justify-between gap-4">
-                              <h4 className="font-serif text-xl font-semibold text-foreground">
-                                {fu.explanation?.title || fu.question}
-                              </h4>
-                              <button
-                                type="button"
-                                onClick={() => onJumpToTab(fu.id)}
-                                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground print:hidden"
-                              >
-                                <span>Open tab</span>
-                                <ExternalLink className="h-3 w-3" />
-                              </button>
-                            </div>
-                            <figure className="mb-5 rounded-xl bg-muted/50 px-4 py-3">
-                              <blockquote className="mb-2 line-clamp-3 font-serif text-sm italic text-foreground/80">
-                                “{fu.selectedText}”
-                              </blockquote>
-                              <p className="border-t border-border/60 pt-2 text-xs font-medium text-foreground">
-                                Q: {fu.question}
-                              </p>
-                            </figure>
-                            {fu.explanation ? (
-                              <SelectableAnswer
-                                title={fu.explanation.title}
-                                content={fu.explanation.answerMarkdown}
-                                terms={fu.explanation.terms}
-                                onTermClick={(term, snippet) =>
-                                  handleReaderTermClick(term, snippet, ct.id)
-                                }
-                                onFollowUp={(selectedText, question, answerContext) =>
-                                  handleReaderFollowUp(
-                                    selectedText,
-                                    question,
-                                    answerContext,
-                                    ct.id
-                                  )
-                                }
-                              />
-                            ) : (
-                              <div className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
-                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                                <span>Answering your follow-up…</span>
+                        {childFollowUps.map((fu) => {
+                          const fuSectionId = `notebook-followup-${fu.id}`;
+                          const isFuHighlighted = highlightedSectionId === fuSectionId;
+                          return (
+                            <aside
+                              key={fu.id}
+                              id={fuSectionId}
+                              className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 shadow-sm transition-colors duration-300 md:px-10 md:py-8 ${
+                                isFuHighlighted ? 'border-primary' : 'border-border/60'
+                              }`}
+                            >
+                              <div className="mb-4 flex items-center justify-between gap-4">
+                                <h4 className="font-serif text-xl font-semibold text-foreground">
+                                  {fu.explanation?.title || fu.question}
+                                </h4>
+                                <button
+                                  type="button"
+                                  onClick={() => onJumpToTab(fu.id)}
+                                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground print:hidden"
+                                >
+                                  <span>Open tab</span>
+                                  <ExternalLink className="h-3 w-3" />
+                                </button>
                               </div>
-                            )}
-                          </aside>
-                        ))}
+                              <figure className="mb-5 rounded-xl bg-muted/50 px-4 py-3">
+                                <blockquote className="mb-2 line-clamp-3 font-serif text-sm italic text-foreground/80">
+                                  “{fu.selectedText}”
+                                </blockquote>
+                                <p className="border-t border-border/60 pt-2 text-xs font-medium text-foreground">
+                                  Q: {fu.question}
+                                </p>
+                              </figure>
+                              {fu.explanation ? (
+                                <SelectableAnswer
+                                  title={fu.explanation.title}
+                                  content={fu.explanation.answerMarkdown}
+                                  terms={fu.explanation.terms}
+                                  onTermClick={(term, snippet) =>
+                                    handleReaderTermClick(term, snippet, ct.id)
+                                  }
+                                  onFollowUp={(selectedText, question, answerContext) =>
+                                    handleReaderFollowUp(
+                                      selectedText,
+                                      question,
+                                      answerContext,
+                                      ct.id
+                                    )
+                                  }
+                                />
+                              ) : (
+                                <div className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
+                                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                  <span>Answering your follow-up…</span>
+                                </div>
+                              )}
+                            </aside>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
                 );
               })}
-              <div id="notebook-concepts-end" />
             </section>
           )}
 
@@ -1843,12 +1928,17 @@ export function NotebookReaderView({
               <h2 className="border-b border-border pb-3 font-serif text-2xl font-semibold tracking-[-0.01em] text-foreground">
                 Follow-Ups
               </h2>
-              {orphanFollowUps.map((fu) => (
-                <article
-                  key={fu.id}
-                  id={`notebook-followup-${fu.id}`}
-                  className="scroll-mt-6 rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-10 md:py-8"
-                >
+              {orphanFollowUps.map((fu) => {
+                const fuSectionId = `notebook-followup-${fu.id}`;
+                const isFuHighlighted = highlightedSectionId === fuSectionId;
+                return (
+                  <article
+                    key={fu.id}
+                    id={fuSectionId}
+                    className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 shadow-sm transition-colors duration-300 md:px-10 md:py-8 ${
+                      isFuHighlighted ? 'border-primary' : 'border-border/60'
+                    }`}
+                  >
                   <figure className="mb-5 rounded-xl bg-muted/50 px-4 py-3">
                     <blockquote className="mb-2 font-serif text-sm italic text-foreground/80">
                       “{fu.selectedText}”
@@ -1874,7 +1964,8 @@ export function NotebookReaderView({
                     </>
                   )}
                 </article>
-              ))}
+              );
+            })}
             </section>
           )}
 

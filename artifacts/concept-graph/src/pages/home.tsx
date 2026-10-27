@@ -35,25 +35,28 @@ export default function Home() {
   }, [selectedModel]);
   const {
     state, activeChat, createChat, openDemo, switchChat, deleteChat, deleteAllChats, renameChat,
-    addTab, closeTab, switchTab, updateTab, reorderTabs, setSources, addHistory
+    addTab, closeTab, switchTab, updateTab, reorderTabs, setSources, addHistory, removeHistoryItem
   } = useWorkspace();
 
   if (!state) {
     return <div className="h-[100dvh] w-full flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
-  const handleTermClick = (chatId: string, term: string, contextSnippet: string, parentId?: string) => {
+  const handleTermClick = (chatId: string, term: string, contextSnippet: string, parentId?: string): string | undefined => {
     const chat = state?.chats.find(candidate => candidate.id === chatId);
     if (!chat) return;
     const existingTab = chat.tabs.find(
       tab => tab.type === 'concept' && tab.term.toLowerCase() === term.toLowerCase()
     );
     if (existingTab) {
-      switchTab(chatId, existingTab.id);
-      return;
+      if (!isReaderMode) {
+        switchTab(chatId, existingTab.id);
+      }
+      return existingTab.id;
     }
+    const newTabId = crypto.randomUUID();
     addTab(chatId, {
-      id: crypto.randomUUID(),
+      id: newTabId,
       type: 'concept',
       title: term,
       parentId,
@@ -61,12 +64,14 @@ export default function Home() {
       contextSnippet,
       model: selectedModel
     });
+    return newTabId;
   };
 
-  const handleFollowUp = (chatId: string, selectedText: string, question: string, answerContext: string, parentId?: string) => {
+  const handleFollowUp = (chatId: string, selectedText: string, question: string, answerContext: string, parentId?: string): string | undefined => {
     if (!state?.chats.some(chat => chat.id === chatId)) return;
+    const newTabId = crypto.randomUUID();
     addTab(chatId, {
-      id: crypto.randomUUID(),
+      id: newTabId,
       type: 'follow-up',
       title: `Q: ${question}`,
       selectedText,
@@ -75,6 +80,7 @@ export default function Home() {
       parentId,
       model: selectedModel
     });
+    return newTabId;
   };
 
   const activeTab = activeChat?.tabs.find(t => t.id === activeChat.activeTabId);
@@ -94,6 +100,7 @@ export default function Home() {
             chat={chat}
             model={selectedModel}
             onAddHistory={(items) => addHistory(chat.id, items)}
+            onRemoveHistory={(itemId) => removeHistoryItem(chat.id, itemId)}
             onRename={(title) => renameChat(chat.id, title)}
             onTermClick={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet)}
             onFollowUp={(selectedText, question, answerContext) =>

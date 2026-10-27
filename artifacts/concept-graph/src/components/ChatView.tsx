@@ -13,6 +13,7 @@ interface ChatViewProps {
   chat: Chat;
   model: StudyModel;
   onAddHistory: (items: HistoryItem[]) => void;
+  onRemoveHistory?: (itemId: string) => void;
   onRename: (title: string) => void;
   onTermClick: (term: string, contextSnippet: string) => void;
   onFollowUp: (selectedText: string, question: string, answerContext: string) => void;
@@ -20,12 +21,14 @@ interface ChatViewProps {
   onOpenDemo: () => void;
 }
 
-export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory, onRename, onTermClick, onFollowUp, onAddSources, onOpenDemo }: ChatViewProps) {
+export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory, onRemoveHistory, onRename, onTermClick, onFollowUp, onAddSources, onOpenDemo }: ChatViewProps) {
   const [prompt, setPrompt] = React.useState('');
   const [expandedMessages, setExpandedMessages] = React.useState<Set<string>>(new Set());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const explainMutation = useExplainStudyTopic();
   const cancelTokenRef = useRef(0);
+  const pendingUserMsgIdRef = useRef<string | null>(null);
+  const pendingPromptTextRef = useRef<string>('');
   const isDemo = chat.sources.some(source => source.id === DEMO_SOURCE_ID);
   // Only messages that arrive while the chat is open animate in; reopening a chat shows its history as it was
   const openedAtRef = useRef(Date.now());
@@ -34,19 +37,15 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
   const handleCancel = () => {
     cancelTokenRef.current += 1;
     explainMutation.reset();
-    onAddHistory([{
-      id: crypto.randomUUID(),
-      type: 'ai',
-      content: 'Cancelled',
-      explanation: {
-        title: 'Cancelled',
-        answerMarkdown: '*You stopped this response.*',
-        terms: [],
-        sourceRefs: [],
-        generatedAt: new Date().toISOString()
-      },
-      timestamp: Date.now()
-    }]);
+
+    if (pendingUserMsgIdRef.current && onRemoveHistory) {
+      onRemoveHistory(pendingUserMsgIdRef.current);
+      if (pendingPromptTextRef.current) {
+        setPrompt(pendingPromptTextRef.current);
+      }
+    }
+    pendingUserMsgIdRef.current = null;
+    pendingPromptTextRef.current = '';
   };
 
   React.useEffect(() => {
@@ -105,6 +104,8 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
     explainMutation.mutate(variables, {
       onSuccess: (data) => {
         if (currentToken !== cancelTokenRef.current) return;
+        pendingUserMsgIdRef.current = null;
+        pendingPromptTextRef.current = '';
         onAddHistory([{
           id: crypto.randomUUID(),
           type: 'ai',
@@ -129,6 +130,9 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
       content: actualPrompt,
       timestamp: Date.now()
     };
+
+    pendingUserMsgIdRef.current = userMessage.id;
+    pendingPromptTextRef.current = prompt.trim() || actualPrompt;
 
     onAddHistory([userMessage]);
     if (chat.history.length === 0 && chat.title === 'New Session') {
@@ -283,22 +287,28 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
                 })() : (
                   <div className="w-full">
                     {item.explanation && (
-                      <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
-                        {/* The card is there at once and its text comes in, once per page load. A new answer and the
-                            demo, which opens at the top, write themselves in; a saved notebook opens at its latest
-                            answer, so its text fades in instead. */}
-                        <Reveal once={item.id} effect={enters(item) || isDemo ? undefined : 'animate-in fade-in duration-500 ease-out'}>
-                        <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">{item.explanation.title}</h2>
-                        <SelectableAnswer
-                          title={item.explanation.title}
-                          content={item.explanation.answerMarkdown}
-                          terms={item.explanation.terms}
-                          onTermClick={onTermClick}
-                          onFollowUp={onFollowUp}
-                        />
-                        <SourcesCited refs={item.explanation.sourceRefs} />
-                        </Reveal>
-                      </article>
+                      item.explanation.title === 'Cancelled' ? (
+                        <div className="rounded-xl border border-border/50 bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground italic">
+                          Response was stopped.
+                        </div>
+                      ) : (
+                        <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
+                          {/* The card is there at once and its text comes in, once per page load. A new answer and the
+                              demo, which opens at the top, write themselves in; a saved notebook opens at its latest
+                              answer, so its text fades in instead. */}
+                          <Reveal once={item.id} effect={enters(item) || isDemo ? undefined : 'animate-in fade-in duration-500 ease-out'}>
+                          <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">{item.explanation.title}</h2>
+                          <SelectableAnswer
+                            title={item.explanation.title}
+                            content={item.explanation.answerMarkdown}
+                            terms={item.explanation.terms}
+                            onTermClick={onTermClick}
+                            onFollowUp={onFollowUp}
+                          />
+                          <SourcesCited refs={item.explanation.sourceRefs} />
+                          </Reveal>
+                        </article>
+                      )
                     )}
                   </div>
                 )}
