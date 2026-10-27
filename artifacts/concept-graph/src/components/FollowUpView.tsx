@@ -50,16 +50,21 @@ export const FollowUpView = React.memo(function FollowUpView({ tab, sources, mod
         <div className="max-w-[46rem] mx-auto space-y-6 pb-20">
           <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
             <Reveal once={tab.id}>
-            <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">{tab.explanation.title}</h2>
-
-            <figure className="mb-8 rounded-xl bg-muted/50 px-5 py-4">
-              <figcaption className="mb-1.5 text-sm font-semibold text-muted-foreground">Selected Passage</figcaption>
-              <blockquote className="mb-3 line-clamp-3 font-serif text-base italic leading-relaxed text-foreground/80">“{tab.selectedText}”</blockquote>
-              <p className="border-t border-border/60 pt-3 text-sm font-semibold text-foreground">Q: {tab.question}</p>
-            </figure>
-
             <SelectableAnswer
               title={tab.explanation.title}
+              header={
+                <>
+                  <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">
+                    {tab.explanation.title}
+                  </h2>
+
+                  <figure className="mb-8 rounded-xl bg-muted/50 px-5 py-4">
+                    <figcaption className="mb-1.5 text-sm font-semibold text-muted-foreground">Selected Passage</figcaption>
+                    <blockquote className="mb-3 line-clamp-3 font-serif text-base italic leading-relaxed text-foreground/80">“{tab.selectedText}”</blockquote>
+                    <p className="border-t border-border/60 pt-3 text-sm font-semibold text-foreground">Q: {tab.question}</p>
+                  </figure>
+                </>
+              }
               content={tab.explanation.answerMarkdown}
               terms={tab.explanation.terms}
               onTermClick={onTermClick}

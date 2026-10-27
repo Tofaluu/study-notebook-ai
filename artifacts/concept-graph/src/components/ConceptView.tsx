@@ -54,9 +54,13 @@ export const ConceptView = React.memo(function ConceptView({ tab, sources, model
         <div className="max-w-[46rem] mx-auto space-y-6 pb-20">
           <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
             <Reveal once={tab.id}>
-            <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">{tab.explanation.title}</h2>
             <SelectableAnswer
               title={tab.explanation.title}
+              header={
+                <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-3xl font-semibold tracking-[-0.01em] text-foreground md:text-4xl">
+                  {tab.explanation.title}
+                </h2>
+              }
               content={tab.explanation.answerMarkdown}
               prerequisiteTerms={tab.explanation.prerequisiteTerms}
               onTermClick={onTermClick}
