@@ -1,6 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#126e61" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <!-- The notebook mark: a closed notebook with its ribbon bookmark (same drawing as the sidebar's) -->
-  <rect x="4.5" y="2.5" width="15" height="19" rx="2.5"></rect>
-  <path d="M8.5 2.5v19"></path>
-  <path d="M13.5 2.5v8l2-1.6 2 1.6v-8z" fill="#126e61"></path>
+  <!-- The notebook mark: a closed notebook with its ribbon bookmark -->
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .notebook-stroke { stroke: #5eead4; }
+      .notebook-ribbon { fill: #5eead4; stroke: #5eead4; }
+    }
+  </style>
+  <rect class="notebook-stroke" x="4.5" y="2.5" width="15" height="19" rx="2.5"></rect>
+  <path class="notebook-stroke" d="M8.5 2.5v19"></path>
+  <path class="notebook-ribbon" d="M13.5 2.5v8l2-1.6 2 1.6v-8z" fill="#126e61"></path>
 </svg>
