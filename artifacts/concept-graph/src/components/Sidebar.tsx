@@ -232,7 +232,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={onDeleteAllChats} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        <AlertDialogAction onClick={onDeleteAllChats} variant="destructive">
                           Delete all
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -307,7 +307,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={(e) => { e.stopPropagation(); onDeleteChat(chat.id); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        <AlertDialogAction onClick={(e) => { e.stopPropagation(); onDeleteChat(chat.id); }} variant="destructive">
                           Delete
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -341,7 +341,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onSetSources([])} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        <AlertDialogAction onClick={() => onSetSources([])} variant="destructive">
                           Remove all
                         </AlertDialogAction>
                       </AlertDialogFooter>
