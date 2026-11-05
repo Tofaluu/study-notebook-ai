@@ -320,7 +320,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
                           Response was stopped.
                         </div>
                       ) : (
-                        <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
+                        <article data-answer-id={item.id} className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
                           {/* The card is there at once and its text comes in, once per page load. A new answer and the
                               demo, which opens at the top, write themselves in; a saved notebook opens at its latest
                               answer, so its text fades in instead. */}

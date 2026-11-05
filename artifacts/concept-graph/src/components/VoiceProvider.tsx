@@ -85,6 +85,8 @@ function isInteractive(target: EventTarget | null) {
 
 interface VoiceProviderProps {
   onTranscript: (transcript: string) => void;
+  /** Called the moment the mic opens, before the page re-renders: the one safe moment to read a highlight */
+  onListenStart?: () => void;
   /** The selected model, so a recording is transcribed by the matching provider when it can */
   model?: string;
   children: ReactNode;
@@ -94,7 +96,7 @@ interface VoiceProviderProps {
  * One speech recognizer for the whole page. Hold Space (when nothing is focused) or Ctrl+Space (anywhere, including
  * the question box) to talk, and let go to send; or tap the mic button and stop talking for a few seconds.
  */
-export function VoiceProvider({ onTranscript, model, children }: VoiceProviderProps) {
+export function VoiceProvider({ onTranscript, onListenStart, model, children }: VoiceProviderProps) {
   const showError = useCallback((err: string) => {
     toast({
       title: 'Voice input',
@@ -143,6 +145,22 @@ export function VoiceProvider({ onTranscript, model, children }: VoiceProviderPr
 
   const isListeningRef = useRef(isListening);
   isListeningRef.current = isListening;
+
+  const onListenStartRef = useRef(onListenStart);
+  onListenStartRef.current = onListenStart;
+
+  // Every way of opening the mic goes through here, so the page hears about it first
+  const begin = useCallback(
+    (options?: { hold?: boolean }) => {
+      onListenStartRef.current?.();
+      startListening(options);
+    },
+    [startListening]
+  );
+  const toggle = useCallback(() => {
+    if (!isListeningRef.current) onListenStartRef.current?.();
+    toggleListening();
+  }, [toggleListening]);
 
   const keyHeldRef = useRef<{ ctrl: boolean } | null>(null);
   // Whether the focused element got focus from a mouse or touch. Space on such a button is almost certainly meant for
@@ -208,7 +226,7 @@ export function VoiceProvider({ onTranscript, model, children }: VoiceProviderPr
       // A clicked tab or button keeps focus; drop it so Space doesn't also press it or leave a focus ring on it
       if (e.target instanceof HTMLElement && isInteractive(e.target)) e.target.blur();
       keyHeldRef.current = { ctrl };
-      startListening({ hold: true });
+      begin({ hold: true });
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
@@ -248,7 +266,7 @@ export function VoiceProvider({ onTranscript, model, children }: VoiceProviderPr
       document.removeEventListener('visibilitychange', onLostFocus);
       clearTail();
     };
-  }, [isSupported, startListening, stopAfterTail]);
+  }, [isSupported, begin, stopAfterTail]);
 
   const micPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     // Browsers only allow speech recognition to start inside a real user gesture, and for touch that is the tap
@@ -269,8 +287,8 @@ export function VoiceProvider({ onTranscript, model, children }: VoiceProviderPr
       return;
     }
     pressRef.current = { at: Date.now(), stoppedIt: false };
-    startListening({ hold: true });
-  }, [startListening, stopListening]);
+    begin({ hold: true });
+  }, [begin, stopListening]);
 
   const micPointerUp = useCallback(() => {
     const press = pressRef.current;
@@ -289,15 +307,15 @@ export function VoiceProvider({ onTranscript, model, children }: VoiceProviderPr
       // A mouse press is already handled on down and up; a keyboard press (detail 0) or a finger tap lands here
       if (event.detail === 0 || touchPressRef.current) {
         touchPressRef.current = false;
-        toggleListening();
+        toggle();
       }
     },
-    [toggleListening]
+    [toggle]
   );
 
   const value = useMemo<VoiceControls>(
-    () => ({ isSupported, isListening, live, micPointerDown, micPointerUp, micClick, toggle: toggleListening }),
-    [isSupported, isListening, live, micPointerDown, micPointerUp, micClick, toggleListening]
+    () => ({ isSupported, isListening, live, micPointerDown, micPointerUp, micClick, toggle }),
+    [isSupported, isListening, live, micPointerDown, micPointerUp, micClick, toggle]
   );
 
   return (
