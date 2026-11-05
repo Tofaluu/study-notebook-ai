@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useSyncExternalStore } from 'react';
 
 // Browser Web Speech API interfaces
 interface SpeechRecognitionEvent extends Event {
@@ -26,76 +26,68 @@ export interface UseVoiceRecognitionOptions {
   onError?: (error: string) => void;
 }
 
+export interface VoiceLiveState {
+  transcript: string;
+  /** When the silence countdown ends (Date.now() scale), or null while nothing has been heard */
+  deadline: number | null;
+  /** Held open by a key or button: it ends on release, not on silence */
+  hold: boolean;
+}
+
+const IDLE: VoiceLiveState = { transcript: '', deadline: null, hold: false };
+
+/**
+ * The transcript changes several times a second while speaking, so it lives outside React state. Only the component
+ * that shows it subscribes (useVoiceLive); the chat around it doesn't re-render with every word.
+ */
+function createLiveStore() {
+  let snapshot = IDLE;
+  const listeners = new Set<() => void>();
+  return {
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    getSnapshot: () => snapshot,
+    set(next: VoiceLiveState) {
+      if (next.transcript === snapshot.transcript && next.deadline === snapshot.deadline && next.hold === snapshot.hold) return;
+      snapshot = next;
+      listeners.forEach((listener) => listener());
+    },
+  };
+}
+
+export type VoiceLiveStore = ReturnType<typeof createLiveStore>;
+
+export function useVoiceLive(store: VoiceLiveStore): VoiceLiveState {
+  return useSyncExternalStore(store.subscribe, store.getSnapshot);
+}
+
 export function useVoiceRecognition({
   silenceBufferMs = 2500,
   onFinalTranscript,
   onError,
 }: UseVoiceRecognitionOptions = {}) {
   const [isListening, setIsListening] = useState(false);
-  const [accumulatedTranscript, setAccumulatedTranscript] = useState('');
-  const [interimTranscript, setInterimTranscript] = useState('');
   const [isSupported, setIsSupported] = useState(false);
-  const [remainingSilenceMs, setRemainingSilenceMs] = useState<number | null>(null);
+  const live = useMemo(createLiveStore, []);
 
   const recognitionRef = useRef<any>(null);
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const accumulatedRef = useRef('');
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const finalRef = useRef('');
+  const interimRef = useRef('');
+  const holdRef = useRef(false);
+
+  // The recognizer is built once; callbacks and the buffer length are read through refs so a new function identity
+  // never tears down a live session
   const onFinalTranscriptRef = useRef(onFinalTranscript);
+  const onErrorRef = useRef(onError);
+  const silenceBufferRef = useRef(silenceBufferMs);
   onFinalTranscriptRef.current = onFinalTranscript;
-
-  const clearSilenceTimers = useCallback(() => {
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-    setRemainingSilenceMs(null);
-  }, []);
-
-  const commitTranscript = useCallback(() => {
-    clearSilenceTimers();
-    const finalContent = accumulatedRef.current.trim();
-    if (finalContent) {
-      onFinalTranscriptRef.current?.(finalContent);
-    }
-    accumulatedRef.current = '';
-    setAccumulatedTranscript('');
-    setInterimTranscript('');
-  }, [clearSilenceTimers]);
-
-  const scheduleSilenceCommit = useCallback(() => {
-    clearSilenceTimers();
-
-    const startTime = Date.now();
-    setRemainingSilenceMs(silenceBufferMs);
-
-    countdownIntervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const left = Math.max(0, silenceBufferMs - elapsed);
-      setRemainingSilenceMs(left);
-      if (left <= 0 && countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-        countdownIntervalRef.current = null;
-      }
-    }, 100);
-
-    silenceTimerRef.current = setTimeout(() => {
-      commitTranscript();
-      // Also stop listening once silence buffer expires
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch {
-          // ignore
-        }
-      }
-      setIsListening(false);
-    }, silenceBufferMs);
-  }, [clearSilenceTimers, commitTranscript, silenceBufferMs]);
+  onErrorRef.current = onError;
+  silenceBufferRef.current = silenceBufferMs;
 
   useEffect(() => {
     const win = window as unknown as IWindow;
@@ -112,6 +104,29 @@ export function useVoiceRecognition({
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
+    const clearSilenceTimer = () => {
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+    };
+
+    const reset = () => {
+      clearSilenceTimer();
+      finalRef.current = '';
+      interimRef.current = '';
+      holdRef.current = false;
+      live.set(IDLE);
+    };
+
+    // Whatever has been heard goes out exactly once, from onend. stop() lets the recognizer deliver its last result
+    // first, so words still in flight when the session ends aren't lost or sent as a second partial command.
+    const commit = () => {
+      const content = [finalRef.current, interimRef.current].filter(Boolean).join(' ').trim();
+      reset();
+      if (content) onFinalTranscriptRef.current?.(content);
+    };
+
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interim = '';
 
@@ -120,85 +135,94 @@ export function useVoiceRecognition({
         if (item.isFinal) {
           const piece = item[0].transcript.trim();
           if (piece) {
-            accumulatedRef.current = accumulatedRef.current
-              ? `${accumulatedRef.current} ${piece}`
-              : piece;
-            setAccumulatedTranscript(accumulatedRef.current);
+            finalRef.current = finalRef.current ? `${finalRef.current} ${piece}` : piece;
           }
         } else {
           interim += item[0].transcript;
         }
       }
+      interimRef.current = interim.trim();
 
-      setInterimTranscript(interim);
+      const transcript = [finalRef.current, interimRef.current].filter(Boolean).join(' ');
+      clearSilenceTimer();
+      if (holdRef.current) {
+        // Held open: releasing ends it, so silence never does
+        live.set({ transcript, deadline: null, hold: true });
+        return;
+      }
 
-      // Reset the silence countdown whenever speech is heard
-      scheduleSilenceCommit();
+      // Speech restarts the silence countdown
+      const ms = silenceBufferRef.current;
+      silenceTimerRef.current = setTimeout(() => {
+        try {
+          recognition.stop();
+        } catch {
+          // ignore
+        }
+      }, ms);
+      live.set({ transcript, deadline: Date.now() + ms, hold: false });
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      clearSilenceTimers();
       if (event.error !== 'no-speech' && event.error !== 'aborted') {
-        onError?.(event.error);
+        onErrorRef.current?.(event.error);
       }
+      reset();
       setIsListening(false);
-      setInterimTranscript('');
     };
 
     recognition.onend = () => {
-      // If we still have uncommitted text, commit it on end
-      if (accumulatedRef.current.trim()) {
-        commitTranscript();
-      }
+      commit();
       setIsListening(false);
-      clearSilenceTimers();
     };
 
     recognitionRef.current = recognition;
 
     return () => {
-      clearSilenceTimers();
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch {
-          // ignore
-        }
-      }
-    };
-  }, [clearSilenceTimers, commitTranscript, onError, scheduleSilenceCommit]);
-
-  const startListening = useCallback(() => {
-    if (!recognitionRef.current) return;
-    try {
-      clearSilenceTimers();
-      accumulatedRef.current = '';
-      setAccumulatedTranscript('');
-      setInterimTranscript('');
-      recognitionRef.current.start();
-      setIsListening(true);
-    } catch {
+      // Leaving the page shouldn't send what was half said
+      recognition.onend = null;
+      recognition.onerror = null;
+      recognition.onresult = null;
+      clearSilenceTimer();
       try {
-        recognitionRef.current.abort();
-        recognitionRef.current.start();
-        setIsListening(true);
+        recognition.abort();
       } catch {
-        setIsListening(false);
+        // ignore
       }
+      recognitionRef.current = null;
+    };
+  }, [live]);
+
+  /** With hold, the session runs until stopListening instead of ending after a pause */
+  const startListening = useCallback((options?: { hold?: boolean }) => {
+    const recognition = recognitionRef.current;
+    if (!recognition) return;
+    finalRef.current = '';
+    interimRef.current = '';
+    holdRef.current = !!options?.hold;
+    live.set({ ...IDLE, hold: holdRef.current });
+    try {
+      recognition.start();
+    } catch {
+      // Already running; keep listening
     }
-  }, [clearSilenceTimers]);
+    setIsListening(true);
+  }, [live]);
+
+  /** Turns a held session into a normal one that ends after a pause, e.g. when a button is tapped rather than held */
+  const releaseHold = useCallback(() => {
+    holdRef.current = false;
+    const current = live.getSnapshot();
+    live.set({ ...current, hold: false });
+  }, [live]);
 
   const stopListening = useCallback(() => {
-    if (!recognitionRef.current) return;
     try {
-      recognitionRef.current.stop();
+      recognitionRef.current?.stop();
     } catch {
       // ignore
     }
-    // Commit whatever we have so far
-    commitTranscript();
-    setIsListening(false);
-  }, [commitTranscript]);
+  }, []);
 
   const toggleListening = useCallback(() => {
     if (isListening) {
@@ -210,13 +234,11 @@ export function useVoiceRecognition({
 
   return {
     isListening,
-    accumulatedTranscript,
-    interimTranscript,
-    fullTranscript: [accumulatedTranscript, interimTranscript].filter(Boolean).join(' '),
-    remainingSilenceMs,
+    live,
     isSupported,
     startListening,
     stopListening,
+    releaseHold,
     toggleListening,
   };
 }

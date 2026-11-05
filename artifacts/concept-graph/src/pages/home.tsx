@@ -10,6 +10,10 @@ import { Loader2 } from 'lucide-react';
 import type { StudyModel } from '@workspace/api-client-react';
 import { DEFAULT_STUDY_MODEL, isStudyModel } from '@/lib/models';
 import { SettingsModal } from '@/components/SettingsModal';
+import { VoiceProvider } from '@/components/VoiceProvider';
+import { VoiceBannerDock } from '@/components/VoiceBanner';
+import { resolveVoiceAction } from '@/lib/voice-actions';
+import { toast } from '@/hooks/use-toast';
 
 const MODEL_STORAGE_KEY = 'study-notebook-model-v1';
 
@@ -86,6 +90,60 @@ export default function Home() {
   const activeTab = activeChat?.tabs.find(t => t.id === activeChat.activeTabId);
   const activeTabKey = activeChat && activeTab ? `${activeChat.id}:${activeTab.id}` : null;
 
+  // What a spoken request does depends on the tab it was said in: a question in the chat is asked there, and on a
+  // concept or follow-up page it branches off that page, about the highlighted passage if there is one
+  const handleVoiceTranscript = async (transcript: string) => {
+    const chat = activeChat;
+    const tab = activeTab;
+    if (!chat || !tab) return;
+    const parentId = tab.type === 'chat' ? undefined : tab.parentId || tab.id;
+
+    const action = await resolveVoiceAction(transcript, selectedModel);
+
+    if (action.type === 'new_concept_tab') {
+      toast({ title: 'Voice Command Executed', description: `Opening new tab for "${action.term}"...` });
+      handleTermClick(chat.id, action.term, action.contextSnippet || `Opened via voice command for ${action.term}`, parentId);
+      return;
+    }
+
+    if (action.type === 'rename_notebook') {
+      toast({ title: 'Notebook Renamed', description: `Renamed to "${action.title}"` });
+      renameChat(chat.id, action.title);
+      return;
+    }
+
+    const question = (action.text || transcript).trim();
+    if (!question) return;
+
+    if (isReaderMode) {
+      toast({ title: 'Reader view is open', description: 'Switch back to a tab to ask a question by voice.' });
+      return;
+    }
+
+    if (tab.type === 'chat') {
+      toast({ title: 'Voice Prompt Received', description: `Asking: "${question}"` });
+      window.dispatchEvent(new CustomEvent('voice-ask', { detail: { chatId: chat.id, text: question } }));
+      return;
+    }
+
+    if (!tab.explanation) {
+      toast({ title: 'Still loading', description: 'Wait for this page to finish before asking about it.' });
+      return;
+    }
+    const pageTitle = tab.explanation.title || (tab.type === 'concept' ? tab.term : tab.question);
+    const highlighted = window.getSelection()?.toString().trim();
+    toast({ title: 'Voice Prompt Received', description: `Asking: "${question}"` });
+    handleFollowUp(
+      chat.id,
+      highlighted || pageTitle,
+      question,
+      `${pageTitle}
+
+${tab.explanation.answerMarkdown}`.slice(0, 20000),
+      parentId
+    );
+  };
+
   const renderTabContent = (chat: NonNullable<typeof activeChat>, tab: NonNullable<typeof activeTab>) => {
     const tabKey = `${chat.id}:${tab.id}`;
     const isVisible = !isReaderMode && tabKey === activeTabKey;
@@ -99,6 +157,8 @@ export default function Home() {
           <ChatView
             chat={chat}
             model={selectedModel}
+            onModelChange={setSelectedModel}
+            isVisible={isVisible}
             onAddHistory={(items) => addHistory(chat.id, items)}
             onRemoveHistory={(itemId) => removeHistoryItem(chat.id, itemId)}
             onRename={(title) => renameChat(chat.id, title)}
@@ -108,7 +168,6 @@ export default function Home() {
             }
             onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
             onOpenDemo={openDemo}
-            onOpenNewTab={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet || `Opened via voice command for ${term}`)}
           />
         </div>
       );
@@ -148,6 +207,7 @@ export default function Home() {
   };
 
   return (
+    <VoiceProvider onTranscript={handleVoiceTranscript}>
     <div className="flex h-[100dvh] bg-background w-full overflow-hidden font-sans relative">
       <Sidebar
         isOpen={isSidebarOpen}
@@ -184,7 +244,6 @@ export default function Home() {
             <WorkspaceTabs
               tabs={activeChat.tabs}
               activeTabId={activeChat.activeTabId}
-              model={selectedModel}
               isReaderMode={isReaderMode}
               onToggleReaderMode={() => setIsReaderMode((v) => !v)}
               onSwitch={(tabId) => {
@@ -195,11 +254,9 @@ export default function Home() {
               onUpdateTab={(tabId, updates) => updateTab(activeChat.id, tabId, updates)}
               onReorderTabs={(newTabs) => reorderTabs(activeChat.id, newTabs)}
               onToggleSidebar={() => setIsSidebarOpen((v: boolean) => !v)}
-              onModelChange={(model) => {
-                setSelectedModel(model);
-              }}
             />
             <div className="flex-1 min-h-0 relative">
+              {(isReaderMode || activeTab.type !== 'chat') && <VoiceBannerDock anchor="page" />}
               {state.chats.flatMap(chat =>
                 chat.tabs.map(tab => renderTabContent(chat, tab))
               )}
@@ -238,5 +295,6 @@ export default function Home() {
       </main>
       <SettingsModal />
     </div>
+    </VoiceProvider>
   );
 }

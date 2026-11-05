@@ -1,57 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, MessageSquareText, MessageCircle, X, PanelLeft, ChevronRight, ChevronDown, KeyRound, BookOpen } from 'lucide-react';
+import { FileText, MessageSquareText, MessageCircle, X, PanelLeft, ChevronRight, ChevronDown, BookOpen } from 'lucide-react';
 import { WorkspaceTab } from '@/lib/db';
-import type { StudyModel } from '@workspace/api-client-react';
-import { STUDY_MODEL_OPTIONS } from '@/lib/models';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface WorkspaceTabsProps {
   onToggleSidebar?: () => void;
   tabs: WorkspaceTab[];
   activeTabId: string;
-  model: StudyModel;
   onSwitch: (id: string) => void;
   onClose: (id: string) => void;
-  onModelChange: (model: StudyModel) => void;
   onReorderTabs?: (newTabs: WorkspaceTab[]) => void;
   onUpdateTab?: (tabId: string, updates: Partial<WorkspaceTab>) => void;
   isReaderMode?: boolean;
   onToggleReaderMode?: () => void;
 }
 
-export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onModelChange, onReorderTabs, onUpdateTab, onToggleSidebar, isReaderMode, onToggleReaderMode }: WorkspaceTabsProps) {
-  const [keys, setKeys] = useState({ gemini: false, openai: false, anthropic: false });
-  useEffect(() => {
-    const checkKeys = () => {
-      setKeys({
-        gemini: !!(window.localStorage.getItem('study-notebook-gemini-key') || window.localStorage.getItem('study-notebook-api-key')),
-        openai: !!window.localStorage.getItem('study-notebook-openai-key'),
-        anthropic: !!window.localStorage.getItem('study-notebook-anthropic-key')
-      });
-    };
-    checkKeys();
-    window.addEventListener('storage', checkKeys);
-    window.addEventListener('api-keys-updated', checkKeys);
-    return () => {
-      window.removeEventListener('storage', checkKeys);
-      window.removeEventListener('api-keys-updated', checkKeys);
-    };
-  }, []);
-
+export function WorkspaceTabs({ tabs, activeTabId, onSwitch, onClose, onReorderTabs, onUpdateTab, onToggleSidebar, isReaderMode, onToggleReaderMode }: WorkspaceTabsProps) {
   // Keep the active tab visible when the strip scrolls (narrow screens, many tabs)
   useEffect(() => {
     document.getElementById(`tab-${activeTabId}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [activeTabId]);
 
-  const noKeysConfigured = !keys.gemini && !keys.openai && !keys.anthropic;
   const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingTabWidth, setEditingTabWidth] = useState<number | null>(null);
@@ -217,7 +185,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
                 onDragStart={(e) => handleDragStart(e, tab.id)}
                 onDragOver={(e) => handleDragOver(e, tab.id, isChatTab)}
                 onDragEnd={() => setDraggedTabId(null)}
-                className={`tab-container group relative flex shrink-0 items-center gap-1 rounded-md border px-2 transition-[background-color,border-color,color,transform] duration-150 ease-out ${
+                className={`tab-container group relative flex shrink-0 items-center gap-1 rounded-md border px-2 transition-[background-color,border-color,color,transform] duration-150 ease-out has-[[role=tab]:focus-visible]:ring-2 has-[[role=tab]:focus-visible]:ring-inset has-[[role=tab]:focus-visible]:ring-ring ${
                   isActive
                     ? 'border-border bg-card text-foreground'
                     : isChild
@@ -281,7 +249,7 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
                     onDoubleClick={(e) => {
                       if (!isChatTab) startEditing(tab.id, displayTitle, e.currentTarget.closest('.tab-container'));
                     }}
-                    className="flex min-w-0 flex-1 items-center gap-2 rounded-sm py-1.5 text-left transition-transform duration-150 ease-out active:scale-[0.98]"
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-sm py-1.5 text-left transition-transform duration-150 ease-out focus-visible:outline-none active:scale-[0.98]"
                   >
                     <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} aria-hidden="true" />
                     <span
@@ -342,58 +310,6 @@ export function WorkspaceTabs({ tabs, activeTabId, model, onSwitch, onClose, onM
           <span className="max-sm:hidden">Read Notebook</span>
         </button>
       )}
-      {noKeysConfigured ? (
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'api' } }))}
-          aria-label="Add API key"
-          className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition-[transform,background-color] duration-150 ease-out hover:bg-foreground/5 active:scale-95 max-sm:w-9 max-sm:justify-center max-sm:px-0"
-        >
-          <KeyRound className="h-4 w-4 sm:hidden" aria-hidden="true" />
-          <span className="max-sm:hidden">Add API key</span>
-        </button>
-      ) : (
-        <Select value={model} onValueChange={(value) => onModelChange(value as StudyModel)}>
-          <SelectTrigger aria-label="Model" className="h-9 w-[120px] shrink-0 rounded-md border border-border bg-card px-2 text-xs font-medium text-foreground shadow-sm sm:w-[150px]">
-            <SelectValue placeholder="Select model" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel className="text-xs text-muted-foreground">Google</SelectLabel>
-              {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Google').map(option => (
-                <SelectItem key={option.value} value={option.value} disabled={!keys.gemini} className="focus:bg-foreground/5 focus:text-foreground cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-            <SelectGroup>
-              <SelectLabel className="text-xs text-muted-foreground mt-1">OpenAI</SelectLabel>
-              {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'OpenAI').map(option => (
-                <SelectItem key={option.value} value={option.value} disabled={!keys.openai} className="focus:bg-foreground/5 focus:text-foreground cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-            <SelectGroup>
-              <SelectLabel className="text-xs text-muted-foreground mt-1">Anthropic</SelectLabel>
-              {STUDY_MODEL_OPTIONS.filter(o => o.provider === 'Anthropic').map(option => (
-                <SelectItem key={option.value} value={option.value} disabled={!keys.anthropic} className="focus:bg-foreground/5 focus:text-foreground cursor-pointer text-xs disabled:opacity-40 disabled:cursor-not-allowed">
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      )}
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-

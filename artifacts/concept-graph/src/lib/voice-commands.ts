@@ -16,7 +16,7 @@ export type VoiceAction =
 // Filler words and phrases that often surround casual spoken requests
 const CASUAL_FILLERS = [
   /^(?:can\s+you|could\s+you|please|would\s+you|i\s+want\s+to|let'?s|i'd\s+like\s+to)\s+/i,
-  /^(?:explain|tell\s+me\s+about|describe|learn\s+about|look\s+at)\s+/i,
+  /^(?:explain|tell\s+me\s+about|describe|learn\s+about|look\s+at|open|show\s+me|create|make)\s+/i,
   /^(?:in\s+)?a\s+new\s+concept\s+(?:tab\s+)?/i,
   /^(?:sorry|oops|i\s+mean|actually)\s+/i,
   /(?:sorry|i\s+mean|please)\s*$/i,
@@ -80,7 +80,7 @@ export function parseVoiceCommand(transcript: string): VoiceAction {
       // Split on the tab trigger phrase
       const parts = cleaned.split(/(?:in\s+)?(?:a\s+)?new\s+(?:concept\s+)?tab/i);
       // Combine whatever was before and after the tab phrase
-      const combined = parts.join(' ').trim();
+      const combined = parts.join(' ').replace(/\s+/g, ' ').trim();
       extractedTopic = cleanConceptTerm(combined);
     } else {
       // Otherwise it's leading like "new tab for X" or "open a new tab and explain X"

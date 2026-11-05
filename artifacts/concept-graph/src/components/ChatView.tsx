@@ -1,20 +1,23 @@
-import React, { useRef, useLayoutEffect, useCallback } from 'react';
+import React, { useRef, useLayoutEffect, useCallback, useEffect } from 'react';
 import { useExplainStudyTopic, type StudyModel } from '@workspace/api-client-react';
 import { Chat, HistoryItem } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
-import { Loader2, Mic, MicOff, Send, Square, Sparkles } from 'lucide-react';
+import { Loader2, Mic, Send, Square } from 'lucide-react';
 import { DEMO_SOURCE_ID } from '@/lib/demo';
 import { SourcesCited } from './SourcesCited';
 import { Reveal } from './Reveal';
+import { useVoice } from './VoiceProvider';
+import { ModelPicker } from './ModelPicker';
+import { VoiceBannerDock } from './VoiceBanner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { useVoiceRecognition } from '@/hooks/use-voice-recognition';
-import { parseVoiceCommand } from '@/lib/voice-commands';
-import { toast } from '@/hooks/use-toast';
 
 interface ChatViewProps {
   chat: Chat;
   model: StudyModel;
+  onModelChange: (model: StudyModel) => void;
+  /** Every chat stays mounted while hidden; only the one on screen shows the voice bar */
+  isVisible: boolean;
   onAddHistory: (items: HistoryItem[]) => void;
   onRemoveHistory?: (itemId: string) => void;
   onRename: (title: string) => void;
@@ -22,10 +25,12 @@ interface ChatViewProps {
   onFollowUp: (selectedText: string, question: string, answerContext: string) => void;
   onAddSources: (sources: any[]) => void;
   onOpenDemo: () => void;
-  onOpenNewTab?: (term: string, contextSnippet?: string) => void;
 }
 
-export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory, onRemoveHistory, onRename, onTermClick, onFollowUp, onAddSources, onOpenDemo, onOpenNewTab }: ChatViewProps) {
+export const ChatView = React.memo(function ChatView({ chat, model, onModelChange, isVisible, onAddHistory, onRemoveHistory, onRename, onTermClick, onFollowUp, onAddSources, onOpenDemo }: ChatViewProps) {
+  const voice = useVoice();
+  const isVoiceSupported = !!voice?.isSupported;
+  const isListening = !!voice?.isListening;
   const [prompt, setPrompt] = React.useState('');
   const [expandedMessages, setExpandedMessages] = React.useState<Set<string>>(new Set());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -38,108 +43,6 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
   const openedAtRef = useRef(Date.now());
   const enters = (item: HistoryItem) => item.timestamp > openedAtRef.current;
 
-  const submitQuestionRef = useRef<(text: string) => void>(() => {});
-
-  // Voice recognition & command handling with AI-assisted correction
-  const handleVoiceFinal = useCallback(async (transcript: string) => {
-    // 1. Check if user configured an API key to leverage AI intent & phonetic correction
-    const hasAnyKey = typeof window !== 'undefined' && !!(
-      window.localStorage.getItem('study-notebook-gemini-key') ||
-      window.localStorage.getItem('study-notebook-api-key') ||
-      window.localStorage.getItem('study-notebook-openai-key') ||
-      window.localStorage.getItem('study-notebook-anthropic-key')
-    );
-
-    let action = parseVoiceCommand(transcript);
-
-    // If an API key is available, call the fast-path LLM voice action route for phonetic correction
-    if (hasAnyKey) {
-      try {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        const geminiKey = window.localStorage.getItem('study-notebook-gemini-key') || window.localStorage.getItem('study-notebook-api-key');
-        if (geminiKey) headers['x-gemini-api-key'] = geminiKey;
-        const openaiKey = window.localStorage.getItem('study-notebook-openai-key');
-        if (openaiKey) headers['x-openai-api-key'] = openaiKey;
-        const anthropicKey = window.localStorage.getItem('study-notebook-anthropic-key');
-        if (anthropicKey) headers['x-anthropic-api-key'] = anthropicKey;
-
-        const res = await fetch('/api/study/voice/action', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ transcript, model }),
-        });
-        if (res.ok) {
-          const aiAction = await res.json();
-          if (aiAction && aiAction.action) {
-            action = {
-              type: aiAction.action,
-              term: aiAction.term || '',
-              title: aiAction.title || '',
-              text: aiAction.text || transcript,
-              contextSnippet: `Opened via voice command: "${transcript}".`,
-            } as any;
-          }
-        }
-      } catch {
-        // Fall back to local regex action if network/call fails
-      }
-    }
-
-    if (action.type === 'new_concept_tab' && (action as any).term) {
-      const targetTerm = (action as any).term;
-      toast({
-        title: 'Voice Command Executed',
-        description: `Opening new tab for "${targetTerm}"...`,
-      });
-      if (onOpenNewTab) {
-        onOpenNewTab(targetTerm, (action as any).contextSnippet);
-      } else {
-        onTermClick(targetTerm, (action as any).contextSnippet || '');
-      }
-      return;
-    }
-
-    if (action.type === 'rename_notebook' && (action as any).title) {
-      const newTitle = (action as any).title;
-      toast({
-        title: 'Notebook Renamed',
-        description: `Renamed to "${newTitle}"`,
-      });
-      onRename(newTitle);
-      return;
-    }
-
-    // Default: AI reorganized question -> auto-submit directly!
-    const cleanedQuestion = ((action as any).text || transcript).trim();
-    if (cleanedQuestion) {
-      toast({
-        title: 'Voice Prompt Received',
-        description: `Asking: "${cleanedQuestion}"`,
-      });
-      submitQuestionRef.current(cleanedQuestion);
-    }
-  }, [model, onOpenNewTab, onTermClick, onRename]);
-
-  const handleVoiceError = useCallback((err: string) => {
-    toast({
-      title: 'Speech Recognition',
-      description: err === 'not-allowed' ? 'Microphone permission denied.' : `Speech error: ${err}`,
-      variant: 'destructive',
-    });
-  }, []);
-
-  const {
-    isListening,
-    fullTranscript,
-    remainingSilenceMs,
-    isSupported: isVoiceSupported,
-    toggleListening,
-  } = useVoiceRecognition({
-    silenceBufferMs: 3000,
-    onFinalTranscript: handleVoiceFinal,
-    onError: handleVoiceError,
-  });
-
   const handleCancel = () => {
     cancelTokenRef.current += 1;
     explainMutation.reset();
@@ -147,7 +50,9 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
     if (pendingUserMsgIdRef.current && onRemoveHistory) {
       onRemoveHistory(pendingUserMsgIdRef.current);
       if (pendingPromptTextRef.current) {
-        setPrompt(pendingPromptTextRef.current);
+        // Don't overwrite something typed since
+        const restored = pendingPromptTextRef.current;
+        setPrompt((current) => current || restored);
       }
     }
     pendingUserMsgIdRef.current = null;
@@ -223,7 +128,8 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
     });
   };
 
-  const submitQuestion = useCallback((questionText: string) => {
+  // A spoken question leaves the textarea alone, so a draft being typed isn't wiped
+  const submitQuestion = useCallback((questionText: string, spoken = false) => {
     if (explainMutation.isPending) return;
     const isDefaultPrompt = !questionText.trim() && chat.sources.length > 0;
     if (!questionText.trim() && chat.sources.length === 0) return;
@@ -258,7 +164,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
       ? `PREVIOUS CHAT HISTORY FOR CONTEXT:\n${historyContext}\n\nCURRENT QUESTION:\n${actualPrompt}`
       : actualPrompt;
 
-    setPrompt('');
+    if (!spoken) setPrompt('');
     runExplain({ data: { prompt: fullPrompt, model, sources: chat.sources } });
 
     setTimeout(() => {
@@ -271,7 +177,17 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
     }, 50);
   }, [chat.history, chat.sources, chat.title, explainMutation.isPending, model, onAddHistory, onRename]);
 
+  // Questions asked by voice arrive from the page-level listener, so they work whichever tab was active when asked
+  const submitQuestionRef = useRef(submitQuestion);
   submitQuestionRef.current = submitQuestion;
+  useEffect(() => {
+    const onVoiceAsk = (event: Event) => {
+      const { chatId, text } = (event as CustomEvent<{ chatId: string; text: string }>).detail;
+      if (chatId === chat.id) submitQuestionRef.current(text, true);
+    };
+    window.addEventListener('voice-ask', onVoiceAsk);
+    return () => window.removeEventListener('voice-ask', onVoiceAsk);
+  }, [chat.id]);
 
   const handleSubmit = () => {
     submitQuestion(prompt);
@@ -468,35 +384,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
       </div>
 
       <div className="sticky bottom-0 mt-auto w-full bg-background/95 backdrop-blur-xs px-4 pb-4 pt-3">
-        {/* Real-time Voice Listening Indicator Banner with 3s silence countdown */}
-        {isListening && (
-          <div className="mx-auto mb-2 flex max-w-[46rem] items-center justify-between rounded-xl border border-primary/40 bg-primary/10 px-3.5 py-2 text-xs text-primary animate-in fade-in slide-in-from-bottom-2 duration-150">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
-              </span>
-              <span className="font-semibold shrink-0">Listening:</span>
-              <span className="truncate italic text-foreground/80">
-                {fullTranscript || 'Say "Open a new tab and explain [concept]" or dictate a question...'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {remainingSilenceMs !== null && fullTranscript && (
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  processing in {(remainingSilenceMs / 1000).toFixed(1)}s
-                </span>
-              )}
-              <button
-                onClick={toggleListening}
-                className="rounded px-2 py-0.5 text-[11px] font-semibold bg-primary text-primary-foreground shadow-xs hover:bg-primary/90"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        )}
-
+        {isVisible && <VoiceBannerDock anchor="composer" />}
         <div className="relative mx-auto flex max-w-[46rem] items-end gap-2 sm:gap-3 rounded-2xl border border-border/80 bg-card p-2 shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-[border-color,box-shadow] duration-200 focus-within:border-foreground/30 focus-within:shadow-[0_12px_36px_rgb(0,0,0,0.1)] dark:focus-within:shadow-[0_12px_36px_rgb(0,0,0,0.4)]">
           <Textarea
             autoFocus
@@ -514,19 +402,21 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
               size="icon"
               variant={isListening ? "default" : "ghost"}
               aria-label={isListening ? "Stop voice listening" : "Start voice listening"}
-              title={isListening ? "Listening... (click to stop)" : "Voice input (try 'Open a new tab and explain [topic]')"}
-              className={`h-[52px] w-[52px] shrink-0 rounded-xl transition-all duration-200 ${
+              title={isListening ? "Listening... (click to stop)" : "Voice input: hold to talk, or tap and speak (hold Ctrl+Space from the keyboard)"}
+              // Held presses must not open the long-press menu or select text on touch screens
+              className={`h-[52px] w-[52px] shrink-0 touch-manipulation select-none rounded-xl transition-[transform,background-color,color] duration-150 ease-out active:scale-[0.97] [-webkit-touch-callout:none] ${
                 isListening
-                  ? "bg-primary text-primary-foreground shadow-md animate-pulse ring-2 ring-primary/40"
+                  ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
-              onClick={toggleListening}
+              onContextMenu={(e) => e.preventDefault()}
+              onPointerDown={voice?.micPointerDown}
+              onPointerUp={voice?.micPointerUp}
+              onPointerCancel={voice?.micPointerUp}
+              // Keyboard activation (Enter or Space on the focused button) has no pointer press
+              onClick={(e) => { if (e.detail === 0) voice?.toggle(); }}
             >
-              {isListening ? (
-                <MicOff className="h-5 w-5" aria-hidden="true" />
-              ) : (
-                <Mic className="h-5 w-5" aria-hidden="true" />
-              )}
+              <Mic className="h-5 w-5" aria-hidden="true" />
             </Button>
           )}
           {explainMutation.isPending ? (
@@ -539,16 +429,17 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
             </Button>
           )}
         </div>
-        <div className="mx-auto mt-2 hidden max-w-[46rem] items-center justify-between px-1 text-xs text-muted-foreground md:flex">
-          <span>Highlight any part of an answer to ask a follow-up about that passage.</span>
+        <div className="mx-auto mt-2 flex max-w-[46rem] items-center gap-3 px-1 text-xs text-muted-foreground">
+          <ModelPicker value={model} onChange={onModelChange} />
+          <span className="hidden min-w-0 flex-1 truncate md:block">Highlight any part of an answer to ask a follow-up about that passage.</span>
           {isVoiceSupported && (
-            <span className="inline-flex items-center gap-1 text-[11px] opacity-75">
-              <Sparkles className="h-3 w-3 text-primary" /> Voice: "Open new tab for [topic]"
+            <span className="hidden shrink-0 items-center gap-1.5 lg:inline-flex">
+              <Mic className="h-3.5 w-3.5" aria-hidden="true" /> Hold Ctrl+Space to talk
             </span>
           )}
         </div>
       </div>
     </div>
   );
-}, (prev, next) => prev.chat.history === next.chat.history && prev.chat.sources === next.chat.sources && prev.chat.title === next.chat.title && prev.model === next.model);
+}, (prev, next) => prev.chat.history === next.chat.history && prev.chat.sources === next.chat.sources && prev.chat.title === next.chat.title && prev.model === next.model && prev.isVisible === next.isVisible);
 
