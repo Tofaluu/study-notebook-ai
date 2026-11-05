@@ -57,3 +57,24 @@ export const technicalConceptSchema: JsonSchema = {
 export const selectedPassageSchema: JsonSchema = {
   ...studyExplanationSchema,
 };
+
+export const voiceActionSchema: JsonSchema = {
+  type: "object",
+  properties: {
+    action: {
+      type: "string",
+      enum: ["new_concept_tab", "rename_notebook", "dictate"],
+    },
+    term: {
+      type: "string",
+    },
+    title: {
+      type: "string",
+    },
+    text: {
+      type: "string",
+    },
+  },
+  required: ["action"],
+  additionalProperties: false,
+};

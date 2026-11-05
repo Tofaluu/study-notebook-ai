@@ -9,8 +9,8 @@ import {
 } from "@workspace/api-zod";
 import { DEFAULT_MODEL, generateStructured, resolveProvider } from "../llm/providers";
 import { getErrorMessage, imagesFromSources, normalizeExplanation } from "../llm/normalize";
-import { buildConceptPrompt, buildFollowUpPrompt, buildStudyPrompt } from "../llm/prompts";
-import { selectedPassageSchema, studyExplanationSchema, technicalConceptSchema } from "../llm/schemas";
+import { buildConceptPrompt, buildFollowUpPrompt, buildStudyPrompt, buildVoiceActionPrompt } from "../llm/prompts";
+import { selectedPassageSchema, studyExplanationSchema, technicalConceptSchema, voiceActionSchema } from "../llm/schemas";
 import type { ProviderAdapter } from "../llm/types";
 
 const router: IRouter = Router();
@@ -157,6 +157,47 @@ router.post("/study/follow-ups/explain", async (req, res) => {
       terms: [],
       sourceRefs: [],
     });
+  }
+});
+
+router.post("/study/voice/action", async (req, res) => {
+  const transcript = typeof req.body?.transcript === "string" ? req.body.transcript.trim() : "";
+  if (!transcript) {
+    res.json({ action: "dictate", text: "" });
+    return;
+  }
+
+  const requestedModel = typeof req.body?.model === "string" ? req.body.model : undefined;
+  // Choose the fastest, lowest-cost micro-tier model for voice command classification
+  let fastModel = "gemini-3.1-flash-lite";
+  if (requestedModel?.startsWith("gpt-")) {
+    fastModel = "gpt-6-luna"; // fastest OpenAI tier
+  } else if (requestedModel?.startsWith("claude-")) {
+    fastModel = "claude-haiku-4-5"; // fastest Anthropic tier
+  }
+
+  const provider = resolveProvider(fastModel);
+  const apiKey = getApiKey(req, provider);
+
+  if (!apiKey) {
+    // If no key is configured, fallback smoothly
+    res.json({ action: "dictate", text: transcript });
+    return;
+  }
+
+  try {
+    const raw = await generateStructured({
+      prompt: buildVoiceActionPrompt(transcript),
+      schema: voiceActionSchema,
+      model: fastModel,
+      apiKey,
+      images: [],
+    });
+
+    res.json(raw);
+  } catch (error) {
+    req.log.warn({ err: error }, "Voice action classification failed; falling back to dictation");
+    res.json({ action: "dictate", text: transcript });
   }
 });
 

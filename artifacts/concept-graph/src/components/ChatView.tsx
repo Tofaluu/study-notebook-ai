@@ -38,35 +38,71 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
   const openedAtRef = useRef(Date.now());
   const enters = (item: HistoryItem) => item.timestamp > openedAtRef.current;
 
-  // Voice recognition & command handling
-  const handleVoiceFinal = useCallback((transcript: string) => {
-    const action = parseVoiceCommand(transcript);
+  // Voice recognition & command handling with AI-assisted correction
+  const handleVoiceFinal = useCallback(async (transcript: string) => {
+    // 1. Check if user configured an API key to leverage AI intent & phonetic correction
+    const hasAnyKey = typeof window !== 'undefined' && !!(
+      window.localStorage.getItem('study-notebook-gemini-key') ||
+      window.localStorage.getItem('study-notebook-api-key') ||
+      window.localStorage.getItem('study-notebook-openai-key') ||
+      window.localStorage.getItem('study-notebook-anthropic-key')
+    );
 
-    if (action.type === 'new_concept_tab') {
+    let action = parseVoiceCommand(transcript);
+
+    // If an API key is available, call the fast-path LLM voice action route for phonetic correction
+    if (hasAnyKey) {
+      try {
+        const res = await fetch('/api/study/voice/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript, model }),
+        });
+        if (res.ok) {
+          const aiAction = await res.json();
+          if (aiAction && aiAction.action) {
+            action = {
+              type: aiAction.action,
+              term: aiAction.term || '',
+              title: aiAction.title || '',
+              text: aiAction.text || transcript,
+              contextSnippet: `Opened via voice command: "${transcript}".`,
+            } as any;
+          }
+        }
+      } catch {
+        // Fall back to local regex action if network/call fails
+      }
+    }
+
+    if (action.type === 'new_concept_tab' && (action as any).term) {
+      const targetTerm = (action as any).term;
       toast({
         title: 'Voice Command Executed',
-        description: `Opening new tab for "${action.term}"...`,
+        description: `Opening new tab for "${targetTerm}"...`,
       });
       if (onOpenNewTab) {
-        onOpenNewTab(action.term, action.contextSnippet);
+        onOpenNewTab(targetTerm, (action as any).contextSnippet);
       } else {
-        onTermClick(action.term, action.contextSnippet || '');
+        onTermClick(targetTerm, (action as any).contextSnippet || '');
       }
       return;
     }
 
-    if (action.type === 'rename_notebook') {
+    if (action.type === 'rename_notebook' && (action as any).title) {
+      const newTitle = (action as any).title;
       toast({
         title: 'Notebook Renamed',
-        description: `Renamed to "${action.title}"`,
+        description: `Renamed to "${newTitle}"`,
       });
-      onRename(action.title);
+      onRename(newTitle);
       return;
     }
 
     // Default: append or set prompt
-    setPrompt((prev) => (prev ? `${prev} ${action.text}` : action.text));
-  }, [onOpenNewTab, onTermClick, onRename]);
+    const textToInsert = (action as any).text || transcript;
+    setPrompt((prev) => (prev ? `${prev} ${textToInsert}` : textToInsert));
+  }, [model, onOpenNewTab, onTermClick, onRename]);
 
   const handleVoiceError = useCallback((err: string) => {
     toast({
