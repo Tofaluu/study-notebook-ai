@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { useVoiceRecognition, type VoiceLiveStore } from '@/hooks/use-voice-recognition';
 import { toast } from '@/hooks/use-toast';
 
@@ -8,6 +8,15 @@ const TAP_MS = 350;
 const RELEASE_TAIL_MS = 250;
 const SILENCE_BUFFER_MS = 3000;
 
+const SPEECH_ERRORS: Record<string, string> = {
+  'not-allowed': "Microphone access was denied. Allow it for this site in your browser's settings.",
+  'service-not-allowed':
+    "Speech recognition isn't available here. On iPhone or iPad, turn on Dictation in Settings → General → Keyboard, and open the site in Safari rather than an installed app or in-app browser.",
+  'audio-capture': 'No microphone was found.',
+  network: 'Speech recognition needs an internet connection.',
+  'language-not-supported': "Speech recognition doesn't support this language.",
+};
+
 interface VoiceControls {
   isSupported: boolean;
   isListening: boolean;
@@ -16,6 +25,8 @@ interface VoiceControls {
   /** Pointer handlers for the mic button: hold to talk, or tap to start and stop */
   micPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
   micPointerUp: () => void;
+  /** Starts or stops by tap: how touch and keyboard use the mic button, since they can't hold */
+  micClick: (event: ReactMouseEvent<HTMLElement>) => void;
   toggle: () => void;
 }
 
@@ -47,8 +58,8 @@ interface VoiceProviderProps {
 export function VoiceProvider({ onTranscript, children }: VoiceProviderProps) {
   const handleError = useCallback((err: string) => {
     toast({
-      title: 'Speech Recognition',
-      description: err === 'not-allowed' ? 'Microphone permission denied.' : `Speech error: ${err}`,
+      title: 'Voice input',
+      description: SPEECH_ERRORS[err] ?? `Speech error: ${err}`,
       variant: 'destructive',
     });
   }, []);
@@ -68,6 +79,8 @@ export function VoiceProvider({ onTranscript, children }: VoiceProviderProps) {
   const pointerFocusRef = useRef(false);
   const tailTimerRef = useRef<number | null>(null);
   const pressRef = useRef<{ at: number; stoppedIt: boolean } | null>(null);
+  // Whether the press in progress is a finger or pen, which can only tap
+  const touchPressRef = useRef(false);
 
   const clearTail = () => {
     if (tailTimerRef.current !== null) {
@@ -167,6 +180,11 @@ export function VoiceProvider({ onTranscript, children }: VoiceProviderProps) {
   }, [isSupported, startListening, stopAfterTail]);
 
   const micPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
+    // Browsers only allow speech recognition to start inside a real user gesture, and for touch that is the tap
+    // finishing (click), not the finger going down. iOS refuses otherwise ("service-not-allowed"). So a finger taps
+    // to start and stop, and only a mouse can hold.
+    touchPressRef.current = event.pointerType !== 'mouse';
+    if (touchPressRef.current) return;
     // Keep the release with the button even if the finger or cursor drifts off it, or the mic would stay open
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -195,9 +213,20 @@ export function VoiceProvider({ onTranscript, children }: VoiceProviderProps) {
     }
   }, [releaseHold, stopAfterTail]);
 
+  const micClick = useCallback(
+    (event: ReactMouseEvent<HTMLElement>) => {
+      // A mouse press is already handled on down and up; a keyboard press (detail 0) or a finger tap lands here
+      if (event.detail === 0 || touchPressRef.current) {
+        touchPressRef.current = false;
+        toggleListening();
+      }
+    },
+    [toggleListening]
+  );
+
   const value = useMemo<VoiceControls>(
-    () => ({ isSupported, isListening, live, micPointerDown, micPointerUp, toggle: toggleListening }),
-    [isSupported, isListening, live, micPointerDown, micPointerUp, toggleListening]
+    () => ({ isSupported, isListening, live, micPointerDown, micPointerUp, micClick, toggle: toggleListening }),
+    [isSupported, isListening, live, micPointerDown, micPointerUp, micClick, toggleListening]
   );
 
   return (
