@@ -126,8 +126,15 @@ export function useVoiceRecorder({ onFinalTranscript, onError, model }: UseVoice
           }, MAX_RECORDING_MS);
         } catch (error) {
           releaseMicrophone();
+          // Told apart so the message can say what to do: denied is a setting, busy is another app, the rest no device
           const name = error instanceof DOMException ? error.name : '';
-          onErrorRef.current?.(name === 'NotAllowedError' || name === 'SecurityError' ? 'not-allowed' : 'audio-capture');
+          onErrorRef.current?.(
+            name === 'NotAllowedError' || name === 'SecurityError'
+              ? 'mic-denied'
+              : name === 'NotReadableError' || name === 'AbortError'
+                ? 'mic-busy'
+                : 'audio-capture',
+          );
           finish();
         } finally {
           startingRef.current = false;
