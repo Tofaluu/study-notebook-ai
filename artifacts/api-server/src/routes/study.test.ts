@@ -190,3 +190,32 @@ describe("POST /api/study/voice/transcribe", () => {
     expect(body.error).toContain("invalid or unauthorized");
   });
 });
+
+describe("POST /api/study/voice/action", () => {
+  it("sends OpenAI a schema it accepts and returns the chosen action", async () => {
+    const providerFetch = mockProvider({
+      choices: [{ message: { content: JSON.stringify({ action: "new_concept_tab", term: "Underlying model", title: "", text: "" }) } }],
+    });
+    const response = await post(
+      "/study/voice/action",
+      { transcript: "open in a new tab explaining what an underlying model means", model: "gpt-6.1-sol" },
+      { "x-openai-api-key": "sk-test" },
+    );
+    expect(await response.json()).toEqual({ action: "new_concept_tab", term: "Underlying model", title: "", text: "" });
+
+    const call = providerFetch.mock.calls.find(([url]) => String(url).includes("api.openai.com"));
+    const schema = JSON.parse(String(call?.[1]?.body)).response_format.json_schema.schema;
+    // Strict mode rejects the request unless every property is required
+    expect(schema.required).toEqual(expect.arrayContaining(Object.keys(schema.properties)));
+  });
+
+  it("falls back to asking the question when the provider call fails", async () => {
+    mockProvider({ error: "bad" }, 400);
+    const response = await post(
+      "/study/voice/action",
+      { transcript: "what is a stack", model: "gpt-6-luna" },
+      { "x-openai-api-key": "sk-test" },
+    );
+    expect(await response.json()).toEqual({ action: "dictate", text: "what is a stack" });
+  });
+});

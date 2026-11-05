@@ -75,6 +75,8 @@ Analyze the user's intent and output the appropriate action:
    - action: "dictate"
    - text: Reorganize and polish the question into a crisp, high-signal, properly punctuated study prompt. Strip out throat-clearing and filler words ("um", "can you tell me", "like", "hey so") and correct any phonetic STEM/coding typos, while strictly preserving the core intent of the question.
 
+Always return all four fields (action, term, title, text). Use an empty string for the fields the chosen action does not use.
+
 SPOKEN TRANSCRIPT:
 """
 ${transcript.trim()}
