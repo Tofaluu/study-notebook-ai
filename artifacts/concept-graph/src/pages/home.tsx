@@ -34,6 +34,8 @@ export default function Home() {
     return isStudyModel(savedModel) ? savedModel : DEFAULT_STUDY_MODEL;
   });
   const [isReaderMode, setIsReaderMode] = React.useState(false);
+  // What was highlighted when the mic opened; opening it re-renders the chat, which can drop the live selection
+  const heldHighlightRef = React.useRef<{ text: string; passage: { text: string; context: string } | null } | null>(null);
   React.useEffect(() => {
     localStorage.setItem(MODEL_STORAGE_KEY, selectedModel);
   }, [selectedModel]);
@@ -71,6 +73,28 @@ export default function Home() {
     return newTabId;
   };
 
+  /** The text highlighted inside one of the chat's answers, with that answer as its context; null when there is none. */
+  const highlightedAnswerPassage = (chat: NonNullable<typeof activeChat>) => {
+    const selection = window.getSelection();
+    const text = selection?.toString().trim();
+    if (!selection || !text || !selection.anchorNode || !selection.focusNode) return null;
+
+    const answerOf = (node: Node) => (node instanceof Element ? node : node.parentElement)?.closest('[data-answer-id]') ?? null;
+    const answer = answerOf(selection.anchorNode);
+    // A highlight that runs out of the answer, or sits in your own message, is not a passage of it
+    if (!answer || answer !== answerOf(selection.focusNode)) return null;
+
+    const explanation = chat.history.find((item) => item.id === answer.getAttribute('data-answer-id'))?.explanation;
+    if (!explanation) return null;
+    return { text, context: `${explanation.title}\n\n${explanation.answerMarkdown}`.slice(0, 20000) };
+  };
+
+  const rememberHighlight = () => {
+    const text = window.getSelection()?.toString().trim() ?? '';
+    const onChatTab = activeChat?.tabs.find((t) => t.id === activeChat.activeTabId)?.type === 'chat';
+    heldHighlightRef.current = { text, passage: activeChat && onChatTab ? highlightedAnswerPassage(activeChat) : null };
+  };
+
   const handleFollowUp = (chatId: string, selectedText: string, question: string, answerContext: string, parentId?: string): string | undefined => {
     if (!state?.chats.some(chat => chat.id === chatId)) return;
     const newTabId = crypto.randomUUID();
@@ -98,6 +122,8 @@ export default function Home() {
     if (!chat || !tab) return;
     const parentId = tab.type === 'chat' ? undefined : tab.parentId || tab.id;
 
+    const held = heldHighlightRef.current;
+    heldHighlightRef.current = null;
     const action = await resolveVoiceAction(transcript, selectedModel);
 
     if (action.type === 'new_concept_tab') {
@@ -122,6 +148,12 @@ export default function Home() {
 
     if (tab.type === 'chat') {
       toast({ title: 'Voice Prompt Received', description: `Asking: "${question}"` });
+      // Text highlighted inside one of the answers makes this a follow-up about that passage, like the popup does
+      const passage = held?.passage ?? highlightedAnswerPassage(chat);
+      if (passage) {
+        handleFollowUp(chat.id, passage.text, question, passage.context);
+        return;
+      }
       window.dispatchEvent(new CustomEvent('voice-ask', { detail: { chatId: chat.id, text: question } }));
       return;
     }
@@ -131,7 +163,7 @@ export default function Home() {
       return;
     }
     const pageTitle = tab.explanation.title || (tab.type === 'concept' ? tab.term : tab.question);
-    const highlighted = window.getSelection()?.toString().trim();
+    const highlighted = held?.text || window.getSelection()?.toString().trim();
     toast({ title: 'Voice Prompt Received', description: `Asking: "${question}"` });
     handleFollowUp(
       chat.id,
@@ -207,7 +239,7 @@ ${tab.explanation.answerMarkdown}`.slice(0, 20000),
   };
 
   return (
-    <VoiceProvider onTranscript={handleVoiceTranscript} model={selectedModel}>
+    <VoiceProvider onTranscript={handleVoiceTranscript} onListenStart={rememberHighlight} model={selectedModel}>
     <div className="flex h-[100dvh] bg-background w-full overflow-hidden font-sans relative">
       <Sidebar
         isOpen={isSidebarOpen}
