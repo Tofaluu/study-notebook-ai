@@ -17,15 +17,85 @@ interface IWindow extends Window {
 }
 
 export interface UseVoiceRecognitionOptions {
+  /**
+   * Silence delay (in ms) before committing the speech as final.
+   * Default: 2500ms (2.5s) to allow thinking between words.
+   */
+  silenceBufferMs?: number;
   onFinalTranscript?: (transcript: string) => void;
   onError?: (error: string) => void;
 }
 
-export function useVoiceRecognition({ onFinalTranscript, onError }: UseVoiceRecognitionOptions = {}) {
+export function useVoiceRecognition({
+  silenceBufferMs = 2500,
+  onFinalTranscript,
+  onError,
+}: UseVoiceRecognitionOptions = {}) {
   const [isListening, setIsListening] = useState(false);
+  const [accumulatedTranscript, setAccumulatedTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [isSupported, setIsSupported] = useState(false);
+  const [remainingSilenceMs, setRemainingSilenceMs] = useState<number | null>(null);
+
   const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const accumulatedRef = useRef('');
+  const onFinalTranscriptRef = useRef(onFinalTranscript);
+  onFinalTranscriptRef.current = onFinalTranscript;
+
+  const clearSilenceTimers = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setRemainingSilenceMs(null);
+  }, []);
+
+  const commitTranscript = useCallback(() => {
+    clearSilenceTimers();
+    const finalContent = accumulatedRef.current.trim();
+    if (finalContent) {
+      onFinalTranscriptRef.current?.(finalContent);
+    }
+    accumulatedRef.current = '';
+    setAccumulatedTranscript('');
+    setInterimTranscript('');
+  }, [clearSilenceTimers]);
+
+  const scheduleSilenceCommit = useCallback(() => {
+    clearSilenceTimers();
+
+    const startTime = Date.now();
+    setRemainingSilenceMs(silenceBufferMs);
+
+    countdownIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const left = Math.max(0, silenceBufferMs - elapsed);
+      setRemainingSilenceMs(left);
+      if (left <= 0 && countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    }, 100);
+
+    silenceTimerRef.current = setTimeout(() => {
+      commitTranscript();
+      // Also stop listening once silence buffer expires
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+      setIsListening(false);
+    }, silenceBufferMs);
+  }, [clearSilenceTimers, commitTranscript, silenceBufferMs]);
 
   useEffect(() => {
     const win = window as unknown as IWindow;
@@ -44,12 +114,17 @@ export function useVoiceRecognition({ onFinalTranscript, onError }: UseVoiceReco
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interim = '';
-      let final = '';
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         const item = event.results[i];
         if (item.isFinal) {
-          final += item[0].transcript;
+          const piece = item[0].transcript.trim();
+          if (piece) {
+            accumulatedRef.current = accumulatedRef.current
+              ? `${accumulatedRef.current} ${piece}`
+              : piece;
+            setAccumulatedTranscript(accumulatedRef.current);
+          }
         } else {
           interim += item[0].transcript;
         }
@@ -57,13 +132,12 @@ export function useVoiceRecognition({ onFinalTranscript, onError }: UseVoiceReco
 
       setInterimTranscript(interim);
 
-      if (final.trim() && onFinalTranscript) {
-        onFinalTranscript(final.trim());
-      }
+      // Reset the silence countdown whenever speech is heard
+      scheduleSilenceCommit();
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      // Don't treat user aborting/silence as fatal errors
+      clearSilenceTimers();
       if (event.error !== 'no-speech' && event.error !== 'aborted') {
         onError?.(event.error);
       }
@@ -72,31 +146,38 @@ export function useVoiceRecognition({ onFinalTranscript, onError }: UseVoiceReco
     };
 
     recognition.onend = () => {
+      // If we still have uncommitted text, commit it on end
+      if (accumulatedRef.current.trim()) {
+        commitTranscript();
+      }
       setIsListening(false);
-      setInterimTranscript('');
+      clearSilenceTimers();
     };
 
     recognitionRef.current = recognition;
 
     return () => {
+      clearSilenceTimers();
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
         } catch {
-          // ignore cleanup abort
+          // ignore
         }
       }
     };
-  }, [onFinalTranscript, onError]);
+  }, [clearSilenceTimers, commitTranscript, onError, scheduleSilenceCommit]);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) return;
     try {
+      clearSilenceTimers();
+      accumulatedRef.current = '';
+      setAccumulatedTranscript('');
       setInterimTranscript('');
       recognitionRef.current.start();
       setIsListening(true);
     } catch {
-      // If already started or browser throws, reset
       try {
         recognitionRef.current.abort();
         recognitionRef.current.start();
@@ -105,7 +186,7 @@ export function useVoiceRecognition({ onFinalTranscript, onError }: UseVoiceReco
         setIsListening(false);
       }
     }
-  }, []);
+  }, [clearSilenceTimers]);
 
   const stopListening = useCallback(() => {
     if (!recognitionRef.current) return;
@@ -114,9 +195,10 @@ export function useVoiceRecognition({ onFinalTranscript, onError }: UseVoiceReco
     } catch {
       // ignore
     }
+    // Commit whatever we have so far
+    commitTranscript();
     setIsListening(false);
-    setInterimTranscript('');
-  }, []);
+  }, [commitTranscript]);
 
   const toggleListening = useCallback(() => {
     if (isListening) {
@@ -128,7 +210,10 @@ export function useVoiceRecognition({ onFinalTranscript, onError }: UseVoiceReco
 
   return {
     isListening,
+    accumulatedTranscript,
     interimTranscript,
+    fullTranscript: [accumulatedTranscript, interimTranscript].filter(Boolean).join(' '),
+    remainingSilenceMs,
     isSupported,
     startListening,
     stopListening,
