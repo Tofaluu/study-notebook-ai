@@ -413,8 +413,8 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
               onPointerDown={voice?.micPointerDown}
               onPointerUp={voice?.micPointerUp}
               onPointerCancel={voice?.micPointerUp}
-              // Keyboard activation (Enter or Space on the focused button) has no pointer press
-              onClick={(e) => { if (e.detail === 0) voice?.toggle(); }}
+              // Keyboard and touch press the button by tap
+              onClick={voice?.micClick}
             >
               <Mic className="h-5 w-5" aria-hidden="true" />
             </Button>
