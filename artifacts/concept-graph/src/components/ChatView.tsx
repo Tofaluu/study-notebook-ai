@@ -78,10 +78,12 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
 
   const {
     isListening,
-    interimTranscript,
+    fullTranscript,
+    remainingSilenceMs,
     isSupported: isVoiceSupported,
     toggleListening,
   } = useVoiceRecognition({
+    silenceBufferMs: 3000,
     onFinalTranscript: handleVoiceFinal,
     onError: handleVoiceError,
   });
@@ -408,7 +410,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
       </div>
 
       <div className="sticky bottom-0 mt-auto w-full bg-background/95 backdrop-blur-xs px-4 pb-4 pt-3">
-        {/* Real-time Voice Listening Indicator Banner */}
+        {/* Real-time Voice Listening Indicator Banner with 3s silence countdown */}
         {isListening && (
           <div className="mx-auto mb-2 flex max-w-[46rem] items-center justify-between rounded-xl border border-primary/40 bg-primary/10 px-3.5 py-2 text-xs text-primary animate-in fade-in slide-in-from-bottom-2 duration-150">
             <div className="flex items-center gap-2 overflow-hidden">
@@ -418,15 +420,22 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
               </span>
               <span className="font-semibold shrink-0">Listening:</span>
               <span className="truncate italic text-foreground/80">
-                {interimTranscript || 'Say "Open a new tab and explain [concept]" or dictate a question...'}
+                {fullTranscript || 'Say "Open a new tab and explain [concept]" or dictate a question...'}
               </span>
             </div>
-            <button
-              onClick={toggleListening}
-              className="ml-2 shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
-            >
-              Done
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {remainingSilenceMs !== null && fullTranscript && (
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  processing in {(remainingSilenceMs / 1000).toFixed(1)}s
+                </span>
+              )}
+              <button
+                onClick={toggleListening}
+                className="rounded px-2 py-0.5 text-[11px] font-semibold bg-primary text-primary-foreground shadow-xs hover:bg-primary/90"
+              >
+                Done
+              </button>
+            </div>
           </div>
         )}
 
