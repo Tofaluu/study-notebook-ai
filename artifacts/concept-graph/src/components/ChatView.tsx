@@ -38,6 +38,8 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
   const openedAtRef = useRef(Date.now());
   const enters = (item: HistoryItem) => item.timestamp > openedAtRef.current;
 
+  const submitQuestionRef = useRef<(text: string) => void>(() => {});
+
   // Voice recognition & command handling with AI-assisted correction
   const handleVoiceFinal = useCallback(async (transcript: string) => {
     // 1. Check if user configured an API key to leverage AI intent & phonetic correction
@@ -107,9 +109,15 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
       return;
     }
 
-    // Default: append or set prompt
-    const textToInsert = (action as any).text || transcript;
-    setPrompt((prev) => (prev ? `${prev} ${textToInsert}` : textToInsert));
+    // Default: AI reorganized question -> auto-submit directly!
+    const cleanedQuestion = ((action as any).text || transcript).trim();
+    if (cleanedQuestion) {
+      toast({
+        title: 'Voice Prompt Received',
+        description: `Asking: "${cleanedQuestion}"`,
+      });
+      submitQuestionRef.current(cleanedQuestion);
+    }
   }, [model, onOpenNewTab, onTermClick, onRename]);
 
   const handleVoiceError = useCallback((err: string) => {
@@ -215,12 +223,12 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
     });
   };
 
-  const handleSubmit = () => {
+  const submitQuestion = useCallback((questionText: string) => {
     if (explainMutation.isPending) return;
-    const isDefaultPrompt = !prompt.trim() && chat.sources.length > 0;
-    if (!prompt.trim() && chat.sources.length === 0) return;
+    const isDefaultPrompt = !questionText.trim() && chat.sources.length > 0;
+    if (!questionText.trim() && chat.sources.length === 0) return;
 
-    const actualPrompt = isDefaultPrompt ? "Explain the key concepts of the uploaded lectures." : prompt.trim();
+    const actualPrompt = isDefaultPrompt ? "Explain the key concepts of the uploaded lectures." : questionText.trim();
     
     const userMessage: HistoryItem = {
       id: crypto.randomUUID(),
@@ -230,7 +238,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
     };
 
     pendingUserMsgIdRef.current = userMessage.id;
-    pendingPromptTextRef.current = prompt.trim() || actualPrompt;
+    pendingPromptTextRef.current = questionText.trim() || actualPrompt;
 
     onAddHistory([userMessage]);
     if (chat.history.length === 0 && chat.title === 'New Session') {
@@ -261,6 +269,12 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
         });
       }
     }, 50);
+  }, [chat.history, chat.sources, chat.title, explainMutation.isPending, model, onAddHistory, onRename]);
+
+  submitQuestionRef.current = submitQuestion;
+
+  const handleSubmit = () => {
+    submitQuestion(prompt);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
