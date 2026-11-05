@@ -108,6 +108,7 @@ export default function Home() {
             }
             onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
             onOpenDemo={openDemo}
+            onOpenNewTab={(term, contextSnippet) => handleTermClick(chat.id, term, contextSnippet || `Opened via voice command for ${term}`)}
           />
         </div>
       );

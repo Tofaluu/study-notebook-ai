@@ -1,13 +1,16 @@
-import React, { useRef, useLayoutEffect } from 'react';
+import React, { useRef, useLayoutEffect, useCallback } from 'react';
 import { useExplainStudyTopic, type StudyModel } from '@workspace/api-client-react';
 import { Chat, HistoryItem } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
-import { Loader2, Send, Square } from 'lucide-react';
+import { Loader2, Mic, MicOff, Send, Square, Sparkles } from 'lucide-react';
 import { DEMO_SOURCE_ID } from '@/lib/demo';
 import { SourcesCited } from './SourcesCited';
 import { Reveal } from './Reveal';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useVoiceRecognition } from '@/hooks/use-voice-recognition';
+import { parseVoiceCommand } from '@/lib/voice-commands';
+import { toast } from '@/hooks/use-toast';
 
 interface ChatViewProps {
   chat: Chat;
@@ -19,9 +22,10 @@ interface ChatViewProps {
   onFollowUp: (selectedText: string, question: string, answerContext: string) => void;
   onAddSources: (sources: any[]) => void;
   onOpenDemo: () => void;
+  onOpenNewTab?: (term: string, contextSnippet?: string) => void;
 }
 
-export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory, onRemoveHistory, onRename, onTermClick, onFollowUp, onAddSources, onOpenDemo }: ChatViewProps) {
+export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory, onRemoveHistory, onRename, onTermClick, onFollowUp, onAddSources, onOpenDemo, onOpenNewTab }: ChatViewProps) {
   const [prompt, setPrompt] = React.useState('');
   const [expandedMessages, setExpandedMessages] = React.useState<Set<string>>(new Set());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -33,6 +37,54 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
   // Only messages that arrive while the chat is open animate in; reopening a chat shows its history as it was
   const openedAtRef = useRef(Date.now());
   const enters = (item: HistoryItem) => item.timestamp > openedAtRef.current;
+
+  // Voice recognition & command handling
+  const handleVoiceFinal = useCallback((transcript: string) => {
+    const action = parseVoiceCommand(transcript);
+
+    if (action.type === 'new_concept_tab') {
+      toast({
+        title: 'Voice Command Executed',
+        description: `Opening new tab for "${action.term}"...`,
+      });
+      if (onOpenNewTab) {
+        onOpenNewTab(action.term, action.contextSnippet);
+      } else {
+        onTermClick(action.term, action.contextSnippet || '');
+      }
+      return;
+    }
+
+    if (action.type === 'rename_notebook') {
+      toast({
+        title: 'Notebook Renamed',
+        description: `Renamed to "${action.title}"`,
+      });
+      onRename(action.title);
+      return;
+    }
+
+    // Default: append or set prompt
+    setPrompt((prev) => (prev ? `${prev} ${action.text}` : action.text));
+  }, [onOpenNewTab, onTermClick, onRename]);
+
+  const handleVoiceError = useCallback((err: string) => {
+    toast({
+      title: 'Speech Recognition',
+      description: err === 'not-allowed' ? 'Microphone permission denied.' : `Speech error: ${err}`,
+      variant: 'destructive',
+    });
+  }, []);
+
+  const {
+    isListening,
+    interimTranscript,
+    isSupported: isVoiceSupported,
+    toggleListening,
+  } = useVoiceRecognition({
+    onFinalTranscript: handleVoiceFinal,
+    onError: handleVoiceError,
+  });
 
   const handleCancel = () => {
     cancelTokenRef.current += 1;
@@ -356,17 +408,60 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
       </div>
 
       <div className="sticky bottom-0 mt-auto w-full bg-background/95 backdrop-blur-xs px-4 pb-4 pt-3">
-        <div className="relative mx-auto flex max-w-[46rem] items-end gap-3 rounded-2xl border border-border/80 bg-card p-2 shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-[border-color,box-shadow] duration-200 focus-within:border-foreground/30 focus-within:shadow-[0_12px_36px_rgb(0,0,0,0.1)] dark:focus-within:shadow-[0_12px_36px_rgb(0,0,0,0.4)]">
+        {/* Real-time Voice Listening Indicator Banner */}
+        {isListening && (
+          <div className="mx-auto mb-2 flex max-w-[46rem] items-center justify-between rounded-xl border border-primary/40 bg-primary/10 px-3.5 py-2 text-xs text-primary animate-in fade-in slide-in-from-bottom-2 duration-150">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
+              </span>
+              <span className="font-semibold shrink-0">Listening:</span>
+              <span className="truncate italic text-foreground/80">
+                {interimTranscript || 'Say "Open a new tab and explain [concept]" or dictate a question...'}
+              </span>
+            </div>
+            <button
+              onClick={toggleListening}
+              className="ml-2 shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
+            >
+              Done
+            </button>
+          </div>
+        )}
+
+        <div className="relative mx-auto flex max-w-[46rem] items-end gap-2 sm:gap-3 rounded-2xl border border-border/80 bg-card p-2 shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-[border-color,box-shadow] duration-200 focus-within:border-foreground/30 focus-within:shadow-[0_12px_36px_rgb(0,0,0,0.1)] dark:focus-within:shadow-[0_12px_36px_rgb(0,0,0,0.4)]">
           <Textarea
             autoFocus
             aria-label={chat.sources.length > 0 ? 'Ask about your materials' : 'Ask a question'}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown} onPaste={handlePaste}
-            placeholder={chat.sources.length > 0 ? "Ask about your materials..." : "Ask a question..."}
-            className="min-h-[52px] max-h-48 resize-none border-0 bg-transparent px-4 py-3.5 text-[1.0625rem] shadow-none focus-visible:outline-none focus-visible:ring-0 scrollbar-thin"
+            placeholder={chat.sources.length > 0 ? "Ask about your materials or click mic..." : "Ask a question or click mic..."}
+            className="min-h-[52px] max-h-48 resize-none border-0 bg-transparent px-3 sm:px-4 py-3.5 text-[1.0625rem] shadow-none focus-visible:outline-none focus-visible:ring-0 scrollbar-thin"
             rows={1}
           />
+          {isVoiceSupported && (
+            <Button
+              type="button"
+              size="icon"
+              variant={isListening ? "default" : "ghost"}
+              aria-label={isListening ? "Stop voice listening" : "Start voice listening"}
+              title={isListening ? "Listening... (click to stop)" : "Voice input (try 'Open a new tab and explain [topic]')"}
+              className={`h-[52px] w-[52px] shrink-0 rounded-xl transition-all duration-200 ${
+                isListening
+                  ? "bg-primary text-primary-foreground shadow-md animate-pulse ring-2 ring-primary/40"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+              onClick={toggleListening}
+            >
+              {isListening ? (
+                <MicOff className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Mic className="h-5 w-5" aria-hidden="true" />
+              )}
+            </Button>
+          )}
           {explainMutation.isPending ? (
             <Button size="icon" variant="outline" aria-label="Stop generating (Escape)" title="Stop (Esc)" className="h-[52px] w-[52px] shrink-0 rounded-xl border-border/80 bg-background" onClick={handleCancel}>
               <Square className="h-4 w-4 fill-current" aria-hidden="true" />
@@ -377,9 +472,14 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
             </Button>
           )}
         </div>
-        <p className="mx-auto mt-2 hidden max-w-[46rem] text-center text-xs text-muted-foreground md:block">
-          Highlight any part of an answer and click it to ask a follow-up about that passage.
-        </p>
+        <div className="mx-auto mt-2 hidden max-w-[46rem] items-center justify-between px-1 text-xs text-muted-foreground md:flex">
+          <span>Highlight any part of an answer to ask a follow-up about that passage.</span>
+          {isVoiceSupported && (
+            <span className="inline-flex items-center gap-1 text-[11px] opacity-75">
+              <Sparkles className="h-3 w-3 text-primary" /> Voice: "Open new tab for [topic]"
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
