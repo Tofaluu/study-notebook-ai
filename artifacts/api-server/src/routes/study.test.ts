@@ -124,3 +124,69 @@ describe("POST /api/study/follow-ups/explain", () => {
     expect(response.status).toBe(400);
   });
 });
+
+describe("POST /api/study/voice/transcribe", () => {
+  const audio = Buffer.from("RIFF....WAVE").toString("base64");
+
+  it("rejects a request with no audio", async () => {
+    const response = await post("/study/voice/transcribe", { mimeType: "audio/wav" });
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects audio formats it can't pass on", async () => {
+    const response = await post("/study/voice/transcribe", { audio, mimeType: "text/plain" }, { "x-gemini-api-key": "key" });
+    expect(response.status).toBe(400);
+  });
+
+  it("asks for a Gemini or OpenAI key when there is none", async () => {
+    const response = await post("/study/voice/transcribe", { audio, mimeType: "audio/wav", model: "claude-sonnet-5-5" });
+    const body = (await response.json()) as { text: string; error?: string };
+    expect(body.text).toBe("");
+    expect(body.error).toContain("API Key Settings");
+  });
+
+  it("transcribes with Gemini", async () => {
+    const providerFetch = mockProvider({ candidates: [{ content: { parts: [{ text: " why is zero point one inexact " }] } }] });
+    const response = await post(
+      "/study/voice/transcribe",
+      { audio, mimeType: "audio/wav", model: "gemini-3.8-flash" },
+      { "x-gemini-api-key": "key" },
+    );
+    expect(await response.json()).toEqual({ text: "why is zero point one inexact" });
+    const geminiCall = providerFetch.mock.calls.find(([url]) => String(url).includes("generativelanguage"));
+    expect(String(geminiCall?.[0])).toContain("key=key");
+    expect(JSON.parse(String(geminiCall?.[1]?.body)).contents[0].parts[1].inlineData).toEqual({ mimeType: "audio/wav", data: audio });
+  });
+
+  it("uses OpenAI when the chosen model is OpenAI's", async () => {
+    const providerFetch = mockProvider({ text: "open a new tab for heaps" });
+    const response = await post(
+      "/study/voice/transcribe",
+      { audio, mimeType: "audio/wav", model: "gpt-6-luna" },
+      { "x-openai-api-key": "sk-test", "x-gemini-api-key": "g-key" },
+    );
+    expect(await response.json()).toEqual({ text: "open a new tab for heaps" });
+    const call = providerFetch.mock.calls.find(([url]) => String(url).includes("api.openai.com"));
+    expect(String(call?.[0])).toBe("https://api.openai.com/v1/audio/transcriptions");
+    expect((call?.[1]?.body as FormData).get("model")).toBe("gpt-transcribe");
+  });
+
+  it("falls back to the other provider when only that key is saved", async () => {
+    mockProvider({ candidates: [{ content: { parts: [{ text: "hello" }] } }] });
+    const response = await post(
+      "/study/voice/transcribe",
+      { audio, mimeType: "audio/wav", model: "gpt-6-luna" },
+      { "x-gemini-api-key": "g-key" },
+    );
+    expect(await response.json()).toEqual({ text: "hello" });
+  });
+
+  it("turns provider failures into a readable error", async () => {
+    mockProvider({ error: "invalid" }, 401);
+    const response = await post("/study/voice/transcribe", { audio, mimeType: "audio/wav" }, { "x-gemini-api-key": "bad" });
+    const body = (await response.json()) as { text: string; error?: string };
+    expect(response.status).toBe(200);
+    expect(body.text).toBe("");
+    expect(body.error).toContain("invalid or unauthorized");
+  });
+});

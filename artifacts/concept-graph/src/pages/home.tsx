@@ -207,7 +207,7 @@ ${tab.explanation.answerMarkdown}`.slice(0, 20000),
   };
 
   return (
-    <VoiceProvider onTranscript={handleVoiceTranscript}>
+    <VoiceProvider onTranscript={handleVoiceTranscript} model={selectedModel}>
     <div className="flex h-[100dvh] bg-background w-full overflow-hidden font-sans relative">
       <Sidebar
         isOpen={isSidebarOpen}

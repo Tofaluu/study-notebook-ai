@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { useVoiceRecognition, type VoiceLiveStore } from '@/hooks/use-voice-recognition';
+import { canRecordAudio, useVoiceRecorder } from '@/hooks/use-voice-recorder';
 import { toast } from '@/hooks/use-toast';
 
 // A press shorter than this on the mic button is a click (toggle); longer is push-to-talk
@@ -7,6 +8,26 @@ const TAP_MS = 350;
 // Keeps listening briefly after release so the last word isn't clipped
 const RELEASE_TAIL_MS = 250;
 const SILENCE_BUFFER_MS = 3000;
+
+const RECORD_MODE_KEY = 'study-notebook-voice-mode-v1';
+
+/**
+ * Chrome, Edge and Firefox on iOS run on Safari's engine but aren't allowed its speech recognition, so they record and
+ * transcribe from the start. Anywhere else it's chosen the first time the browser refuses to listen.
+ */
+function prefersRecording() {
+  try {
+    if (window.localStorage.getItem(RECORD_MODE_KEY) === 'record') return true;
+  } catch {
+    // Without storage the choice just isn't remembered
+  }
+  return /CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(navigator.userAgent);
+}
+
+function hasSpeechRecognition() {
+  const win = window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown };
+  return !!(win.SpeechRecognition || win.webkitSpeechRecognition);
+}
 
 const SPEECH_ERRORS: Record<string, string> = {
   'not-allowed': "Microphone access was denied. Allow it for this site in your browser's settings.",
@@ -48,6 +69,8 @@ function isInteractive(target: EventTarget | null) {
 
 interface VoiceProviderProps {
   onTranscript: (transcript: string) => void;
+  /** The selected model, so a recording is transcribed by the matching provider when it can */
+  model?: string;
   children: ReactNode;
 }
 
@@ -55,20 +78,49 @@ interface VoiceProviderProps {
  * One speech recognizer for the whole page. Hold Space (when nothing is focused) or Ctrl+Space (anywhere, including
  * the question box) to talk, and let go to send; or tap the mic button and stop talking for a few seconds.
  */
-export function VoiceProvider({ onTranscript, children }: VoiceProviderProps) {
-  const handleError = useCallback((err: string) => {
+export function VoiceProvider({ onTranscript, model, children }: VoiceProviderProps) {
+  const showError = useCallback((err: string) => {
     toast({
       title: 'Voice input',
-      description: SPEECH_ERRORS[err] ?? `Speech error: ${err}`,
+      // Known codes have their own wording; a sentence (from the transcription call) is shown as it is
+      description: SPEECH_ERRORS[err] ?? (err.includes(' ') ? err : `Speech error: ${err}`),
       variant: 'destructive',
     });
   }, []);
 
-  const { isListening, live, isSupported, startListening, stopListening, releaseHold, toggleListening } = useVoiceRecognition({
+  const [recordMode, setRecordMode] = useState(prefersRecording);
+
+  const handleSpeechError = useCallback(
+    (err: string) => {
+      // The browser has speech recognition but won't let this page use it: record and transcribe instead
+      if (err === 'service-not-allowed' && canRecordAudio()) {
+        try {
+          window.localStorage.setItem(RECORD_MODE_KEY, 'record');
+        } catch {
+          // Not remembered; it switches again next time
+        }
+        setRecordMode(true);
+        toast({
+          title: 'Voice input',
+          description: "This browser can't listen live, so your voice will be recorded and transcribed instead. Tap the mic again.",
+        });
+        return;
+      }
+      showError(err);
+    },
+    [showError]
+  );
+
+  const speech = useVoiceRecognition({
     silenceBufferMs: SILENCE_BUFFER_MS,
     onFinalTranscript: onTranscript,
-    onError: handleError,
+    onError: handleSpeechError,
   });
+  const recorder = useVoiceRecorder({ onFinalTranscript: onTranscript, onError: showError, model });
+  const recording = recorder.isSupported && (recordMode || !hasSpeechRecognition());
+  const active = recording ? recorder : speech;
+  const isSupported = speech.isSupported || recorder.isSupported;
+  const { isListening, live, startListening, stopListening, releaseHold, toggleListening } = active;
 
   const isListeningRef = useRef(isListening);
   isListeningRef.current = isListening;

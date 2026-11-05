@@ -7,7 +7,7 @@ type VoiceActionResponse = {
   text?: string;
 };
 
-function apiKeyHeaders(): Record<string, string> {
+export function apiKeyHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
   const geminiKey = window.localStorage.getItem('study-notebook-gemini-key') || window.localStorage.getItem('study-notebook-api-key');
   if (geminiKey) headers['x-gemini-api-key'] = geminiKey;
@@ -51,4 +51,21 @@ export async function resolveVoiceAction(transcript: string, model: string): Pro
     // Network trouble: fall back to the local parse
   }
   return local;
+}
+
+/** Sends a recording (base64 WAV) to be transcribed with the user's own key, and returns the text. */
+export async function transcribeRecording(wavBase64: string, model: string): Promise<string> {
+  const keys = apiKeyHeaders();
+  if (Object.keys(keys).length === 0) {
+    throw new Error('Voice input in this browser needs a Google Gemini or OpenAI API key. Please add one in Settings.');
+  }
+  const res = await fetch('/api/study/voice/transcribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...keys },
+    body: JSON.stringify({ audio: wavBase64, mimeType: 'audio/wav', model }),
+  });
+  if (!res.ok) throw new Error('The recording could not be transcribed. Please try again.');
+  const body = (await res.json()) as { text?: string; error?: string };
+  if (body.error) throw new Error(body.error);
+  return (body.text ?? '').trim();
 }
