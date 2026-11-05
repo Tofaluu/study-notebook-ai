@@ -446,7 +446,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown} onPaste={handlePaste}
-            placeholder={chat.sources.length > 0 ? "Ask about your materials or click mic..." : "Ask a question or click mic..."}
+            placeholder={chat.sources.length > 0 ? "Ask about your materials..." : "Ask a question..."}
             className="min-h-[52px] max-h-48 resize-none border-0 bg-transparent px-3 sm:px-4 py-3.5 text-[1.0625rem] shadow-none focus-visible:outline-none focus-visible:ring-0 scrollbar-thin"
             rows={1}
           />
