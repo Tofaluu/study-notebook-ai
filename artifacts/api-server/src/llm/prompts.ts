@@ -61,8 +61,8 @@ ${formatSources(sources) || "No lecture sources were uploaded."}`;
 }
 
 export function buildVoiceActionPrompt(transcript: string): string {
-  return `You are a voice command parser for an AI study notebook application.
-The user spoke a command, but browser speech-to-text may have produced phonetic typos (for instance: "wraplet" instead of "Replit", "see plus plus" instead of "C++", "pie torch" instead of "PyTorch").
+  return `You are an intelligent voice command parser and prompt refiner for an AI study notebook application.
+The user spoke a command, but browser speech-to-text is often messy and produces conversational filler words and phonetic typos (for instance: "wraplet" instead of "Replit", "see plus plus" instead of "C++", "pie torch" instead of "PyTorch").
 
 Analyze the user's intent and output the appropriate action:
 1. If the user wants to open/explore/explain a concept in a new tab (e.g. "open a new tab for wraplet", "explain floating point in a new tab", "new tab on binary fractions"):
@@ -71,9 +71,9 @@ Analyze the user's intent and output the appropriate action:
 2. If the user wants to rename the current notebook/chat session (e.g. "rename notebook to Operating Systems", "rename this to CS 240"):
    - action: "rename_notebook"
    - title: The cleaned, formatted notebook title.
-3. If the user is asking a normal study question or dictating text (e.g. "what is a binary search tree?", "explain how paging works"):
+3. If the user is asking an educational or conversational study question:
    - action: "dictate"
-   - text: The clean, punctuated text to be pasted into their question box.
+   - text: Reorganize and polish the question into a crisp, high-signal, properly punctuated study prompt. Strip out throat-clearing and filler words ("um", "can you tell me", "like", "hey so") and correct any phonetic STEM/coding typos, while strictly preserving the core intent of the question.
 
 SPOKEN TRANSCRIPT:
 """
