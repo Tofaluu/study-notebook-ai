@@ -12,6 +12,9 @@ import { getErrorMessage, imagesFromSources, normalizeExplanation } from "../llm
 import { buildConceptPrompt, buildFollowUpPrompt, buildStudyPrompt, buildVoiceActionPrompt } from "../llm/prompts";
 import { selectedPassageSchema, studyExplanationSchema, technicalConceptSchema, voiceActionSchema } from "../llm/schemas";
 import type { ProviderAdapter } from "../llm/types";
+import { gemini } from "../llm/gemini";
+import { openai } from "../llm/openai";
+import { isSupportedAudioType, transcribeAudio, type TranscribeProviderId } from "../llm/transcribe";
 
 const router: IRouter = Router();
 
@@ -198,6 +201,54 @@ router.post("/study/voice/action", async (req, res) => {
   } catch (error) {
     req.log.warn({ err: error }, "Voice action classification failed; falling back to dictation");
     res.json({ action: "dictate", text: transcript });
+  }
+});
+
+// A minute of 16 kHz speech is about 2 MB as base64; this leaves room without letting a body run to the JSON limit
+const MAX_AUDIO_CHARS = 6_000_000;
+
+const TRANSCRIBERS: Record<TranscribeProviderId, ProviderAdapter> = { gemini, openai };
+
+/**
+ * Turns a short recording into text, for browsers whose own speech recognition is unavailable (Chrome on iOS).
+ * Uses the key of the selected model's provider when it can transcribe, otherwise whichever of Gemini or OpenAI
+ * the user has saved.
+ */
+router.post("/study/voice/transcribe", async (req, res) => {
+  const audio = typeof req.body?.audio === "string" ? req.body.audio : "";
+  const mimeType = typeof req.body?.mimeType === "string" ? req.body.mimeType : "audio/wav";
+  const requestedModel = typeof req.body?.model === "string" ? req.body.model : "";
+
+  if (!audio) {
+    res.status(400).json({ error: "No audio was sent." });
+    return;
+  }
+  if (audio.length > MAX_AUDIO_CHARS) {
+    res.json({ text: "", error: "That recording is too long. Try a shorter question." });
+    return;
+  }
+  if (!isSupportedAudioType(mimeType)) {
+    res.status(400).json({ error: "Unsupported audio format." });
+    return;
+  }
+
+  const order: TranscribeProviderId[] = requestedModel.startsWith("gpt-") ? ["openai", "gemini"] : ["gemini", "openai"];
+  const provider = order.find((id) => getApiKey(req, TRANSCRIBERS[id]));
+  const apiKey = provider && getApiKey(req, TRANSCRIBERS[provider]);
+  if (!provider || !apiKey) {
+    res.json({
+      text: "",
+      error: "Voice input in this browser needs a Google Gemini or OpenAI API key. Please add one in API Key Settings.",
+    });
+    return;
+  }
+
+  try {
+    const text = await transcribeAudio({ provider, apiKey, audio, mimeType });
+    res.json({ text });
+  } catch (error) {
+    req.log.warn({ err: error }, "Voice transcription failed");
+    res.json({ text: "", error: getErrorMessage(error) });
   }
 });
 

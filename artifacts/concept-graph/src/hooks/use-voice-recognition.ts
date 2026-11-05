@@ -32,15 +32,17 @@ export interface VoiceLiveState {
   deadline: number | null;
   /** Held open by a key or button: it ends on release, not on silence */
   hold: boolean;
+  /** The recording is being turned into text */
+  busy?: boolean;
 }
 
-const IDLE: VoiceLiveState = { transcript: '', deadline: null, hold: false };
+export const IDLE: VoiceLiveState = { transcript: '', deadline: null, hold: false };
 
 /**
  * The transcript changes several times a second while speaking, so it lives outside React state. Only the component
  * that shows it subscribes (useVoiceLive); the chat around it doesn't re-render with every word.
  */
-function createLiveStore() {
+export function createLiveStore() {
   let snapshot = IDLE;
   const listeners = new Set<() => void>();
   return {
@@ -52,7 +54,7 @@ function createLiveStore() {
     },
     getSnapshot: () => snapshot,
     set(next: VoiceLiveState) {
-      if (next.transcript === snapshot.transcript && next.deadline === snapshot.deadline && next.hold === snapshot.hold) return;
+      if (next.transcript === snapshot.transcript && next.deadline === snapshot.deadline && next.hold === snapshot.hold && !!next.busy === !!snapshot.busy) return;
       snapshot = next;
       listeners.forEach((listener) => listener());
     },

@@ -9,7 +9,7 @@ interface VoiceBannerProps {
 
 /** Shows what is being heard and the silence countdown. Owns its own ticking so the chat above doesn't re-render. */
 export function VoiceBanner({ live, onDone }: VoiceBannerProps) {
-  const { transcript, deadline, hold } = useVoiceLive(live);
+  const { transcript, deadline, hold, busy } = useVoiceLive(live);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -33,23 +33,25 @@ export function VoiceBanner({ live, onDone }: VoiceBannerProps) {
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
         </span>
-        <span className="shrink-0 font-medium">Listening</span>
+        <span className="shrink-0 font-medium">{busy ? 'Transcribing' : 'Listening'}</span>
         <span className="min-w-0 truncate text-muted-foreground">
-          {transcript || (hold ? 'Speak, then let go to send' : 'Say a question, or "open a new tab for…"')}
+          {busy ? 'Turning your voice into text' : transcript || (hold ? 'Speak, then let go to send' : 'Say a question, or "open a new tab for…"')}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        {hold && <span className="text-xs text-muted-foreground">Release to send</span>}
-        {!hold && remainingMs !== null && transcript && (
+        {!busy && hold && <span className="text-xs text-muted-foreground">Release to send</span>}
+        {!busy && !hold && remainingMs !== null && transcript && (
           <span className="text-xs tabular-nums text-muted-foreground">Sending in {(remainingMs / 1000).toFixed(1)}s</span>
         )}
-        <button
-          type="button"
-          onClick={onDone}
-          className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-[transform,background-color] duration-150 ease-out hover:bg-primary/90 active:scale-[0.97] [@media(pointer:coarse)]:py-2.5"
-        >
-          Done
-        </button>
+        {!busy && (
+          <button
+            type="button"
+            onClick={onDone}
+            className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-[transform,background-color] duration-150 ease-out hover:bg-primary/90 active:scale-[0.97] [@media(pointer:coarse)]:py-2.5"
+          >
+            Done
+          </button>
+        )}
       </div>
     </div>
   );
