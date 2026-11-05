@@ -29,8 +29,24 @@ function hasSpeechRecognition() {
   return !!(win.SpeechRecognition || win.webkitSpeechRecognition);
 }
 
+/**
+ * iPads open Chrome as a "desktop site", so its user agent reads as a Mac and gives no sign it is on iOS. A Mac with a
+ * touch screen is an iPad.
+ */
+function isAppleTouchDevice() {
+  return (
+    /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+}
+
 const SPEECH_ERRORS: Record<string, string> = {
+  // The browser's own speech recognition was refused; on a desktop that is the microphone setting
   'not-allowed': "Microphone access was denied. Allow it for this site in your browser's settings.",
+  // Recording was refused: the microphone prompt was declined, or the browser app has no microphone access
+  'mic-denied':
+    "Microphone access is off. On iPhone or iPad, open Settings, find your browser (Chrome or Safari) and turn on Microphone, then reload this page and tap Allow when asked.",
+  'mic-busy': 'The microphone is being used by another app. Close it and try again.',
   'service-not-allowed':
     "Speech recognition isn't available here. On iPhone or iPad, turn on Dictation in Settings → General → Keyboard, and open the site in Safari rather than an installed app or in-app browser.",
   'audio-capture': 'No microphone was found.',
@@ -93,7 +109,10 @@ export function VoiceProvider({ onTranscript, model, children }: VoiceProviderPr
   const handleSpeechError = useCallback(
     (err: string) => {
       // The browser has speech recognition but won't let this page use it: record and transcribe instead
-      if (err === 'service-not-allowed' && canRecordAudio()) {
+      // On an iPhone or iPad, "not-allowed" from speech recognition means the same thing: the browser's engine
+      // won't do it. Recording asks for the microphone itself, so it gives a real prompt, or a clear refusal.
+      const refused = err === 'service-not-allowed' || (err === 'not-allowed' && isAppleTouchDevice());
+      if (refused && canRecordAudio()) {
         try {
           window.localStorage.setItem(RECORD_MODE_KEY, 'record');
         } catch {
