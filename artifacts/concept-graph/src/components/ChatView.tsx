@@ -53,9 +53,17 @@ export const ChatView = React.memo(function ChatView({ chat, model, onAddHistory
     // If an API key is available, call the fast-path LLM voice action route for phonetic correction
     if (hasAnyKey) {
       try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        const geminiKey = window.localStorage.getItem('study-notebook-gemini-key') || window.localStorage.getItem('study-notebook-api-key');
+        if (geminiKey) headers['x-gemini-api-key'] = geminiKey;
+        const openaiKey = window.localStorage.getItem('study-notebook-openai-key');
+        if (openaiKey) headers['x-openai-api-key'] = openaiKey;
+        const anthropicKey = window.localStorage.getItem('study-notebook-anthropic-key');
+        if (anthropicKey) headers['x-anthropic-api-key'] = anthropicKey;
+
         const res = await fetch('/api/study/voice/action', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ transcript, model }),
         });
         if (res.ok) {
