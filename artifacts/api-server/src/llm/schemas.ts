@@ -75,6 +75,7 @@ export const voiceActionSchema: JsonSchema = {
       type: "string",
     },
   },
-  required: ["action"],
+  // Every field is required (OpenAI's strict mode demands it); the ones an action doesn't use come back as ""
+  required: ["action", "term", "title", "text"],
   additionalProperties: false,
 };
