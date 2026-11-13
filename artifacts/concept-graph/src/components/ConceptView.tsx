@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useExplainTechnicalConcept, LectureSource, type StudyModel } from '@workspace/api-client-react';
 import { ConceptTab } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
-import { getDemoConcept } from '@/lib/demo';
+import { DEMO_WAIT_MS, getDemoConcept } from '@/lib/demo';
 import { Button } from '@/components/ui/button';
 import { SourcesCited } from './SourcesCited';
 import { Reveal } from './Reveal';
@@ -20,6 +20,12 @@ interface ConceptViewProps {
 export const ConceptView = React.memo(function ConceptView({ tab, sources, model, onUpdateTab, onTermClick, onFollowUp }: ConceptViewProps) {
   const explainMutation = useExplainTechnicalConcept();
   const initRef = useRef(false);
+  const waitTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const onUpdateTabRef = useRef(onUpdateTab);
+  onUpdateTabRef.current = onUpdateTab;
+
+  // Closing the tab during the wait must not leave the timer to fill in a tab that is gone
+  useEffect(() => () => clearTimeout(waitTimerRef.current), []);
 
   const requestExplanation = () => {
     explainMutation.mutate({
@@ -41,7 +47,8 @@ export const ConceptView = React.memo(function ConceptView({ tab, sources, model
       initRef.current = true;
       const demoExplanation = getDemoConcept(sources, tab.term);
       if (demoExplanation) {
-        onUpdateTab({ explanation: demoExplanation });
+        // A demo tab only arrives blank when it is the one meant to wait, so the pen has time to be seen
+        waitTimerRef.current = setTimeout(() => onUpdateTabRef.current({ explanation: demoExplanation }), DEMO_WAIT_MS);
         return;
       }
       requestExplanation();

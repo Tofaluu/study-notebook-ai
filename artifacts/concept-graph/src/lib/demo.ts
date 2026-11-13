@@ -350,6 +350,22 @@ export function getDemoConcept(sources: LectureSource[], term: string): Technica
   return DEMO_CONCEPTS[term.trim().toLowerCase()];
 }
 
+/** How long the first demo concept shows the pen writing before its answer appears */
+export const DEMO_WAIT_MS = 1800;
+
+let demoWaitTaken = false;
+
+/**
+ * The demo's answers are already written, so opening one is instant. The first time per page load it waits on
+ * purpose instead, because without an API key the demo is the only place the pen can be seen writing. After that,
+ * and for anyone who has asked for reduced motion, it is instant like everything else.
+ */
+export function takeDemoWait(): boolean {
+  if (demoWaitTaken) return false;
+  demoWaitTaken = true;
+  return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 export function createDemoChat(): Chat {
   const now = Date.now();
   const chatTabId = crypto.randomUUID();
