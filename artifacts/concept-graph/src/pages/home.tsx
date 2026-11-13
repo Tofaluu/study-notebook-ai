@@ -7,6 +7,7 @@ import { ConceptView } from '@/components/ConceptView';
 import { FollowUpView } from '@/components/FollowUpView';
 import { NotebookReaderView } from '@/components/NotebookReaderView';
 import { Loader2 } from 'lucide-react';
+import { getDemoConcept, takeDemoWait } from '@/lib/demo';
 import type { StudyModel } from '@workspace/api-client-react';
 import { DEFAULT_STUDY_MODEL, isStudyModel } from '@/lib/models';
 import { SettingsModal } from '@/components/SettingsModal';
@@ -61,6 +62,10 @@ export default function Home() {
       return existingTab.id;
     }
     const newTabId = crypto.randomUUID();
+    // A demo answer is already written. Opening the tab with it in place means no loading screen flashes up for a
+    // frame first; the one tab that is meant to wait is opened blank, and ConceptView holds it back on purpose.
+    const demoExplanation = getDemoConcept(chat.sources, term);
+    const waits = !!demoExplanation && takeDemoWait();
     addTab(chatId, {
       id: newTabId,
       type: 'concept',
@@ -68,7 +73,8 @@ export default function Home() {
       parentId,
       term,
       contextSnippet,
-      model: selectedModel
+      model: selectedModel,
+      explanation: waits ? undefined : demoExplanation,
     });
     return newTabId;
   };
