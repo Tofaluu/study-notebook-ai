@@ -2,10 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import { useExplainSelectedPassage, LectureSource, type StudyModel } from '@workspace/api-client-react';
 import { FollowUpTab } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
-import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SourcesCited } from './SourcesCited';
 import { Reveal } from './Reveal';
+import { PenWriter } from './PenWriter';
 
 interface FollowUpViewProps {
   tab: FollowUpTab;
@@ -95,7 +95,7 @@ export const FollowUpView = React.memo(function FollowUpView({ tab, sources, mod
 
   return (
     <div role="status" className="flex min-h-0 flex-1 flex-col items-center justify-center p-8 text-center">
-      <Loader2 className="mb-5 h-8 w-8 animate-spin text-primary" aria-hidden="true" />
+      <PenWriter variant="notebook" className="mb-6" />
       <h2 className="mb-2 font-serif text-2xl font-semibold text-foreground">Answering your follow-up</h2>
       <p className="max-w-sm text-muted-foreground">“{tab.question}”</p>
     </div>

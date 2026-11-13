@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ExplainableTerm, PageReference } from '@workspace/api-client-react';
 import type { Chat, ConceptTab, FollowUpTab, HistoryItem } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
+import { PenWriter } from './PenWriter';
 import { slugifyHeading } from './MarkdownRenderer';
 import { SourcesCited } from './SourcesCited';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,6 @@ import {
   ExternalLink,
   FileDown,
   List,
-  Loader2,
   Pin,
 } from 'lucide-react';
 
@@ -1723,7 +1723,7 @@ export function NotebookReaderView({
                             />
                           ) : (
                             <div className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
-                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                              <PenWriter variant="line" className="shrink-0" />
                               <span>Answering your follow-up…</span>
                             </div>
                           )}
@@ -1878,7 +1878,7 @@ export function NotebookReaderView({
                             </button>
                           </div>
                           <div className="flex items-center gap-3 py-8 text-muted-foreground">
-                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                            <PenWriter variant="line" className="shrink-0" />
                             <span>
                               Opening <strong className="text-foreground">“{ct.term}”</strong>…
                             </span>
@@ -1940,7 +1940,7 @@ export function NotebookReaderView({
                                 />
                               ) : (
                                 <div className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
-                                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                  <PenWriter variant="line" className="shrink-0" />
                                   <span>Answering your follow-up…</span>
                                 </div>
                               )}
