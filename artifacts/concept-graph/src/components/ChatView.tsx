@@ -2,9 +2,10 @@ import React, { useRef, useLayoutEffect, useCallback, useEffect } from 'react';
 import { useExplainStudyTopic, type StudyModel } from '@workspace/api-client-react';
 import { Chat, HistoryItem } from '@/lib/db';
 import { SelectableAnswer } from './SelectableAnswer';
-import { Loader2, Mic, Send, Square } from 'lucide-react';
+import { Mic, Send, Square } from 'lucide-react';
 import { DEMO_SOURCE_ID } from '@/lib/demo';
 import { SourcesCited } from './SourcesCited';
+import { PenWriter } from './PenWriter';
 import { Reveal } from './Reveal';
 import { useVoice } from './VoiceProvider';
 import { ModelPicker } from './ModelPicker';
@@ -352,7 +353,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
           {explainMutation.isPending && (
             <div className="flex w-full justify-start" role="status">
               <div className="flex items-center gap-3 rounded-2xl rounded-bl-sm bg-muted px-5 py-4 text-muted-foreground animate-in fade-in duration-300 ease-out">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+                <PenWriter variant="line" className="shrink-0" />
                 {chat.sources.length > 0
                   ? 'Reading your materials and writing an answer…'
                   : 'Writing an answer…'}
