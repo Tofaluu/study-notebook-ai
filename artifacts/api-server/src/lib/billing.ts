@@ -508,15 +508,17 @@ export async function processStripeWebhookEvent(
   const obj = event.data?.object ?? {};
 
   switch (event.type) {
-    case "checkout.session.completed": {
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded": {
+      // Gate fulfillment on payment_status when present (async payment methods may complete as "unpaid" first)
+      if (event.type === "checkout.session.completed" && obj.payment_status === "unpaid") {
+        break;
+      }
       const userId =
         (typeof obj.client_reference_id === "string" && obj.client_reference_id) ||
         (typeof obj.metadata?.userId === "string" && obj.metadata.userId);
       if (userId) {
-        const periodEnd =
-          typeof obj.expires_at === "number"
-            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         await updateSubscription(userId, {
           plan: "pro",
           queriesLimit: PRO_QUERY_LIMIT,
@@ -528,13 +530,15 @@ export async function processStripeWebhookEvent(
       break;
     }
 
+    case "customer.subscription.created":
     case "customer.subscription.updated": {
       const customerId = typeof obj.customer === "string" ? obj.customer : "";
       const subscriptionId = typeof obj.id === "string" ? obj.id : null;
       const userIdFromMeta = typeof obj.metadata?.userId === "string" ? obj.metadata.userId : null;
+      // Resolve via Stripe object graph (customer/subscription) first, metadata as explicit fallback
       const target =
-        (userIdFromMeta ? await getSubscription(userIdFromMeta) : null) ??
-        (customerId ? await findSubscriptionByStripeCustomer(customerId, subscriptionId) : null);
+        (customerId ? await findSubscriptionByStripeCustomer(customerId, subscriptionId) : null) ??
+        (userIdFromMeta ? await getSubscription(userIdFromMeta) : null);
 
       if (target) {
         const status = typeof obj.status === "string" ? obj.status : "";
@@ -560,8 +564,8 @@ export async function processStripeWebhookEvent(
       const subscriptionId = typeof obj.id === "string" ? obj.id : null;
       const userIdFromMeta = typeof obj.metadata?.userId === "string" ? obj.metadata.userId : null;
       const target =
-        (userIdFromMeta ? await getSubscription(userIdFromMeta) : null) ??
-        (customerId ? await findSubscriptionByStripeCustomer(customerId, subscriptionId) : null);
+        (customerId ? await findSubscriptionByStripeCustomer(customerId, subscriptionId) : null) ??
+        (userIdFromMeta ? await getSubscription(userIdFromMeta) : null);
 
       if (target) {
         await updateSubscription(target.userId, {
@@ -574,6 +578,7 @@ export async function processStripeWebhookEvent(
       break;
     }
 
+    case "invoice.paid":
     case "invoice.payment_succeeded": {
       const customerId = typeof obj.customer === "string" ? obj.customer : "";
       const subscriptionId = typeof obj.subscription === "string" ? obj.subscription : null;
@@ -583,6 +588,24 @@ export async function processStripeWebhookEvent(
           await updateSubscription(target.userId, {
             queriesUsed: 0,
             queriesLimit: PRO_QUERY_LIMIT,
+          });
+        }
+      }
+      break;
+    }
+
+    case "invoice.payment_failed":
+    case "charge.dispute.created":
+    case "charge.refunded":
+    case "radar.early_fraud_warning.created": {
+      const customerId = typeof obj.customer === "string" ? obj.customer : "";
+      const subscriptionId = typeof obj.subscription === "string" ? obj.subscription : null;
+      if (customerId) {
+        const target = await findSubscriptionByStripeCustomer(customerId, subscriptionId);
+        if (target) {
+          await updateSubscription(target.userId, {
+            plan: "free",
+            queriesLimit: FREE_QUERY_LIMIT,
           });
         }
       }
