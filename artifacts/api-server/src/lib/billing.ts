@@ -187,11 +187,18 @@ export function resolveAuthenticatedUser(req: Request): AuthenticatedUser | null
   }
 }
 
-function getSupabaseRestConfig(): { url: string; serviceKey: string } | null {
+function getSupabaseRestConfig(): { url: string; serviceKey: string; headers: Record<string, string> } | null {
   const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL)?.trim();
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !serviceKey) return null;
-  return { url: url.replace(/\/+$/, ""), serviceKey };
+  const headers: Record<string, string> = {
+    apikey: serviceKey,
+  };
+  // Legacy service_role keys are 3-part JWTs; new sb_secret_... keys are exchanged by the Supabase gateway via apikey header alone
+  if (!serviceKey.startsWith("sb_secret_")) {
+    headers.Authorization = `Bearer ${serviceKey}`;
+  }
+  return { url: url.replace(/\/+$/, ""), serviceKey, headers };
 }
 
 function createDefaultSubscription(userId: string, email?: string): UserSubscription {
@@ -242,10 +249,7 @@ export async function getSubscription(userId: string, email?: string): Promise<U
       const res = await fetch(
         `${supabaseConfig.url}/rest/v1/user_subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=*`,
         {
-          headers: {
-            apikey: supabaseConfig.serviceKey,
-            Authorization: `Bearer ${supabaseConfig.serviceKey}`,
-          },
+          headers: supabaseConfig.headers,
         },
       );
       if (res.ok) {
@@ -291,8 +295,7 @@ export async function updateSubscription(
       await fetch(`${supabaseConfig.url}/rest/v1/user_subscriptions`, {
         method: "POST",
         headers: {
-          apikey: supabaseConfig.serviceKey,
-          Authorization: `Bearer ${supabaseConfig.serviceKey}`,
+          ...supabaseConfig.headers,
           "Content-Type": "application/json",
           Prefer: "resolution=merge-duplicates",
         },
@@ -333,10 +336,7 @@ export async function findSubscriptionByStripeCustomer(
       const res = await fetch(
         `${supabaseConfig.url}/rest/v1/user_subscriptions?stripe_customer_id=eq.${encodeURIComponent(stripeCustomerId)}&select=*`,
         {
-          headers: {
-            apikey: supabaseConfig.serviceKey,
-            Authorization: `Bearer ${supabaseConfig.serviceKey}`,
-          },
+          headers: supabaseConfig.headers,
         },
       );
       if (res.ok) {
