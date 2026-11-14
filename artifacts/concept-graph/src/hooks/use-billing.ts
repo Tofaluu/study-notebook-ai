@@ -70,6 +70,11 @@ async function fetchBillingStatusDeduped(): Promise<BillingStatus> {
   inFlightPromise = (async () => {
     try {
       const authHeaders = await getAuthHeaders();
+      if (!authHeaders.Authorization) {
+        hasFetchedOnce = true;
+        notifySubscribers(DEFAULT_BILLING_STATUS);
+        return DEFAULT_BILLING_STATUS;
+      }
       const res = await fetch('/api/billing/status', {
         headers: { ...authHeaders },
       });
@@ -134,6 +139,13 @@ async function verifyCheckoutSessionFromUrl(): Promise<void> {
 if (typeof window !== 'undefined') {
   window.addEventListener('billing-updated', () => {
     void fetchBillingStatusDeduped();
+  });
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if (session?.access_token) {
+      void fetchBillingStatusDeduped();
+    } else {
+      notifySubscribers(DEFAULT_BILLING_STATUS);
+    }
   });
 }
 
