@@ -1,6 +1,7 @@
 import { useAuth } from '@/hooks/use-auth';
+import { useBilling } from '@/hooks/use-billing';
 import React, { useState } from 'react';
-import { FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Settings, MoreHorizontal } from 'lucide-react';
+import { FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Settings, MoreHorizontal, Sparkles } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Chat } from '@/lib/db';
 import type { LectureSource } from '@workspace/api-client-react';
@@ -104,6 +105,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat, onSwitchChat, onDeleteChat, onDeleteAllChats, onRenameChat, onSetSources }: SidebarProps) {
   const { user } = useAuth();
+  const { status: billing } = useBilling();
   const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
   const [isUploading, setIsUploading] = useState(false);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
@@ -403,15 +405,31 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
         )}
       </div>
 
-      <div className="p-4 border-t border-border/50 shrink-0 bg-background/50 flex items-center justify-between">
+      <div className="p-4 border-t border-border/50 shrink-0 bg-background/50 flex items-center justify-between gap-2">
         {user ? (
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold uppercase">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-6 h-6 shrink-0 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold uppercase">
               {displayName.charAt(0)}
             </div>
-            <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
+            <span className="text-sm font-medium text-foreground truncate max-w-[96px]">
               {displayName}
             </span>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'plan' } }))}
+              title="View plan and remaining questions"
+              data-testid="sidebar-plan-pill"
+              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                billing.plan === 'pro'
+                  ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
+                  : billing.remaining === 0
+                    ? 'border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20'
+                    : 'border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {billing.plan === 'pro' && <Sparkles className="h-2.5 w-2.5" aria-hidden="true" />}
+              <span>{billing.plan === 'pro' ? 'Pro' : 'Free'} · {billing.remaining} left</span>
+            </button>
           </div>
         ) : (
           <button

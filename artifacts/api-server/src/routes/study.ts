@@ -15,6 +15,13 @@ import type { ProviderAdapter } from "../llm/types";
 import { gemini } from "../llm/gemini";
 import { openai } from "../llm/openai";
 import { isSupportedAudioType, transcribeAudio, type TranscribeProviderId } from "../llm/transcribe";
+import {
+  FREE_QUERY_LIMIT,
+  getServerApiKey,
+  resolveAuthenticatedUser,
+  resolveExecutionAccess,
+  type ExecutionAccessResult,
+} from "../lib/billing";
 
 const router: IRouter = Router();
 
@@ -25,6 +32,38 @@ function getApiKey(req: Request, provider: ProviderAdapter): string | undefined 
 
 function missingKeyMessage(provider: ProviderAdapter, action: string): string {
   return `Your ${provider.displayName} API key is not configured. Please add it in API Key Settings to ${action}.`;
+}
+
+function buildAccessDeniedExplanation(
+  access: Extract<ExecutionAccessResult, { allowed: false }>,
+  provider: ProviderAdapter,
+  action: string,
+): { title: string; answerMarkdown: string } {
+  if (access.reason === "pro_model_required") {
+    return {
+      title: "Pro Plan or API Key Required",
+      answerMarkdown: `This model requires the **Pro Plan** or your own ${provider.displayName} API key. Upgrade in Plan & Usage, add your key in API Key Settings, or switch to **Gemini 3.8 Flash** to use your free questions.`,
+    };
+  }
+
+  if (access.reason === "quota_exceeded") {
+    if (access.subscription?.plan === "pro") {
+      return {
+        title: "Monthly Pro Limit Reached",
+        answerMarkdown: `You've used all ${access.subscription.queriesLimit} included Pro questions for this billing period. View your subscription in Plan & Usage, or add your own ${provider.displayName} API key in API Key Settings for unlimited usage.`,
+      };
+    }
+    const limit = access.subscription?.queriesLimit ?? FREE_QUERY_LIMIT;
+    return {
+      title: "Free Limit Reached",
+      answerMarkdown: `You've used all ${limit} free questions included with your account. Upgrade to Pro in Plan & Usage for 250 questions/month across all models, or add your own ${provider.displayName} API key in API Key Settings for unlimited usage.`,
+    };
+  }
+
+  return {
+    title: "API Key Required",
+    answerMarkdown: missingKeyMessage(provider, action),
+  };
 }
 
 router.post("/study/explain", async (req, res) => {
@@ -41,12 +80,20 @@ router.post("/study/explain", async (req, res) => {
     return;
   }
 
-  const provider = resolveProvider(model);
-  const apiKey = getApiKey(req, provider);
-  if (!apiKey) {
+  const effectiveModel = model ?? DEFAULT_MODEL;
+  const provider = resolveProvider(effectiveModel);
+  const access = await resolveExecutionAccess({
+    req,
+    model: effectiveModel,
+    provider: provider.id,
+    userProvidedKey: getApiKey(req, provider),
+  });
+
+  if (!access.allowed) {
+    const denied = buildAccessDeniedExplanation(access, provider, "start using the Study Notebook");
     res.json({
-      title: "API Key Required",
-      answerMarkdown: missingKeyMessage(provider, "start using the Study Notebook"),
+      title: denied.title,
+      answerMarkdown: denied.answerMarkdown,
       terms: [],
       sourceRefs: [],
       generatedAt: new Date().toISOString(),
@@ -58,10 +105,12 @@ router.post("/study/explain", async (req, res) => {
     const raw = await generateStructured({
       prompt: buildStudyPrompt(prompt, sources),
       schema: studyExplanationSchema,
-      model: model ?? DEFAULT_MODEL,
-      apiKey,
+      model: effectiveModel,
+      apiKey: access.apiKey,
       images: imagesFromSources(sources),
     });
+
+    await access.consumeQuota();
 
     res.json(
       ExplainStudyTopicResponse.parse({
@@ -89,12 +138,20 @@ router.post("/study/concepts/explain", async (req, res) => {
   }
 
   const { term, context, sources, model } = parsed.data;
-  const provider = resolveProvider(model);
-  const apiKey = getApiKey(req, provider);
-  if (!apiKey) {
+  const effectiveModel = model ?? DEFAULT_MODEL;
+  const provider = resolveProvider(effectiveModel);
+  const access = await resolveExecutionAccess({
+    req,
+    model: effectiveModel,
+    provider: provider.id,
+    userProvidedKey: getApiKey(req, provider),
+  });
+
+  if (!access.allowed) {
+    const denied = buildAccessDeniedExplanation(access, provider, "explain concepts");
     res.json({
-      title: "API Key Required",
-      answerMarkdown: missingKeyMessage(provider, "explain concepts"),
+      title: denied.title,
+      answerMarkdown: denied.answerMarkdown,
       prerequisiteTerms: [],
       sourceRefs: [],
     });
@@ -105,10 +162,12 @@ router.post("/study/concepts/explain", async (req, res) => {
     const raw = await generateStructured({
       prompt: buildConceptPrompt(term, context, sources),
       schema: technicalConceptSchema,
-      model: model ?? DEFAULT_MODEL,
-      apiKey,
+      model: effectiveModel,
+      apiKey: access.apiKey,
       images: imagesFromSources(sources),
     });
+
+    await access.consumeQuota();
 
     res.json(ExplainTechnicalConceptResponse.parse(normalizeExplanation(raw)));
   } catch (error) {
@@ -130,12 +189,20 @@ router.post("/study/follow-ups/explain", async (req, res) => {
   }
 
   const { selectedText, question, answerContext, sources, model } = parsed.data;
-  const provider = resolveProvider(model);
-  const apiKey = getApiKey(req, provider);
-  if (!apiKey) {
+  const effectiveModel = model ?? DEFAULT_MODEL;
+  const provider = resolveProvider(effectiveModel);
+  const access = await resolveExecutionAccess({
+    req,
+    model: effectiveModel,
+    provider: provider.id,
+    userProvidedKey: getApiKey(req, provider),
+  });
+
+  if (!access.allowed) {
+    const denied = buildAccessDeniedExplanation(access, provider, "ask follow-up questions");
     res.json({
-      title: "API Key Required",
-      answerMarkdown: missingKeyMessage(provider, "ask follow-up questions"),
+      title: denied.title,
+      answerMarkdown: denied.answerMarkdown,
       terms: [],
       sourceRefs: [],
     });
@@ -146,10 +213,12 @@ router.post("/study/follow-ups/explain", async (req, res) => {
     const raw = await generateStructured({
       prompt: buildFollowUpPrompt(selectedText, question, answerContext, sources),
       schema: selectedPassageSchema,
-      model: model ?? DEFAULT_MODEL,
-      apiKey,
+      model: effectiveModel,
+      apiKey: access.apiKey,
       images: imagesFromSources(sources),
     });
+
+    await access.consumeQuota();
 
     res.json(ExplainSelectedPassageResponse.parse(normalizeExplanation(raw)));
   } catch (error) {
@@ -180,7 +249,9 @@ router.post("/study/voice/action", async (req, res) => {
   }
 
   const provider = resolveProvider(fastModel);
-  const apiKey = getApiKey(req, provider);
+  const userKey = getApiKey(req, provider);
+  const serverKey = resolveAuthenticatedUser(req) ? getServerApiKey(provider.id) : undefined;
+  const apiKey = userKey || serverKey;
 
   if (!apiKey) {
     // If no key is configured, fallback smoothly
@@ -233,8 +304,12 @@ router.post("/study/voice/transcribe", async (req, res) => {
   }
 
   const order: TranscribeProviderId[] = requestedModel.startsWith("gpt-") ? ["openai", "gemini"] : ["gemini", "openai"];
-  const provider = order.find((id) => getApiKey(req, TRANSCRIBERS[id]));
-  const apiKey = provider && getApiKey(req, TRANSCRIBERS[provider]);
+  const isAuth = Boolean(resolveAuthenticatedUser(req));
+  const resolveTranscriberKey = (id: TranscribeProviderId) =>
+    getApiKey(req, TRANSCRIBERS[id]) || (isAuth ? getServerApiKey(TRANSCRIBERS[id].id) : undefined);
+
+  const provider = order.find((id) => resolveTranscriberKey(id));
+  const apiKey = provider && resolveTranscriberKey(provider);
   if (!provider || !apiKey) {
     res.json({
       text: "",

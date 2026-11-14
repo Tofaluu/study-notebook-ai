@@ -9,11 +9,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Key, Paintbrush, RotateCcw } from 'lucide-react';
+import { Check, CreditCard, Key, Loader2, Paintbrush, RotateCcw, Sparkles } from 'lucide-react';
 import { useThemeCustomization, type ThemeColors } from '@/hooks/use-theme';
+import { useBilling } from '@/hooks/use-billing';
 import { contrastRatio, getCssVariableHex } from '@/lib/colors';
 
-type SettingsTab = 'api' | 'appearance';
+export type SettingsTab = 'api' | 'plan' | 'appearance';
 
 const COLOR_FIELDS: { key: keyof ThemeColors; label: string; hint: string }[] = [
   { key: 'primary', label: 'Accent', hint: 'Buttons, links and underlined terms.' },
@@ -33,6 +34,7 @@ export function SettingsModal() {
   const [anthropicKey, setAnthropicKey] = useState('');
 
   const { colors, updateColor, resetColors } = useThemeCustomization();
+  const { status: billing, actionLoading, refresh: refreshBilling, startCheckout, openBillingPortal } = useBilling();
   const [defaultHex, setDefaultHex] = useState<Record<keyof ThemeColors, string>>({
     primary: '#126e61', background: '#f8f8f7', secondaryBackground: '#fefefe', foreground: '#1b1f27', secondaryForeground: '#595e69',
   });
@@ -51,6 +53,7 @@ export function SettingsModal() {
       returnFocusRef.current = document.activeElement as HTMLElement | null;
       const detail = (e as CustomEvent).detail;
       if (detail?.tab) setActiveTab(detail.tab);
+      refreshBilling();
       // Read the theme's own values, ignoring any custom overrides, so the pickers start from them
       const getTrueDefault = (variable: string) => {
         const root = document.documentElement;
@@ -78,7 +81,7 @@ export function SettingsModal() {
       window.removeEventListener('open-settings', handleOpen);
       window.removeEventListener('open-api-key-modal', handleOpen);
     };
-  }, []);
+  }, [refreshBilling]);
 
   const handleSaveApiKeys = () => {
     if (geminiKey.trim()) window.localStorage.setItem('study-notebook-gemini-key', geminiKey.trim());
@@ -93,6 +96,9 @@ export function SettingsModal() {
     setOpen(false);
     window.dispatchEvent(new Event('api-keys-updated'));
   };
+
+  const hasAnyByokKey = Boolean(geminiKey.trim() || openaiKey.trim() || anthropicKey.trim());
+  const usagePercent = Math.min(100, Math.round((billing.queriesUsed / Math.max(1, billing.queriesLimit)) * 100));
 
   const effective = (key: keyof ThemeColors) => colors[key] || defaultHex[key];
   const contrastChecks = [
@@ -123,7 +129,7 @@ export function SettingsModal() {
   return (
     <Dialog open={open} onOpenChange={(val) => { if (!val) setOpen(false); }}>
       <DialogContent
-        className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-[500px]"
+        className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-[520px]"
         onCloseAutoFocus={(e) => {
           if (returnFocusRef.current?.isConnected) {
             e.preventDefault();
@@ -133,11 +139,12 @@ export function SettingsModal() {
       >
         <DialogHeader className="px-6 pt-6">
           <DialogTitle className="font-serif text-2xl font-semibold">Settings</DialogTitle>
-          <DialogDescription>API keys and appearance are saved in this browser only.</DialogDescription>
+          <DialogDescription>Manage your API keys, subscription plan, and notebook appearance.</DialogDescription>
         </DialogHeader>
 
-        <div role="tablist" aria-label="Settings sections" className="flex gap-4 border-b border-border px-6 pt-2">
+        <div role="tablist" aria-label="Settings sections" className="flex gap-5 border-b border-border px-6 pt-2">
           {tabButton('api', 'API keys', Key)}
+          {tabButton('plan', 'Plan & Usage', CreditCard)}
           {tabButton('appearance', 'Appearance', Paintbrush)}
         </div>
 
@@ -145,7 +152,7 @@ export function SettingsModal() {
           {activeTab === 'api' && (
             <div role="tabpanel" id="settings-panel-api" aria-labelledby="settings-tab-api" className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Add a key for any provider you want to use. Keys are sent only with your own requests and are never stored on the server.
+                Add a key for any provider you want to use. Personal keys are saved in this browser only and give you unlimited usage without counting toward plan limits.
               </p>
               <div className="space-y-3">
                 <div className="space-y-1.5">
@@ -162,6 +169,170 @@ export function SettingsModal() {
                 </div>
               </div>
               <Button onClick={handleSaveApiKeys} className="mt-2 w-full">Save keys</Button>
+            </div>
+          )}
+
+          {activeTab === 'plan' && (
+            <div role="tabpanel" id="settings-panel-plan" aria-labelledby="settings-tab-plan" className="space-y-5">
+              {!billing.authenticated ? (
+                <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-foreground">Guest Session</span>
+                    {hasAnyByokKey && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">
+                        BYOK Active · Unlimited
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Sign in to get <span className="font-medium text-foreground">15 free questions</span> on Gemini Flash without needing an API key, or upgrade to Pro for 250 questions/month across all models.
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setOpen(false);
+                      window.dispatchEvent(new CustomEvent('open-auth'));
+                    }}
+                    className="w-full"
+                  >
+                    Sign in or create account
+                  </Button>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3" data-testid="plan-status-card">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-semibold text-foreground">
+                          {billing.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                        </span>
+                        {billing.plan === 'pro' && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
+                            <Sparkles className="h-3 w-3" aria-hidden="true" />
+                            Active
+                          </span>
+                        )}
+                        {hasAnyByokKey && (
+                          <span className="inline-flex items-center rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                            + BYOK Unlimited
+                          </span>
+                        )}
+                      </div>
+                      {billing.email && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{billing.email}</p>
+                      )}
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">
+                      {billing.plan === 'pro' ? '$9 / mo' : '$0 / mo'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        Included server-key questions
+                      </span>
+                      <span className="font-mono font-medium text-foreground" data-testid="plan-usage-count">
+                        {billing.queriesUsed} / {billing.queriesLimit} used ({billing.remaining} left)
+                      </span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          billing.remaining === 0 ? 'bg-destructive' : 'bg-primary'
+                        }`}
+                        style={{ width: `${usagePercent}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Questions asked with your own API keys in the <button type="button" onClick={() => setActiveTab('api')} className="underline underline-offset-2 hover:text-foreground">API keys</button> tab are always free and never count toward this limit.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className={`rounded-xl border p-4 space-y-2.5 ${billing.plan === 'free' ? 'border-border bg-card' : 'border-border/60 bg-muted/20'}`}>
+                  <div className="flex items-baseline justify-between">
+                    <h4 className="text-sm font-semibold text-foreground">Free</h4>
+                    <span className="text-xs font-medium text-muted-foreground">$0</span>
+                  </div>
+                  <ul className="space-y-1.5 text-xs text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
+                      <span>15 included questions on Gemini Flash</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
+                      <span>Unlimited BYOK with your own API keys</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
+                      <span>Cloud notebook sync</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className={`rounded-xl border p-4 space-y-2.5 ${billing.plan === 'pro' ? 'border-primary bg-primary/5' : 'border-primary/40 bg-card'}`}>
+                  <div className="flex items-baseline justify-between">
+                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      Pro
+                      <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                    </h4>
+                    <span className="text-xs font-semibold text-foreground">$9 / month</span>
+                  </div>
+                  <ul className="space-y-1.5 text-xs text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
+                      <span><strong className="font-medium text-foreground">250 questions / month</strong> included</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
+                      <span>Unlocks <strong className="font-medium text-foreground">Google Pro, OpenAI &amp; Claude</strong> models</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
+                      <span>Unlimited BYOK fallback anytime</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {billing.authenticated && (
+                <div className="space-y-2 pt-1">
+                  {billing.plan === 'free' ? (
+                    <Button
+                      onClick={startCheckout}
+                      disabled={actionLoading}
+                      className="w-full gap-2"
+                      data-testid="upgrade-to-pro-button"
+                    >
+                      {actionLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Sparkles className="h-4 w-4" aria-hidden="true" />
+                      )}
+                      Upgrade to Pro — $9/month
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={openBillingPortal}
+                      disabled={actionLoading}
+                      className="w-full gap-2"
+                      data-testid="manage-subscription-button"
+                    >
+                      {actionLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                      {billing.stripeConfigured ? 'Manage subscription in Stripe' : 'Cancel Pro plan (switch to Free)'}
+                    </Button>
+                  )}
+                  {!billing.stripeConfigured && (
+                    <p className="text-center text-[11px] text-muted-foreground">
+                      Demo checkout mode active — upgrades and cancellations apply immediately for local testing.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
