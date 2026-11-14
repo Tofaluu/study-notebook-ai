@@ -41,11 +41,94 @@ const DEFAULT_BILLING_STATUS: BillingStatus = {
 };
 
 let cachedBillingStatus: BillingStatus = DEFAULT_BILLING_STATUS;
+let hasFetchedOnce = false;
+let inFlightPromise: Promise<BillingStatus> | null = null;
+const subscribers = new Set<(status: BillingStatus) => void>();
+
+function notifySubscribers(next: BillingStatus) {
+  cachedBillingStatus = next;
+  for (const listener of subscribers) {
+    listener(next);
+  }
+}
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function fetchBillingStatusDeduped(): Promise<BillingStatus> {
+  if (inFlightPromise) return inFlightPromise;
+
+  inFlightPromise = (async () => {
+    try {
+      const authHeaders = await getAuthHeaders();
+      const res = await fetch('/api/billing/status', {
+        headers: { ...authHeaders },
+      });
+      if (res.ok) {
+        const data = (await res.json()) as BillingStatus;
+        hasFetchedOnce = true;
+        notifySubscribers(data);
+        return data;
+      }
+    } catch {
+      // Keep cached status on transient network failure
+    } finally {
+      inFlightPromise = null;
+    }
+    return cachedBillingStatus;
+  })();
+
+  return inFlightPromise;
+}
+
+let hasVerifiedUrlSession = false;
+
+async function verifyCheckoutSessionFromUrl(): Promise<void> {
+  if (typeof window === 'undefined' || hasVerifiedUrlSession) return;
+  const params = new URLSearchParams(window.location.search);
+  const billingParam = params.get('billing');
+  const sessionId = params.get('session_id');
+  if (!billingParam) return;
+
+  hasVerifiedUrlSession = true;
+  // Clean URL query parameters
+  const cleanUrl = window.location.pathname + window.location.hash;
+  window.history.replaceState({}, '', cleanUrl);
+
+  if (billingParam === 'success' && sessionId) {
+    try {
+      const authHeaders = await getAuthHeaders();
+      const res = await fetch('/api/billing/verify-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders,
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { verified?: boolean };
+        if (data.verified) {
+          await fetchBillingStatusDeduped();
+          toast({
+            title: 'Upgraded to Pro Plan',
+            description: 'Your Stripe subscription is active with 250 questions/month across all models.',
+          });
+        }
+      }
+    } catch {
+      // Webhook will reconcile if client verification fails
+    }
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('billing-updated', () => {
+    void fetchBillingStatusDeduped();
+  });
 }
 
 export function useBilling() {
@@ -56,30 +139,24 @@ export function useBilling() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const authHeaders = await getAuthHeaders();
-      const res = await fetch('/api/billing/status', {
-        headers: { ...authHeaders },
-      });
-      if (res.ok) {
-        const data = (await res.json()) as BillingStatus;
-        cachedBillingStatus = data;
-        setStatus(data);
-      }
-    } catch {
-      // Keep cached status on transient network failure
+      await fetchBillingStatusDeduped();
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    refresh();
-    const handleUpdate = () => {
-      refresh();
+    subscribers.add(setStatus);
+    void verifyCheckoutSessionFromUrl();
+    if (!hasFetchedOnce) {
+      void fetchBillingStatusDeduped();
+    } else {
+      setStatus(cachedBillingStatus);
+    }
+    return () => {
+      subscribers.delete(setStatus);
     };
-    window.addEventListener('billing-updated', handleUpdate);
-    return () => window.removeEventListener('billing-updated', handleUpdate);
-  }, [refresh]);
+  }, []);
 
   const startCheckout = useCallback(async () => {
     setActionLoading(true);

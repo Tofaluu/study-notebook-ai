@@ -36,16 +36,20 @@ router.post("/billing/checkout", async (req, res) => {
     const priceId = process.env.STRIPE_PRO_PRICE_ID!.trim();
     const sub = await getSubscription(user.id, user.email);
 
+    // Note: Do NOT pass payment_method_types — let Stripe dynamically display eligible payment methods
     const form = new URLSearchParams();
     form.set("mode", "subscription");
     form.set("client_reference_id", user.id);
     form.set("metadata[userId]", user.id);
     form.set("line_items[0][price]", priceId);
     form.set("line_items[0][quantity]", "1");
-    form.set("success_url", `${origin.replace(/\/+$/, "")}/?billing=success`);
+    form.set(
+      "success_url",
+      `${origin.replace(/\/+$/, "")}/?billing=success&session_id={CHECKOUT_SESSION_ID}`,
+    );
     form.set("cancel_url", `${origin.replace(/\/+$/, "")}/?billing=cancelled`);
 
-    if (sub.stripeCustomerId) {
+    if (sub.stripeCustomerId && !sub.stripeCustomerId.startsWith("cus_demo_")) {
       form.set("customer", sub.stripeCustomerId);
     } else if (user.email) {
       form.set("customer_email", user.email);
@@ -91,6 +95,66 @@ router.post("/billing/checkout", async (req, res) => {
     url: null,
     subscription: updated,
   });
+});
+
+router.post("/billing/verify-session", async (req, res) => {
+  const user = resolveAuthenticatedUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Please sign in to verify your checkout session." });
+    return;
+  }
+
+  const sessionId = typeof req.body?.sessionId === "string" ? req.body.sessionId.trim() : "";
+  const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+  if (!sessionId || !secretKey) {
+    res.status(400).json({ error: "Missing session ID or Stripe configuration." });
+    return;
+  }
+
+  const stripeRes = await fetch(
+    `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+      },
+    },
+  );
+
+  if (!stripeRes.ok) {
+    res.status(400).json({ error: "Could not verify checkout session with Stripe." });
+    return;
+  }
+
+  const session = (await stripeRes.json()) as {
+    id: string;
+    client_reference_id?: string | null;
+    metadata?: { userId?: string };
+    payment_status?: string;
+    status?: string;
+    customer?: string | null;
+    subscription?: string | null;
+  };
+
+  const ownerId = session.client_reference_id || session.metadata?.userId;
+  if (ownerId !== user.id) {
+    res.status(403).json({ error: "This checkout session belongs to a different user." });
+    return;
+  }
+
+  if (session.payment_status === "paid" || session.status === "complete") {
+    const updated = await updateSubscription(user.id, {
+      email: user.email,
+      plan: "pro",
+      queriesLimit: PRO_QUERY_LIMIT,
+      stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
+      stripeSubscriptionId: typeof session.subscription === "string" ? session.subscription : null,
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+    res.json({ verified: true, subscription: updated });
+    return;
+  }
+
+  res.json({ verified: false });
 });
 
 router.post("/billing/portal", async (req, res) => {
