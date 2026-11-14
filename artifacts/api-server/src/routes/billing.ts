@@ -1,6 +1,7 @@
 import { Router, type IRouter, type Request } from "express";
 import {
   FREE_QUERY_LIMIT,
+  PRO_BUDGET_LIMIT_MICROS,
   PRO_QUERY_LIMIT,
   getBillingStatus,
   getSubscription,
@@ -20,7 +21,7 @@ router.get("/billing/status", async (req, res) => {
 });
 
 router.post("/billing/checkout", async (req, res) => {
-  const user = resolveAuthenticatedUser(req);
+  const user = await resolveAuthenticatedUser(req);
   if (!user) {
     res.status(401).json({ error: "Please sign in to upgrade your plan." });
     return;
@@ -79,12 +80,20 @@ router.post("/billing/checkout", async (req, res) => {
     return;
   }
 
-  // Demo Checkout fallback when Stripe keys are not configured in local dev
+  if (process.env.NODE_ENV === "production") {
+    res.status(503).json({ error: "Billing is temporarily unavailable." });
+    return;
+  }
+
+  // Demo Checkout fallback when Stripe keys are not configured in local dev / tests
   const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
   const updated = await updateSubscription(user.id, {
     email: user.email,
     plan: "pro",
+    queriesUsed: 0,
     queriesLimit: PRO_QUERY_LIMIT,
+    budgetUsedMicros: 0,
+    budgetLimitMicros: PRO_BUDGET_LIMIT_MICROS,
     stripeCustomerId: `cus_demo_${user.id.slice(0, 8)}`,
     stripeSubscriptionId: `sub_demo_${user.id.slice(0, 8)}`,
     currentPeriodEnd: periodEnd,
@@ -98,7 +107,7 @@ router.post("/billing/checkout", async (req, res) => {
 });
 
 router.post("/billing/verify-session", async (req, res) => {
-  const user = resolveAuthenticatedUser(req);
+  const user = await resolveAuthenticatedUser(req);
   if (!user) {
     res.status(401).json({ error: "Please sign in to verify your checkout session." });
     return;
@@ -145,7 +154,10 @@ router.post("/billing/verify-session", async (req, res) => {
     const updated = await updateSubscription(user.id, {
       email: user.email,
       plan: "pro",
+      queriesUsed: 0,
       queriesLimit: PRO_QUERY_LIMIT,
+      budgetUsedMicros: 0,
+      budgetLimitMicros: PRO_BUDGET_LIMIT_MICROS,
       stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
       stripeSubscriptionId: typeof session.subscription === "string" ? session.subscription : null,
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -158,7 +170,7 @@ router.post("/billing/verify-session", async (req, res) => {
 });
 
 router.post("/billing/portal", async (req, res) => {
-  const user = resolveAuthenticatedUser(req);
+  const user = await resolveAuthenticatedUser(req);
   if (!user) {
     res.status(401).json({ error: "Please sign in to manage your subscription." });
     return;
@@ -196,6 +208,11 @@ router.post("/billing/portal", async (req, res) => {
       mode: "stripe",
       url: portal.url,
     });
+    return;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    res.status(503).json({ error: "Billing portal is temporarily unavailable." });
     return;
   }
 

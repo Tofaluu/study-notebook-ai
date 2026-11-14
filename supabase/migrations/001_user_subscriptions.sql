@@ -47,8 +47,11 @@ CREATE POLICY "Users can read own subscription"
   TO authenticated
   USING (auth.uid() = user_id);
 
--- Atomic quota increment RPC to prevent race conditions under concurrent requests
-CREATE OR REPLACE FUNCTION public.increment_user_query_count(p_user_id uuid)
+-- Atomic quota & budget increment RPC to prevent race conditions under concurrent requests
+CREATE OR REPLACE FUNCTION public.increment_user_usage(
+  p_user_id uuid,
+  p_budget_micros bigint DEFAULT 0
+)
 RETURNS public.user_subscriptions
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -56,10 +59,11 @@ AS $$
 DECLARE
   v_sub public.user_subscriptions;
 BEGIN
-  INSERT INTO public.user_subscriptions (user_id, plan, queries_used, queries_limit)
-  VALUES (p_user_id, 'free', 1, 15)
+  INSERT INTO public.user_subscriptions (user_id, plan, queries_used, queries_limit, budget_used_micros, budget_limit_micros)
+  VALUES (p_user_id, 'free', 1, 15, GREATEST(0, p_budget_micros), 10000000)
   ON CONFLICT (user_id) DO UPDATE
     SET queries_used = public.user_subscriptions.queries_used + 1,
+        budget_used_micros = public.user_subscriptions.budget_used_micros + GREATEST(0, p_budget_micros),
         updated_at = now()
   RETURNING * INTO v_sub;
 

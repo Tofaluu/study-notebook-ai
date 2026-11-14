@@ -84,10 +84,12 @@ export interface BillingStatusResponse {
 // In-memory store for local dev / automated tests when SUPABASE_SERVICE_ROLE_KEY is not set
 const memorySubscriptions = new Map<string, UserSubscription>();
 const processedWebhookEvents = new Set<string>();
+const verifiedTokenCache = new Map<string, { user: AuthenticatedUser; expiresAt: number }>();
 
 export function resetBillingStoreForTests(): void {
   memorySubscriptions.clear();
   processedWebhookEvents.clear();
+  verifiedTokenCache.clear();
 }
 
 export function isFreeEligibleModel(model: string): boolean {
@@ -154,11 +156,13 @@ function decodeBase64Url(input: string): Buffer {
 
 /**
  * Extracts and validates the authenticated user from the `Authorization: Bearer <token>` header.
+ * Fails closed: unverified tokens are always rejected.
  * Supports:
- * 1. Verified JWTs (verifies HMAC-SHA256 signature when SUPABASE_JWT_SECRET is set, plus `exp` and `sub`).
- * 2. `test-user:<id>[:<email>]` tokens in non-production environments for integration tests.
+ * 1. `test-user:<id>[:<email>]` tokens in non-production environments for integration tests.
+ * 2. HS256 JWTs verified against SUPABASE_JWT_SECRET.
+ * 3. Any Supabase Auth token (including asymmetric ES256/RS256) verified via `/auth/v1/user`.
  */
-export function resolveAuthenticatedUser(req: Request): AuthenticatedUser | null {
+export async function resolveAuthenticatedUser(req: Request): Promise<AuthenticatedUser | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader || typeof authHeader !== "string") return null;
 
@@ -181,21 +185,8 @@ export function resolveAuthenticatedUser(req: Request): AuthenticatedUser | null
 
   try {
     const [headerB64, payloadB64, signatureB64] = segments;
-    const jwtSecret = process.env.SUPABASE_JWT_SECRET?.trim();
-
-    if (jwtSecret) {
-      const expectedSig = crypto
-        .createHmac("sha256", jwtSecret)
-        .update(`${headerB64}.${payloadB64}`)
-        .digest();
-      const actualSig = decodeBase64Url(signatureB64);
-      if (expectedSig.length !== actualSig.length || !crypto.timingSafeEqual(expectedSig, actualSig)) {
-        return null;
-      }
-    }
-
-    const payloadJson = decodeBase64Url(payloadB64).toString("utf8");
-    const payload = JSON.parse(payloadJson) as {
+    const header = JSON.parse(decodeBase64Url(headerB64).toString("utf8")) as { alg?: string };
+    const payload = JSON.parse(decodeBase64Url(payloadB64).toString("utf8")) as {
       sub?: string;
       email?: string;
       exp?: number;
@@ -208,10 +199,56 @@ export function resolveAuthenticatedUser(req: Request): AuthenticatedUser | null
       if (payload.exp < nowSeconds) return null;
     }
 
-    return {
-      id: payload.sub,
-      email: typeof payload.email === "string" ? payload.email : undefined,
+    const jwtSecret = process.env.SUPABASE_JWT_SECRET?.trim();
+    if (jwtSecret && header.alg === "HS256") {
+      const expectedSig = crypto
+        .createHmac("sha256", jwtSecret)
+        .update(`${headerB64}.${payloadB64}`)
+        .digest();
+      const actualSig = decodeBase64Url(signatureB64);
+      if (expectedSig.length !== actualSig.length || !crypto.timingSafeEqual(expectedSig, actualSig)) {
+        return null;
+      }
+      return {
+        id: payload.sub,
+        email: typeof payload.email === "string" ? payload.email : undefined,
+      };
+    }
+
+    // Verify asymmetric (ES256/RS256) or un-secreted tokens directly with Supabase Auth
+    const cached = verifiedTokenCache.get(token);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.user;
+    }
+
+    const supabaseUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL)?.trim()?.replace(/\/+$/, "");
+    const supabaseApiKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY)?.trim();
+    if (!supabaseUrl || !supabaseApiKey) {
+      // Fail closed: never trust an unverified JWT
+      return null;
+    }
+
+    const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        apikey: supabaseApiKey,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!authRes.ok) return null;
+
+    const userData = (await authRes.json()) as { id?: string; email?: string };
+    if (!userData.id) return null;
+
+    const authenticatedUser: AuthenticatedUser = {
+      id: userData.id,
+      email: typeof userData.email === "string" ? userData.email : undefined,
     };
+    const tokenExpMs = typeof payload.exp === "number" ? payload.exp * 1000 : Date.now() + 60_000;
+    verifiedTokenCache.set(token, {
+      user: authenticatedUser,
+      expiresAt: Math.min(tokenExpMs, Date.now() + 60_000),
+    });
+    return authenticatedUser;
   } catch {
     return null;
   }
@@ -340,6 +377,33 @@ export async function getSubscription(userId: string, email?: string): Promise<U
   const isAliasDuplicate = canonical ? await hasExistingCanonicalEmail(canonical, userId) : false;
   const created = createDefaultSubscription(userId, email, isAliasDuplicate ? 0 : FREE_QUERY_LIMIT);
   memorySubscriptions.set(userId, created);
+
+  if (supabaseConfig) {
+    try {
+      await fetch(`${supabaseConfig.url}/rest/v1/user_subscriptions`, {
+        method: "POST",
+        headers: {
+          ...supabaseConfig.headers,
+          "Content-Type": "application/json",
+          Prefer: "resolution=ignore-duplicates",
+        },
+        body: JSON.stringify({
+          user_id: created.userId,
+          email: created.email ?? null,
+          canonical_email: created.canonicalEmail ?? null,
+          plan: created.plan,
+          queries_used: created.queriesUsed,
+          queries_limit: created.queriesLimit,
+          budget_used_micros: created.budgetUsedMicros,
+          budget_limit_micros: created.budgetLimitMicros,
+          updated_at: created.updatedAt,
+        }),
+      });
+    } catch {
+      // Initial row will be retried on next write
+    }
+  }
+
   return created;
 }
 
@@ -358,31 +422,31 @@ export async function updateSubscription(
 
   const supabaseConfig = getSupabaseRestConfig();
   if (supabaseConfig) {
-    try {
-      await fetch(`${supabaseConfig.url}/rest/v1/user_subscriptions`, {
-        method: "POST",
-        headers: {
-          ...supabaseConfig.headers,
-          "Content-Type": "application/json",
-          Prefer: "resolution=merge-duplicates",
-        },
-        body: JSON.stringify({
-          user_id: updated.userId,
-          email: updated.email ?? null,
-          canonical_email: updated.canonicalEmail ?? normalizeCanonicalEmail(updated.email),
-          plan: updated.plan,
-          queries_used: updated.queriesUsed,
-          queries_limit: updated.queriesLimit,
-          budget_used_micros: updated.budgetUsedMicros,
-          budget_limit_micros: updated.budgetLimitMicros,
-          stripe_customer_id: updated.stripeCustomerId,
-          stripe_subscription_id: updated.stripeSubscriptionId,
-          current_period_end: updated.currentPeriodEnd,
-          updated_at: updated.updatedAt,
-        }),
-      });
-    } catch {
-      // Keep in-memory state if Supabase is unreachable
+    const res = await fetch(`${supabaseConfig.url}/rest/v1/user_subscriptions`, {
+      method: "POST",
+      headers: {
+        ...supabaseConfig.headers,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates",
+      },
+      body: JSON.stringify({
+        user_id: updated.userId,
+        email: updated.email ?? null,
+        canonical_email: updated.canonicalEmail ?? normalizeCanonicalEmail(updated.email),
+        plan: updated.plan,
+        queries_used: updated.queriesUsed,
+        queries_limit: updated.queriesLimit,
+        budget_used_micros: updated.budgetUsedMicros,
+        budget_limit_micros: updated.budgetLimitMicros,
+        stripe_customer_id: updated.stripeCustomerId,
+        stripe_subscription_id: updated.stripeSubscriptionId,
+        current_period_end: updated.currentPeriodEnd,
+        updated_at: updated.updatedAt,
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Supabase subscription update failed (${res.status}): ${errText.slice(0, 200)}`);
     }
   }
 
@@ -428,8 +492,30 @@ export async function incrementQuotaUsage(
   model?: string,
   usage?: TokenUsage,
 ): Promise<UserSubscription> {
-  const current = await getSubscription(userId);
   const costMicros = model ? calculateTokenCostMicros(model, usage) : 0;
+  const supabaseConfig = getSupabaseRestConfig();
+
+  if (supabaseConfig) {
+    const res = await fetch(`${supabaseConfig.url}/rest/v1/rpc/increment_user_usage`, {
+      method: "POST",
+      headers: {
+        ...supabaseConfig.headers,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        p_user_id: userId,
+        p_budget_micros: costMicros,
+      }),
+    });
+    if (res.ok) {
+      const row = (await res.json()) as Record<string, unknown>;
+      const updated = mapRowToSubscription(row, userId);
+      memorySubscriptions.set(userId, updated);
+      return updated;
+    }
+  }
+
+  const current = await getSubscription(userId);
   return updateSubscription(userId, {
     queriesUsed: current.queriesUsed + 1,
     budgetUsedMicros: current.budgetUsedMicros + costMicros,
@@ -448,7 +534,7 @@ export function computeUsagePercent(sub: UserSubscription): number {
 }
 
 export async function getBillingStatus(req: Request): Promise<BillingStatusResponse> {
-  const user = resolveAuthenticatedUser(req);
+  const user = await resolveAuthenticatedUser(req);
   const freeEligibleModels = Array.from(FREE_ELIGIBLE_MODELS);
   const stripeConfigured = isStripeConfigured();
   const serverKeysConfigured = getServerKeysConfigured();
@@ -536,7 +622,7 @@ export async function resolveExecutionAccess(params: {
   }
 
   // 2. Check if user is signed in
-  const user = resolveAuthenticatedUser(req);
+  const user = await resolveAuthenticatedUser(req);
   if (!user) {
     return { allowed: false, reason: "missing_key" };
   }
@@ -634,6 +720,53 @@ export interface StripeWebhookEvent {
   };
 }
 
+async function hasProcessedWebhookEvent(eventId: string): Promise<boolean> {
+  if (processedWebhookEvents.has(eventId)) return true;
+
+  const supabaseConfig = getSupabaseRestConfig();
+  if (supabaseConfig) {
+    try {
+      const res = await fetch(
+        `${supabaseConfig.url}/rest/v1/stripe_webhook_events?event_id=eq.${encodeURIComponent(eventId)}&select=event_id&limit=1`,
+        { headers: supabaseConfig.headers },
+      );
+      if (res.ok) {
+        const rows = (await res.json()) as Array<Record<string, unknown>>;
+        if (rows.length > 0) {
+          processedWebhookEvents.add(eventId);
+          return true;
+        }
+      }
+    } catch {
+      // Fall back to in-memory set if transient error
+    }
+  }
+  return false;
+}
+
+async function recordProcessedWebhookEvent(eventId: string, eventType: string): Promise<void> {
+  processedWebhookEvents.add(eventId);
+  const supabaseConfig = getSupabaseRestConfig();
+  if (supabaseConfig) {
+    const res = await fetch(`${supabaseConfig.url}/rest/v1/stripe_webhook_events`, {
+      method: "POST",
+      headers: {
+        ...supabaseConfig.headers,
+        "Content-Type": "application/json",
+        Prefer: "resolution=ignore-duplicates",
+      },
+      body: JSON.stringify({
+        event_id: eventId,
+        event_type: eventType,
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed to record webhook event (${res.status}): ${errText.slice(0, 200)}`);
+    }
+  }
+}
+
 /**
  * Processes verified Stripe webhook events idempotently.
  */
@@ -644,10 +777,9 @@ export async function processStripeWebhookEvent(
     throw new Error("Invalid Stripe event payload");
   }
 
-  if (processedWebhookEvents.has(event.id)) {
+  if (await hasProcessedWebhookEvent(event.id)) {
     return { processed: false, duplicate: true };
   }
-  processedWebhookEvents.add(event.id);
 
   const obj = event.data?.object ?? {};
 
@@ -665,7 +797,10 @@ export async function processStripeWebhookEvent(
         const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         await updateSubscription(userId, {
           plan: "pro",
+          queriesUsed: 0,
           queriesLimit: PRO_QUERY_LIMIT,
+          budgetUsedMicros: 0,
+          budgetLimitMicros: PRO_BUDGET_LIMIT_MICROS,
           stripeCustomerId: typeof obj.customer === "string" ? obj.customer : null,
           stripeSubscriptionId: typeof obj.subscription === "string" ? obj.subscription : null,
           currentPeriodEnd: periodEnd,
@@ -759,5 +894,6 @@ export async function processStripeWebhookEvent(
     }
   }
 
+  await recordProcessedWebhookEvent(event.id, event.type);
   return { processed: true, duplicate: false };
 }
