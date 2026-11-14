@@ -31,8 +31,9 @@ export function slugifyHeading(text: string): string {
     .replace(/^-|-$/g, '');
 }
 
-// The missing-key and bad-key messages point here; the phrase opens the settings the way a concept term opens its page
+// The missing-key, bad-key, and quota messages point here; these phrases open settings the way a concept term opens its page
 const SETTINGS_PHRASE = 'API Key Settings';
+const PLAN_PHRASE = 'Plan & Usage';
 
 function escapeRegExp(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -71,23 +72,37 @@ export function MarkdownRenderer({ content, terms = [], prerequisiteTerms = [], 
 
   const renderWithHighlights = (text: string) => {
     if (typeof text !== 'string') return text;
-    if (!text.includes(SETTINGS_PHRASE)) return highlightTerms(text);
+    if (!text.includes(SETTINGS_PHRASE) && !text.includes(PLAN_PHRASE)) return highlightTerms(text);
 
-    return text.split(SETTINGS_PHRASE).flatMap((part, i, pieces) => {
-      const piece = <Fragment key={`text-${i}`}>{highlightTerms(part)}</Fragment>;
-      if (i === pieces.length - 1) return [piece];
-      return [
-        piece,
-        <button
-          key={`settings-${i}`}
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'api' } }))}
-          className="-mx-0.5 rounded-sm px-0.5 font-semibold text-foreground underline decoration-primary/60 decoration-2 underline-offset-[5px] transition-colors hover:bg-primary/10 hover:decoration-primary"
-          data-testid="api-key-settings-link"
-        >
-          {SETTINGS_PHRASE}
-        </button>,
-      ];
+    const pattern = new RegExp(`(${escapeRegExp(SETTINGS_PHRASE)}|${escapeRegExp(PLAN_PHRASE)})`, 'g');
+    return text.split(pattern).map((part, i) => {
+      if (part === SETTINGS_PHRASE) {
+        return (
+          <button
+            key={`settings-${i}`}
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'api' } }))}
+            className="-mx-0.5 rounded-sm px-0.5 font-semibold text-foreground underline decoration-primary/60 decoration-2 underline-offset-[5px] transition-colors hover:bg-primary/10 hover:decoration-primary"
+            data-testid="api-key-settings-link"
+          >
+            {SETTINGS_PHRASE}
+          </button>
+        );
+      }
+      if (part === PLAN_PHRASE) {
+        return (
+          <button
+            key={`plan-${i}`}
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'plan' } }))}
+            className="-mx-0.5 rounded-sm px-0.5 font-semibold text-foreground underline decoration-primary/60 decoration-2 underline-offset-[5px] transition-colors hover:bg-primary/10 hover:decoration-primary"
+            data-testid="plan-settings-link"
+          >
+            {PLAN_PHRASE}
+          </button>
+        );
+      }
+      return <Fragment key={`text-${i}`}>{highlightTerms(part)}</Fragment>;
     });
   };
 

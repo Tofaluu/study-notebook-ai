@@ -377,5 +377,9 @@ export async function customFetch<T = unknown>(
     throw new ApiError(response, errorData, requestInfo);
   }
 
-  return (await parseSuccessBody(response, responseType, requestInfo)) as T;
+  const parsed = (await parseSuccessBody(response, responseType, requestInfo)) as T;
+  if (typeof window !== "undefined" && method === "POST" && requestInfo.url.includes("/study/")) {
+    window.dispatchEvent(new CustomEvent("billing-updated"));
+  }
+  return parsed;
 }
