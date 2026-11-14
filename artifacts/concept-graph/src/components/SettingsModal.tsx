@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Check, CreditCard, Key, Loader2, Paintbrush, RotateCcw, Sparkles } from 'lucide-react';
+import { CreditCard, Key, Loader2, Paintbrush, RotateCcw } from 'lucide-react';
 import { useThemeCustomization, type ThemeColors } from '@/hooks/use-theme';
 import { useBilling } from '@/hooks/use-billing';
 import { contrastRatio, getCssVariableHex } from '@/lib/colors';
@@ -98,7 +98,10 @@ export function SettingsModal() {
   };
 
   const hasAnyByokKey = Boolean(geminiKey.trim() || openaiKey.trim() || anthropicKey.trim());
-  const usagePercent = Math.min(100, Math.round((billing.queriesUsed / Math.max(1, billing.queriesLimit)) * 100));
+  const usagePercent =
+    billing.queriesUsed <= 0
+      ? 0
+      : Math.min(100, Math.round((billing.queriesUsed / Math.max(1, billing.queriesLimit)) * 100));
 
   const effective = (key: keyof ThemeColors) => colors[key] || defaultHex[key];
   const contrastChecks = [
@@ -117,7 +120,7 @@ export function SettingsModal() {
       aria-selected={activeTab === tab}
       aria-controls={`settings-panel-${tab}`}
       onClick={() => setActiveTab(tab)}
-      className={`flex items-center gap-2 border-b-2 pb-3 text-sm font-medium transition-colors ${
+      className={`flex items-center gap-2 border-b-2 pb-3 text-sm font-medium transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.98] ${
         activeTab === tab ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
       }`}
     >
@@ -129,7 +132,7 @@ export function SettingsModal() {
   return (
     <Dialog open={open} onOpenChange={(val) => { if (!val) setOpen(false); }}>
       <DialogContent
-        className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-[520px]"
+        className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-[500px]"
         onCloseAutoFocus={(e) => {
           if (returnFocusRef.current?.isConnected) {
             e.preventDefault();
@@ -139,7 +142,7 @@ export function SettingsModal() {
       >
         <DialogHeader className="px-6 pt-6">
           <DialogTitle className="font-serif text-2xl font-semibold">Settings</DialogTitle>
-          <DialogDescription>Manage your API keys, subscription plan, and notebook appearance.</DialogDescription>
+          <DialogDescription>API keys and appearance are saved in this browser only.</DialogDescription>
         </DialogHeader>
 
         <div role="tablist" aria-label="Settings sections" className="flex gap-5 border-b border-border px-6 pt-2">
@@ -152,7 +155,7 @@ export function SettingsModal() {
           {activeTab === 'api' && (
             <div role="tabpanel" id="settings-panel-api" aria-labelledby="settings-tab-api" className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Add a key for any provider you want to use. Personal keys are saved in this browser only and give you unlimited usage without counting toward plan limits.
+                Add a key for any provider you want to use. Keys are sent only with your own requests and are never stored on the server.
               </p>
               <div className="space-y-3">
                 <div className="space-y-1.5">
@@ -173,22 +176,23 @@ export function SettingsModal() {
           )}
 
           {activeTab === 'plan' && (
-            <div role="tabpanel" id="settings-panel-plan" aria-labelledby="settings-tab-plan" className="space-y-5">
+            <div role="tabpanel" id="settings-panel-plan" aria-labelledby="settings-tab-plan" className="space-y-6">
               {!billing.authenticated ? (
-                <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-foreground">Guest Session</span>
+                <div className="space-y-4">
+                  <div className="flex items-baseline justify-between">
+                    <div>
+                      <h3 className="text-base font-semibold text-foreground">Guest session</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Sign in to get 15 free questions on Gemini Flash without needing your own API key.
+                      </p>
+                    </div>
                     {hasAnyByokKey && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">
-                        BYOK Active · Unlimited
+                      <span className="shrink-0 rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                        BYOK active
                       </span>
                     )}
                   </div>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    Sign in to get <span className="font-medium text-foreground">15 free questions</span> on Gemini Flash without needing an API key, or upgrade to Pro for 250 questions/month across all models.
-                  </p>
                   <Button
-                    size="sm"
                     onClick={() => {
                       setOpen(false);
                       window.dispatchEvent(new CustomEvent('open-auth'));
@@ -199,107 +203,86 @@ export function SettingsModal() {
                   </Button>
                 </div>
               ) : (
-                <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3" data-testid="plan-status-card">
-                  <div className="flex items-center justify-between gap-2">
+                <div className="space-y-4" data-testid="plan-status-card">
+                  <div className="flex items-baseline justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-base font-semibold text-foreground">
-                          {billing.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
-                        </span>
-                        {billing.plan === 'pro' && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
-                            <Sparkles className="h-3 w-3" aria-hidden="true" />
-                            Active
-                          </span>
-                        )}
+                        <h3 className="text-base font-semibold text-foreground">
+                          {billing.plan === 'pro' ? 'Pro plan' : 'Free plan'}
+                        </h3>
                         {hasAnyByokKey && (
-                          <span className="inline-flex items-center rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                            + BYOK Unlimited
+                          <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                            Personal key active
                           </span>
                         )}
                       </div>
                       {billing.email && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{billing.email}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{billing.email}</p>
                       )}
                     </div>
-                    <span className="text-sm font-semibold text-foreground">
-                      {billing.plan === 'pro' ? '$9 / mo' : '$0 / mo'}
+                    <span className="text-base font-semibold text-foreground tabular-nums">
+                      {billing.plan === 'pro' ? '$9 / month' : '$0'}
                     </span>
                   </div>
 
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">
-                        Included server-key questions
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-baseline justify-between text-xs">
+                      <span className="text-muted-foreground tabular-nums">
+                        {billing.queriesUsed} used
                       </span>
-                      <span className="font-mono font-medium text-foreground" data-testid="plan-usage-count">
-                        {billing.queriesUsed} / {billing.queriesLimit} used ({billing.remaining} left)
+                      <span className="font-medium text-foreground tabular-nums" data-testid="plan-usage-count">
+                        {billing.remaining} of {billing.queriesLimit} questions left
                       </span>
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${
-                          billing.remaining === 0 ? 'bg-destructive' : 'bg-primary'
-                        }`}
-                        style={{ width: `${usagePercent}%` }}
-                      />
+                      {usagePercent > 0 && (
+                        <div
+                          className={`h-full rounded-full transition-[width] duration-200 ease-out ${
+                            billing.remaining === 0 ? 'bg-destructive' : 'bg-primary'
+                          }`}
+                          style={{ width: `${usagePercent}%` }}
+                        />
+                      )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      Questions asked with your own API keys in the <button type="button" onClick={() => setActiveTab('api')} className="underline underline-offset-2 hover:text-foreground">API keys</button> tab are always free and never count toward this limit.
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Questions asked with your own key in{' '}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('api')}
+                        className="font-medium text-foreground underline underline-offset-4 transition-[color,transform] duration-150 ease-out hover:text-primary active:scale-[0.97]"
+                      >
+                        API keys
+                      </button>{' '}
+                      never count toward this limit.
                     </p>
                   </div>
                 </div>
               )}
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className={`rounded-xl border p-4 space-y-2.5 ${billing.plan === 'free' ? 'border-border bg-card' : 'border-border/60 bg-muted/20'}`}>
-                  <div className="flex items-baseline justify-between">
-                    <h4 className="text-sm font-semibold text-foreground">Free</h4>
-                    <span className="text-xs font-medium text-muted-foreground">$0</span>
+              <div className="divide-y divide-border border-y border-border text-sm">
+                <div className="flex items-baseline justify-between gap-4 py-3.5">
+                  <div>
+                    <p className="font-medium text-foreground">Free</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      15 questions on Gemini Flash, plus unlimited use with your own API keys.
+                    </p>
                   </div>
-                  <ul className="space-y-1.5 text-xs text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
-                      <span>15 included questions on Gemini Flash</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
-                      <span>Unlimited BYOK with your own API keys</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
-                      <span>Cloud notebook sync</span>
-                    </li>
-                  </ul>
+                  <span className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">$0</span>
                 </div>
 
-                <div className={`rounded-xl border p-4 space-y-2.5 ${billing.plan === 'pro' ? 'border-primary bg-primary/5' : 'border-primary/40 bg-card'}`}>
-                  <div className="flex items-baseline justify-between">
-                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                      Pro
-                      <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                    </h4>
-                    <span className="text-xs font-semibold text-foreground">$9 / month</span>
+                <div className="flex items-baseline justify-between gap-4 py-3.5">
+                  <div>
+                    <p className="font-medium text-foreground">Pro</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      250 questions a month across Google Pro, OpenAI, and Claude models without needing personal keys.
+                    </p>
                   </div>
-                  <ul className="space-y-1.5 text-xs text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
-                      <span><strong className="font-medium text-foreground">250 questions / month</strong> included</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
-                      <span>Unlocks <strong className="font-medium text-foreground">Google Pro, OpenAI &amp; Claude</strong> models</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" aria-hidden="true" />
-                      <span>Unlimited BYOK fallback anytime</span>
-                    </li>
-                  </ul>
+                  <span className="shrink-0 text-xs font-semibold text-foreground tabular-nums">$9 / mo</span>
                 </div>
               </div>
 
               {billing.authenticated && (
-                <div className="space-y-2 pt-1">
+                <div className="space-y-2">
                   {billing.plan === 'free' ? (
                     <Button
                       onClick={startCheckout}
@@ -307,11 +290,7 @@ export function SettingsModal() {
                       className="w-full gap-2"
                       data-testid="upgrade-to-pro-button"
                     >
-                      {actionLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                      ) : (
-                        <Sparkles className="h-4 w-4" aria-hidden="true" />
-                      )}
+                      {actionLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
                       Upgrade to Pro — $9/month
                     </Button>
                   ) : (
@@ -323,12 +302,12 @@ export function SettingsModal() {
                       data-testid="manage-subscription-button"
                     >
                       {actionLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-                      {billing.stripeConfigured ? 'Manage subscription in Stripe' : 'Cancel Pro plan (switch to Free)'}
+                      {billing.stripeConfigured ? 'Manage subscription in Stripe' : 'Switch back to Free'}
                     </Button>
                   )}
                   {!billing.stripeConfigured && (
-                    <p className="text-center text-[11px] text-muted-foreground">
-                      Demo checkout mode active — upgrades and cancellations apply immediately for local testing.
+                    <p className="text-center text-xs text-muted-foreground">
+                      Demo checkout is active for local testing.
                     </p>
                   )}
                 </div>

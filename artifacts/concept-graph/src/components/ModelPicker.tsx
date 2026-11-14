@@ -98,7 +98,7 @@ export function ModelPicker({ value, onChange }: ModelPickerProps) {
                   <span className="inline-flex items-center gap-2">
                     <span>{option.label}</span>
                     {showProBadge && (
-                      <span className="rounded bg-primary/15 px-1.5 py-0.2 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                      <span className="rounded bg-primary/15 px-1.5 py-0.5 text-xs font-medium text-primary">
                         Pro
                       </span>
                     )}

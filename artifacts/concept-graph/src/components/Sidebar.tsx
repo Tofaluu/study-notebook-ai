@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/use-auth';
 import { useBilling } from '@/hooks/use-billing';
 import React, { useState } from 'react';
-import { FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Settings, MoreHorizontal, Sparkles } from 'lucide-react';
+import { FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Settings, MoreHorizontal } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Chat } from '@/lib/db';
 import type { LectureSource } from '@workspace/api-client-react';
@@ -252,7 +252,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
               <li
                 key={chat.id}
                 className={`group flex items-center gap-1 rounded-lg pr-1 transition-colors ${
-                  chat.id === activeChatId ? 'bg-card text-foreground shadow-sm' : 'text-foreground hover:bg-foreground/5'
+                  chat.id === activeChatId ? 'bg-card text-foreground' : 'text-foreground hover:bg-foreground/5'
                 }`}
               >
                 <div className="min-w-0 flex-1">
@@ -383,7 +383,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
               {activeChat.sources.map(s => (
                 <li
                   key={s.id}
-                  className="group relative flex items-start gap-3 rounded-xl border border-border bg-card p-3 shadow-sm"
+                  className="group relative flex items-start gap-3 rounded-xl border border-border bg-card p-3"
                 >
                   {s.type === 'image' && s.base64Data ? <div className="w-8 h-8 rounded shrink-0 overflow-hidden bg-muted flex items-center justify-center"><img src={s.base64Data} alt={s.name} className="w-full h-full object-cover" /></div> : <FileText className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />}
                   <div className="flex-1 min-w-0 pr-8">
@@ -419,16 +419,15 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
               onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'plan' } }))}
               title="View plan and remaining questions"
               data-testid="sidebar-plan-pill"
-              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${
+              className={`inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-xs font-medium tabular-nums transition-[transform,background-color,color] duration-150 ease-out active:scale-[0.97] ${
                 billing.plan === 'pro'
-                  ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
+                  ? 'bg-primary/15 text-primary hover:bg-primary/25'
                   : billing.remaining === 0
-                    ? 'border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20'
-                    : 'border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'bg-destructive/15 text-destructive hover:bg-destructive/25'
+                    : 'bg-foreground/[0.06] text-muted-foreground hover:bg-foreground/10 hover:text-foreground'
               }`}
             >
-              {billing.plan === 'pro' && <Sparkles className="h-2.5 w-2.5" aria-hidden="true" />}
-              <span>{billing.plan === 'pro' ? 'Pro' : 'Free'} · {billing.remaining} left</span>
+              {billing.plan === 'pro' ? 'Pro' : 'Free'} · {billing.remaining}
             </button>
           </div>
         ) : (
