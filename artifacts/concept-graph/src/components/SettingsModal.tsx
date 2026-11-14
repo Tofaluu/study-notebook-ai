@@ -14,7 +14,7 @@ import { useThemeCustomization, type ThemeColors } from '@/hooks/use-theme';
 import { useBilling } from '@/hooks/use-billing';
 import { contrastRatio, getCssVariableHex } from '@/lib/colors';
 
-export type SettingsTab = 'api' | 'plan' | 'appearance';
+export type SettingsTab = 'plan' | 'api' | 'appearance';
 
 const COLOR_FIELDS: { key: keyof ThemeColors; label: string; hint: string }[] = [
   { key: 'primary', label: 'Accent', hint: 'Buttons, links and underlined terms.' },
@@ -26,7 +26,8 @@ const COLOR_FIELDS: { key: keyof ThemeColors; label: string; hint: string }[] = 
 
 export function SettingsModal() {
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<SettingsTab>('api');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('plan');
+  const [limitNotice, setLimitNotice] = useState<string | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const [geminiKey, setGeminiKey] = useState('');
@@ -52,7 +53,14 @@ export function SettingsModal() {
       // Opened by an event rather than a Radix trigger, so remember where focus should return
       returnFocusRef.current = document.activeElement as HTMLElement | null;
       const detail = (e as CustomEvent).detail;
-      if (detail?.tab) setActiveTab(detail.tab);
+      if (e.type === 'open-api-key-modal') {
+        setActiveTab('api');
+      } else if (detail?.tab) {
+        setActiveTab(detail.tab);
+      } else {
+        setActiveTab('plan');
+      }
+      setLimitNotice(typeof detail?.notice === 'string' ? detail.notice : null);
       refreshBilling();
       // Read the theme's own values, ignoring any custom overrides, so the pickers start from them
       const getTrueDefault = (variable: string) => {
@@ -130,7 +138,7 @@ export function SettingsModal() {
   );
 
   return (
-    <Dialog open={open} onOpenChange={(val) => { if (!val) setOpen(false); }}>
+    <Dialog open={open} onOpenChange={(val) => { if (!val) { setOpen(false); setLimitNotice(null); } }}>
       <DialogContent
         className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-[500px]"
         onCloseAutoFocus={(e) => {
@@ -146,37 +154,31 @@ export function SettingsModal() {
         </DialogHeader>
 
         <div role="tablist" aria-label="Settings sections" className="flex gap-5 border-b border-border px-6 pt-2">
-          {tabButton('api', 'API keys', Key)}
           {tabButton('plan', 'Plan & Usage', CreditCard)}
+          {tabButton('api', 'API keys', Key)}
           {tabButton('appearance', 'Appearance', Paintbrush)}
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {activeTab === 'api' && (
-            <div role="tabpanel" id="settings-panel-api" aria-labelledby="settings-tab-api" className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Add a key for any provider you want to use. Keys are sent only with your own requests and are never stored on the server.
-              </p>
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="key-gemini">Google Gemini</Label>
-                  <Input id="key-gemini" type="password" autoComplete="off" placeholder="AIza…" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="key-openai">OpenAI</Label>
-                  <Input id="key-openai" type="password" autoComplete="off" placeholder="sk-…" value={openaiKey} onChange={e => setOpenaiKey(e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="key-anthropic">Anthropic</Label>
-                  <Input id="key-anthropic" type="password" autoComplete="off" placeholder="sk-ant-…" value={anthropicKey} onChange={e => setAnthropicKey(e.target.value)} />
-                </div>
-              </div>
-              <Button onClick={handleSaveApiKeys} className="mt-2 w-full">Save keys</Button>
-            </div>
-          )}
-
           {activeTab === 'plan' && (
             <div role="tabpanel" id="settings-panel-plan" aria-labelledby="settings-tab-plan" className="space-y-6">
+              {(limitNotice || (billing.authenticated && billing.remaining === 0 && !hasAnyByokKey)) && (
+                <div
+                  role="alert"
+                  data-testid="plan-limit-banner"
+                  className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-foreground"
+                >
+                  <p className="font-semibold">
+                    {limitNotice || `You've used all ${billing.queriesLimit} included questions on your ${billing.plan === 'pro' ? 'Pro' : 'Free'} plan.`}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {billing.plan === 'free'
+                      ? 'Upgrade to Pro for 250 questions a month across all models, or add a personal API key for unlimited use.'
+                      : 'Add a personal API key in the API keys tab to continue with unlimited usage.'}
+                  </p>
+                </div>
+              )}
+
               {!billing.authenticated ? (
                 <div className="space-y-4">
                   <div className="flex items-baseline justify-between">
@@ -312,6 +314,29 @@ export function SettingsModal() {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'api' && (
+            <div role="tabpanel" id="settings-panel-api" aria-labelledby="settings-tab-api" className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Add a key for any provider you want to use. Keys are sent only with your own requests and are never stored on the server.
+              </p>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="key-gemini">Google Gemini</Label>
+                  <Input id="key-gemini" type="password" autoComplete="off" placeholder="AIza…" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="key-openai">OpenAI</Label>
+                  <Input id="key-openai" type="password" autoComplete="off" placeholder="sk-…" value={openaiKey} onChange={e => setOpenaiKey(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="key-anthropic">Anthropic</Label>
+                  <Input id="key-anthropic" type="password" autoComplete="off" placeholder="sk-ant-…" value={anthropicKey} onChange={e => setAnthropicKey(e.target.value)} />
+                </div>
+              </div>
+              <Button onClick={handleSaveApiKeys} className="mt-2 w-full">Save keys</Button>
             </div>
           )}
 
