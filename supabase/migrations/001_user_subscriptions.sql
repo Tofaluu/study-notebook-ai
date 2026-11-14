@@ -4,9 +4,10 @@
 CREATE TABLE IF NOT EXISTS public.user_subscriptions (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email text,
+  canonical_email text,
   plan text NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro')),
   queries_used integer NOT NULL DEFAULT 0 CHECK (queries_used >= 0),
-  queries_limit integer NOT NULL DEFAULT 15 CHECK (queries_limit > 0),
+  queries_limit integer NOT NULL DEFAULT 15 CHECK (queries_limit >= 0),
   budget_used_micros bigint NOT NULL DEFAULT 0 CHECK (budget_used_micros >= 0),
   budget_limit_micros bigint NOT NULL DEFAULT 10000000 CHECK (budget_limit_micros > 0),
   stripe_customer_id text UNIQUE,
@@ -15,6 +16,10 @@ CREATE TABLE IF NOT EXISTS public.user_subscriptions (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_canonical_email
+  ON public.user_subscriptions (canonical_email)
+  WHERE canonical_email IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_stripe_customer
   ON public.user_subscriptions (stripe_customer_id)

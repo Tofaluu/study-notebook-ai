@@ -7,6 +7,7 @@ import {
   FREE_QUERY_LIMIT,
   PRO_BUDGET_LIMIT_MICROS,
   PRO_QUERY_LIMIT,
+  normalizeCanonicalEmail,
   resetBillingStoreForTests,
   updateSubscription,
 } from "../lib/billing";
@@ -389,5 +390,25 @@ describe("Billing & Subscription Quota Pipeline", () => {
       plan: "free",
       queriesLimit: FREE_QUERY_LIMIT,
     });
+  });
+
+  it("strips +aliases and Gmail dots to prevent farming extra free allowances", async () => {
+    expect(normalizeCanonicalEmail("St.Udent+1@gmail.com")).toBe("student@gmail.com");
+    expect(normalizeCanonicalEmail("user+promo@outlook.com")).toBe("user@outlook.com");
+
+    const firstRes = await realFetch(`${baseUrl}/api/billing/status`, {
+      headers: { Authorization: "Bearer test-user:user-orig-1:St.Udent@gmail.com" },
+    });
+    const firstBody = (await firstRes.json()) as { queriesLimit: number; remaining: number };
+    expect(firstBody.queriesLimit).toBe(FREE_QUERY_LIMIT);
+    expect(firstBody.remaining).toBe(FREE_QUERY_LIMIT);
+
+    // Second account using +alias and dot variant of the same Gmail inbox gets 0 free allowance
+    const aliasRes = await realFetch(`${baseUrl}/api/billing/status`, {
+      headers: { Authorization: "Bearer test-user:user-alias-2:student+free2@gmail.com" },
+    });
+    const aliasBody = (await aliasRes.json()) as { queriesLimit: number; remaining: number };
+    expect(aliasBody.queriesLimit).toBe(0);
+    expect(aliasBody.remaining).toBe(0);
   });
 });
