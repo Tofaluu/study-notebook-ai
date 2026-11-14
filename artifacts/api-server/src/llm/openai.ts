@@ -6,6 +6,10 @@ type OpenAIContentPart =
 
 interface ChatCompletionResponse {
   choices?: Array<{ message?: { content?: string | null } }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+  };
 }
 
 export const openai: ProviderAdapter = {
@@ -43,5 +47,14 @@ export const openai: ProviderAdapter = {
 
   extractText(payload) {
     return (payload as ChatCompletionResponse).choices?.[0]?.message?.content ?? undefined;
+  },
+
+  extractUsage(payload) {
+    const usage = (payload as ChatCompletionResponse).usage;
+    if (!usage) return undefined;
+    return {
+      inputTokens: typeof usage.prompt_tokens === "number" ? usage.prompt_tokens : 0,
+      outputTokens: typeof usage.completion_tokens === "number" ? usage.completion_tokens : 0,
+    };
   },
 };

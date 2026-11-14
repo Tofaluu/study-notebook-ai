@@ -1,11 +1,37 @@
 import crypto from "node:crypto";
 import type { Request } from "express";
-import type { ProviderAdapter } from "../llm/types";
+import type { ProviderAdapter, TokenUsage } from "../llm/types";
 
 export type ProviderId = ProviderAdapter["id"];
 
 export const FREE_QUERY_LIMIT = 15;
 export const PRO_QUERY_LIMIT = 250;
+export const PRO_PRICE_MONTHLY_USD = 8;
+export const PRO_BUDGET_LIMIT_USD = 10;
+/** $10.00 total monthly API budget across Google, OpenAI, and Anthropic, stored in micro-dollars ($0.000001). */
+export const PRO_BUDGET_LIMIT_MICROS = 10_000_000;
+
+/**
+ * Per-1M-token wholesale API rates in USD (1 token = rate micro-dollars).
+ */
+export const MODEL_TOKEN_RATES_USD_PER_1M: Record<string, { input: number; output: number }> = {
+  "gemini-3.1-flash-lite": { input: 0.1, output: 0.4 },
+  "gemini-3.8-flash": { input: 0.15, output: 0.6 },
+  "gemini-3.1-pro-preview": { input: 1.25, output: 5.0 },
+  "gpt-6-luna": { input: 0.25, output: 1.0 },
+  "gpt-6.1-sol": { input: 2.5, output: 10.0 },
+  "claude-haiku-4-5": { input: 0.8, output: 4.0 },
+  "claude-sonnet-5-5": { input: 3.0, output: 15.0 },
+  "claude-opus-5-5": { input: 15.0, output: 75.0 },
+  "claude-fable-5-1": { input: 15.0, output: 75.0 },
+};
+
+export function calculateTokenCostMicros(model: string, usage?: TokenUsage): number {
+  const rate = MODEL_TOKEN_RATES_USD_PER_1M[model] ?? { input: 1.0, output: 4.0 };
+  const inputTokens = Math.max(0, usage?.inputTokens ?? 500);
+  const outputTokens = Math.max(0, usage?.outputTokens ?? 500);
+  return Math.max(1, Math.ceil(inputTokens * rate.input + outputTokens * rate.output));
+}
 
 export const FREE_ELIGIBLE_MODELS: ReadonlySet<string> = new Set<string>([
   "gemini-3.1-flash-lite",
@@ -25,6 +51,8 @@ export interface UserSubscription {
   plan: SubscriptionPlan;
   queriesUsed: number;
   queriesLimit: number;
+  budgetUsedMicros: number;
+  budgetLimitMicros: number;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   currentPeriodEnd: string | null;
@@ -38,6 +66,9 @@ export interface BillingStatusResponse {
   plan: SubscriptionPlan;
   queriesUsed: number;
   queriesLimit: number;
+  budgetUsedMicros: number;
+  budgetLimitMicros: number;
+  usagePercent: number;
   remaining: number;
   currentPeriodEnd: string | null;
   freeEligibleModels: string[];
@@ -170,6 +201,8 @@ function createDefaultSubscription(userId: string, email?: string): UserSubscrip
     plan: "free",
     queriesUsed: 0,
     queriesLimit: FREE_QUERY_LIMIT,
+    budgetUsedMicros: 0,
+    budgetLimitMicros: PRO_BUDGET_LIMIT_MICROS,
     stripeCustomerId: null,
     stripeSubscriptionId: null,
     currentPeriodEnd: null,
@@ -190,6 +223,11 @@ function mapRowToSubscription(row: Record<string, unknown>, fallbackUserId: stri
         : plan === "pro"
           ? PRO_QUERY_LIMIT
           : FREE_QUERY_LIMIT,
+    budgetUsedMicros: typeof row.budget_used_micros === "number" ? row.budget_used_micros : 0,
+    budgetLimitMicros:
+      typeof row.budget_limit_micros === "number" && row.budget_limit_micros > 0
+        ? row.budget_limit_micros
+        : PRO_BUDGET_LIMIT_MICROS,
     stripeCustomerId: typeof row.stripe_customer_id === "string" ? row.stripe_customer_id : null,
     stripeSubscriptionId: typeof row.stripe_subscription_id === "string" ? row.stripe_subscription_id : null,
     currentPeriodEnd: typeof row.current_period_end === "string" ? row.current_period_end : null,
@@ -264,6 +302,8 @@ export async function updateSubscription(
           plan: updated.plan,
           queries_used: updated.queriesUsed,
           queries_limit: updated.queriesLimit,
+          budget_used_micros: updated.budgetUsedMicros,
+          budget_limit_micros: updated.budgetLimitMicros,
           stripe_customer_id: updated.stripeCustomerId,
           stripe_subscription_id: updated.stripeSubscriptionId,
           current_period_end: updated.currentPeriodEnd,
@@ -315,11 +355,28 @@ export async function findSubscriptionByStripeCustomer(
   return null;
 }
 
-export async function incrementQuotaUsage(userId: string): Promise<UserSubscription> {
+export async function incrementQuotaUsage(
+  userId: string,
+  model?: string,
+  usage?: TokenUsage,
+): Promise<UserSubscription> {
   const current = await getSubscription(userId);
+  const costMicros = model ? calculateTokenCostMicros(model, usage) : 0;
   return updateSubscription(userId, {
     queriesUsed: current.queriesUsed + 1,
+    budgetUsedMicros: current.budgetUsedMicros + costMicros,
   });
+}
+
+export function computeUsagePercent(sub: UserSubscription): number {
+  if (sub.plan === "pro") {
+    if (sub.budgetUsedMicros <= 0) return 0;
+    if (sub.budgetUsedMicros >= sub.budgetLimitMicros) return 100;
+    return Math.min(99, Math.max(1, Math.round((sub.budgetUsedMicros / Math.max(1, sub.budgetLimitMicros)) * 100)));
+  }
+  if (sub.queriesUsed <= 0) return 0;
+  if (sub.queriesUsed >= sub.queriesLimit) return 100;
+  return Math.min(99, Math.max(1, Math.round((sub.queriesUsed / Math.max(1, sub.queriesLimit)) * 100)));
 }
 
 export async function getBillingStatus(req: Request): Promise<BillingStatusResponse> {
@@ -336,6 +393,9 @@ export async function getBillingStatus(req: Request): Promise<BillingStatusRespo
       plan: "free",
       queriesUsed: 0,
       queriesLimit: FREE_QUERY_LIMIT,
+      budgetUsedMicros: 0,
+      budgetLimitMicros: PRO_BUDGET_LIMIT_MICROS,
+      usagePercent: 0,
       remaining: FREE_QUERY_LIMIT,
       currentPeriodEnd: null,
       freeEligibleModels,
@@ -345,6 +405,12 @@ export async function getBillingStatus(req: Request): Promise<BillingStatusRespo
   }
 
   const sub = await getSubscription(user.id, user.email);
+  const usagePercent = computeUsagePercent(sub);
+  const remaining =
+    sub.plan === "pro"
+      ? Math.max(0, 100 - usagePercent)
+      : Math.max(0, sub.queriesLimit - sub.queriesUsed);
+
   return {
     authenticated: true,
     userId: sub.userId,
@@ -352,7 +418,10 @@ export async function getBillingStatus(req: Request): Promise<BillingStatusRespo
     plan: sub.plan,
     queriesUsed: sub.queriesUsed,
     queriesLimit: sub.queriesLimit,
-    remaining: Math.max(0, sub.queriesLimit - sub.queriesUsed),
+    budgetUsedMicros: sub.budgetUsedMicros,
+    budgetLimitMicros: sub.budgetLimitMicros,
+    usagePercent,
+    remaining,
     currentPeriodEnd: sub.currentPeriodEnd,
     freeEligibleModels,
     stripeConfigured,
@@ -365,7 +434,7 @@ export type ExecutionAccessResult =
       allowed: true;
       apiKey: string;
       mode: "byok" | "server_quota";
-      consumeQuota: () => Promise<void>;
+      consumeQuota: (usage?: TokenUsage) => Promise<void>;
     }
   | {
       allowed: false;
@@ -415,8 +484,15 @@ export async function resolveExecutionAccess(params: {
     };
   }
 
-  // 4. Check remaining quota on the user's current plan
-  if (subscription.queriesUsed >= subscription.queriesLimit) {
+  // 4. Check remaining quota on the user's current plan:
+  //    - Free tier: 15 free questions cap (queriesUsed >= queriesLimit)
+  //    - Pro tier: $10.00 total monthly API budget across all 3 providers (budgetUsedMicros >= budgetLimitMicros)
+  const isQuotaExceeded =
+    subscription.plan === "pro"
+      ? subscription.budgetUsedMicros >= subscription.budgetLimitMicros
+      : subscription.queriesUsed >= subscription.queriesLimit;
+
+  if (isQuotaExceeded) {
     return {
       allowed: false,
       reason: "quota_exceeded",
@@ -434,8 +510,8 @@ export async function resolveExecutionAccess(params: {
     allowed: true,
     apiKey: serverKey,
     mode: "server_quota",
-    consumeQuota: async () => {
-      await incrementQuotaUsage(user.id);
+    consumeQuota: async (usage?: TokenUsage) => {
+      await incrementQuotaUsage(user.id, model, usage);
     },
   };
 }
@@ -588,6 +664,8 @@ export async function processStripeWebhookEvent(
           await updateSubscription(target.userId, {
             queriesUsed: 0,
             queriesLimit: PRO_QUERY_LIMIT,
+            budgetUsedMicros: 0,
+            budgetLimitMicros: PRO_BUDGET_LIMIT_MICROS,
           });
         }
       }

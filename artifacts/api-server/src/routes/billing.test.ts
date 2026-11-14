@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import app from "../app";
 import {
   FREE_QUERY_LIMIT,
+  PRO_BUDGET_LIMIT_MICROS,
   PRO_QUERY_LIMIT,
   resetBillingStoreForTests,
   updateSubscription,
@@ -233,7 +234,7 @@ describe("Billing & Subscription Quota Pipeline", () => {
     expect(checkoutBody.subscription.plan).toBe("pro");
     expect(checkoutBody.subscription.queriesLimit).toBe(PRO_QUERY_LIMIT);
 
-    // Pro user can now use OpenAI server key
+    // Pro user can now use OpenAI server key and token cost is tracked against the $10.00 pool
     mockProvider({
       choices: [
         {
@@ -247,6 +248,10 @@ describe("Billing & Subscription Quota Pipeline", () => {
           },
         },
       ],
+      usage: {
+        prompt_tokens: 2000,
+        completion_tokens: 1000,
+      },
     });
 
     const proExplainRes = await realFetch(`${baseUrl}/api/study/explain`, {
@@ -256,6 +261,28 @@ describe("Billing & Subscription Quota Pipeline", () => {
     });
     const proExplainBody = (await proExplainRes.json()) as { title: string };
     expect(proExplainBody.title).toBe("Pro Answer");
+
+    const proStatusRes = await realFetch(`${baseUrl}/api/billing/status`, { headers: authHeader });
+    const proStatusBody = (await proStatusRes.json()) as {
+      budgetUsedMicros: number;
+      budgetLimitMicros: number;
+      usagePercent: number;
+    };
+    // gpt-6-luna: 2000 * $0.25/1M + 1000 * $1.00/1M = 500 + 1000 = 1500 micro-dollars ($0.0015)
+    expect(proStatusBody.budgetUsedMicros).toBe(1500);
+    expect(proStatusBody.budgetLimitMicros).toBe(PRO_BUDGET_LIMIT_MICROS);
+    expect(proStatusBody.usagePercent).toBe(1);
+
+    // Exhaust the $10.00 Pro API budget and verify it blocks further server-key requests
+    await updateSubscription(userId, { budgetUsedMicros: PRO_BUDGET_LIMIT_MICROS });
+    const proCapRes = await realFetch(`${baseUrl}/api/study/explain`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({ prompt: "Over $10 budget", sources: [], model: "gpt-6-luna" }),
+    });
+    const proCapBody = (await proCapRes.json()) as { title: string; answerMarkdown: string };
+    expect(proCapBody.title).toBe("Monthly Pro Limit Reached");
+    expect(proCapBody.answerMarkdown).toContain("100%");
   });
 
   it("verifies Stripe webhook HMAC-SHA256 signatures, blocks replays/tampering, and processes events idempotently", async () => {

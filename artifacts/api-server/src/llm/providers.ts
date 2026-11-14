@@ -35,8 +35,23 @@ export async function generateStructured(
     throw new Error(`API request failed (${response.status}): ${detail}`);
   }
 
-  const text = provider.extractText(await response.json());
+  const payload = await response.json();
+  const text = provider.extractText(payload);
   if (!text) throw new Error("API returned an empty response");
 
-  return JSON.parse(text);
+  const parsed = JSON.parse(text);
+
+  if (request.onUsage) {
+    const reported = provider.extractUsage?.(payload);
+    const usage =
+      reported && (reported.inputTokens > 0 || reported.outputTokens > 0)
+        ? reported
+        : {
+            inputTokens: Math.max(250, Math.ceil(request.prompt.length / 4)),
+            outputTokens: Math.max(250, Math.ceil(text.length / 4)),
+          };
+    request.onUsage(usage);
+  }
+
+  return parsed;
 }

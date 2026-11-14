@@ -11,6 +11,9 @@ export interface BillingStatus {
   plan: SubscriptionPlan;
   queriesUsed: number;
   queriesLimit: number;
+  budgetUsedMicros?: number;
+  budgetLimitMicros?: number;
+  usagePercent: number;
   remaining: number;
   currentPeriodEnd: string | null;
   freeEligibleModels: string[];
@@ -29,6 +32,9 @@ const DEFAULT_BILLING_STATUS: BillingStatus = {
   plan: 'free',
   queriesUsed: 0,
   queriesLimit: 15,
+  budgetUsedMicros: 0,
+  budgetLimitMicros: 10_000_000,
+  usagePercent: 0,
   remaining: 15,
   currentPeriodEnd: null,
   freeEligibleModels: ['gemini-3.1-flash-lite', 'gemini-3.8-flash'],
@@ -115,7 +121,7 @@ async function verifyCheckoutSessionFromUrl(): Promise<void> {
           await fetchBillingStatusDeduped();
           toast({
             title: 'Upgraded to Pro Plan',
-            description: 'Your Stripe subscription is active with 250 questions/month across all models.',
+            description: 'Your Stripe subscription is active across all Gemini, OpenAI, and Claude models.',
           });
         }
       }
@@ -193,7 +199,7 @@ export function useBilling() {
       window.dispatchEvent(new CustomEvent('billing-updated'));
       toast({
         title: 'Upgraded to Pro Plan',
-        description: 'You now have 250 questions/month across all Gemini, OpenAI, and Claude models.',
+        description: 'You now have full monthly access across all Gemini, OpenAI, and Claude models.',
       });
     } catch {
       toast({

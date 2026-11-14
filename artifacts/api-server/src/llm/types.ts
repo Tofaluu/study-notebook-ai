@@ -7,12 +7,18 @@ export interface ImageInput {
   data: string;
 }
 
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
 export interface StructuredRequest {
   prompt: string;
   schema: JsonSchema;
   model: string;
   apiKey: string;
   images: ImageInput[];
+  onUsage?: (usage: TokenUsage) => void;
 }
 
 export interface ProviderRequest {
@@ -34,4 +40,6 @@ export interface ProviderAdapter {
   buildRequest(request: StructuredRequest): ProviderRequest;
   /** Returns the JSON text of the structured response, or undefined if empty. */
   extractText(payload: unknown): string | undefined;
+  /** Extracts input/output token counts from the provider's response payload when present. */
+  extractUsage?(payload: unknown): TokenUsage | undefined;
 }

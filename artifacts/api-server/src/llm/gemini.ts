@@ -5,6 +5,10 @@ type GeminiPart = { text: string } | { inlineData: { mimeType: string; data: str
 
 interface GenerateContentResponse {
   candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+  };
 }
 
 export const gemini: ProviderAdapter = {
@@ -36,5 +40,14 @@ export const gemini: ProviderAdapter = {
 
   extractText(payload) {
     return (payload as GenerateContentResponse).candidates?.[0]?.content?.parts?.[0]?.text;
+  },
+
+  extractUsage(payload) {
+    const meta = (payload as GenerateContentResponse).usageMetadata;
+    if (!meta) return undefined;
+    return {
+      inputTokens: typeof meta.promptTokenCount === "number" ? meta.promptTokenCount : 0,
+      outputTokens: typeof meta.candidatesTokenCount === "number" ? meta.candidatesTokenCount : 0,
+    };
   },
 };
