@@ -11,6 +11,10 @@ type AnthropicContentPart =
 interface MessagesResponse {
   error?: { message?: string };
   content?: Array<{ type: string; text?: string; input?: unknown }>;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+  };
 }
 
 export const anthropic: ProviderAdapter = {
@@ -75,5 +79,14 @@ export const anthropic: ProviderAdapter = {
     }
 
     throw new Error("API returned an empty response. Payload was: " + JSON.stringify(payload));
+  },
+
+  extractUsage(payload) {
+    const usage = (payload as MessagesResponse).usage;
+    if (!usage) return undefined;
+    return {
+      inputTokens: typeof usage.input_tokens === "number" ? usage.input_tokens : 0,
+      outputTokens: typeof usage.output_tokens === "number" ? usage.output_tokens : 0,
+    };
   },
 };

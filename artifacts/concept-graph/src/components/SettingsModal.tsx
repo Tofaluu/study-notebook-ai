@@ -107,9 +107,11 @@ export function SettingsModal() {
 
   const hasAnyByokKey = Boolean(geminiKey.trim() || openaiKey.trim() || anthropicKey.trim());
   const usagePercent =
-    billing.queriesUsed <= 0
-      ? 0
-      : Math.min(100, Math.round((billing.queriesUsed / Math.max(1, billing.queriesLimit)) * 100));
+    typeof billing.usagePercent === 'number'
+      ? billing.usagePercent
+      : billing.queriesUsed <= 0
+        ? 0
+        : Math.min(100, Math.round((billing.queriesUsed / Math.max(1, billing.queriesLimit)) * 100));
 
   const effective = (key: keyof ThemeColors) => colors[key] || defaultHex[key];
   const contrastChecks = [
@@ -169,11 +171,14 @@ export function SettingsModal() {
                   className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-foreground"
                 >
                   <p className="font-semibold">
-                    {limitNotice || `You've used all ${billing.queriesLimit} included questions on your ${billing.plan === 'pro' ? 'Pro' : 'Free'} plan.`}
+                    {limitNotice ||
+                      (billing.plan === 'pro'
+                        ? "You've used 100% of your included monthly Pro usage."
+                        : `You've used all ${billing.queriesLimit} included questions on your Free plan.`)}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {billing.plan === 'free'
-                      ? 'Upgrade to Pro for 250 questions a month across all models, or add a personal API key for unlimited use.'
+                      ? 'Upgrade to Pro for $8/month to unlock all Google, OpenAI, and Claude models, or add a personal API key for unlimited use.'
                       : 'Add a personal API key in the API keys tab to continue with unlimited usage.'}
                   </p>
                 </div>
@@ -223,17 +228,21 @@ export function SettingsModal() {
                       )}
                     </div>
                     <span className="text-base font-semibold text-foreground tabular-nums">
-                      {billing.plan === 'pro' ? '$9 / month' : '$0'}
+                      {billing.plan === 'pro' ? '$8 / month' : '$0'}
                     </span>
                   </div>
 
                   <div className="space-y-2 pt-1">
                     <div className="flex items-baseline justify-between text-xs">
                       <span className="text-muted-foreground tabular-nums">
-                        {billing.queriesUsed} used
+                        {billing.plan === 'pro'
+                          ? `${usagePercent}% used this month`
+                          : `${billing.queriesUsed} used`}
                       </span>
                       <span className="font-medium text-foreground tabular-nums" data-testid="plan-usage-count">
-                        {billing.remaining} of {billing.queriesLimit} questions left
+                        {billing.plan === 'pro'
+                          ? `${Math.max(0, 100 - usagePercent)}% remaining`
+                          : `${billing.remaining} of ${billing.queriesLimit} questions left`}
                       </span>
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -276,10 +285,10 @@ export function SettingsModal() {
                   <div>
                     <p className="font-medium text-foreground">Pro</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      250 questions a month across Google Pro, OpenAI, and Claude models without needing personal keys.
+                      Full monthly usage across Google Pro, OpenAI, and Claude models without needing personal keys.
                     </p>
                   </div>
-                  <span className="shrink-0 text-xs font-semibold text-foreground tabular-nums">$9 / mo</span>
+                  <span className="shrink-0 text-xs font-semibold text-foreground tabular-nums">$8 / mo</span>
                 </div>
               </div>
 
@@ -293,7 +302,7 @@ export function SettingsModal() {
                       data-testid="upgrade-to-pro-button"
                     >
                       {actionLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-                      Upgrade to Pro — $9/month
+                      Upgrade to Pro — $8/month
                     </Button>
                   ) : (
                     <Button

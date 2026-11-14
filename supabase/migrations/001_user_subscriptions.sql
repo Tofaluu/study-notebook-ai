@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS public.user_subscriptions (
   plan text NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro')),
   queries_used integer NOT NULL DEFAULT 0 CHECK (queries_used >= 0),
   queries_limit integer NOT NULL DEFAULT 15 CHECK (queries_limit > 0),
+  budget_used_micros bigint NOT NULL DEFAULT 0 CHECK (budget_used_micros >= 0),
+  budget_limit_micros bigint NOT NULL DEFAULT 10000000 CHECK (budget_limit_micros > 0),
   stripe_customer_id text UNIQUE,
   stripe_subscription_id text UNIQUE,
   current_period_end timestamptz,

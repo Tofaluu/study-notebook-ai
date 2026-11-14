@@ -11,7 +11,7 @@ import { DEFAULT_MODEL, generateStructured, resolveProvider } from "../llm/provi
 import { getErrorMessage, imagesFromSources, normalizeExplanation } from "../llm/normalize";
 import { buildConceptPrompt, buildFollowUpPrompt, buildStudyPrompt, buildVoiceActionPrompt } from "../llm/prompts";
 import { selectedPassageSchema, studyExplanationSchema, technicalConceptSchema, voiceActionSchema } from "../llm/schemas";
-import type { ProviderAdapter } from "../llm/types";
+import type { ProviderAdapter, TokenUsage } from "../llm/types";
 import { gemini } from "../llm/gemini";
 import { openai } from "../llm/openai";
 import { isSupportedAudioType, transcribeAudio, type TranscribeProviderId } from "../llm/transcribe";
@@ -50,13 +50,13 @@ function buildAccessDeniedExplanation(
     if (access.subscription?.plan === "pro") {
       return {
         title: "Monthly Pro Limit Reached",
-        answerMarkdown: `You've used all ${access.subscription.queriesLimit} included Pro questions for this billing period. View your subscription in Plan & Usage, or add your own ${provider.displayName} API key in API Key Settings for unlimited usage.`,
+        answerMarkdown: `You've used 100% of your included monthly Pro usage for this billing period. View your subscription in Plan & Usage, or add your own ${provider.displayName} API key in API Key Settings for unlimited usage.`,
       };
     }
     const limit = access.subscription?.queriesLimit ?? FREE_QUERY_LIMIT;
     return {
       title: "Free Limit Reached",
-      answerMarkdown: `You've used all ${limit} free questions included with your account. Upgrade to Pro in Plan & Usage for 250 questions/month across all models, or add your own ${provider.displayName} API key in API Key Settings for unlimited usage.`,
+      answerMarkdown: `You've used all ${limit} free questions included with your account. Upgrade to Pro in Plan & Usage to unlock all Gemini, OpenAI, and Claude models, or add your own ${provider.displayName} API key in API Key Settings for unlimited usage.`,
     };
   }
 
@@ -102,15 +102,19 @@ router.post("/study/explain", async (req, res) => {
   }
 
   try {
+    let usage: TokenUsage | undefined;
     const raw = await generateStructured({
       prompt: buildStudyPrompt(prompt, sources),
       schema: studyExplanationSchema,
       model: effectiveModel,
       apiKey: access.apiKey,
       images: imagesFromSources(sources),
+      onUsage: (u) => {
+        usage = u;
+      },
     });
 
-    await access.consumeQuota();
+    await access.consumeQuota(usage);
 
     res.json(
       ExplainStudyTopicResponse.parse({
@@ -159,15 +163,19 @@ router.post("/study/concepts/explain", async (req, res) => {
   }
 
   try {
+    let usage: TokenUsage | undefined;
     const raw = await generateStructured({
       prompt: buildConceptPrompt(term, context, sources),
       schema: technicalConceptSchema,
       model: effectiveModel,
       apiKey: access.apiKey,
       images: imagesFromSources(sources),
+      onUsage: (u) => {
+        usage = u;
+      },
     });
 
-    await access.consumeQuota();
+    await access.consumeQuota(usage);
 
     res.json(ExplainTechnicalConceptResponse.parse(normalizeExplanation(raw)));
   } catch (error) {
@@ -210,15 +218,19 @@ router.post("/study/follow-ups/explain", async (req, res) => {
   }
 
   try {
+    let usage: TokenUsage | undefined;
     const raw = await generateStructured({
       prompt: buildFollowUpPrompt(selectedText, question, answerContext, sources),
       schema: selectedPassageSchema,
       model: effectiveModel,
       apiKey: access.apiKey,
       images: imagesFromSources(sources),
+      onUsage: (u) => {
+        usage = u;
+      },
     });
 
-    await access.consumeQuota();
+    await access.consumeQuota(usage);
 
     res.json(ExplainSelectedPassageResponse.parse(normalizeExplanation(raw)));
   } catch (error) {
