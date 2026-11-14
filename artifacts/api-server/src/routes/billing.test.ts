@@ -411,4 +411,73 @@ describe("Billing & Subscription Quota Pipeline", () => {
     expect(aliasBody.queriesLimit).toBe(0);
     expect(aliasBody.remaining).toBe(0);
   });
+
+  it("fails closed on unverified JWTs when SUPABASE_JWT_SECRET and Supabase Auth are unset", async () => {
+    const forgedToken = createSignedJwt(
+      { sub: "forged-user", exp: Math.floor(Date.now() / 1000) + 3600 },
+      "wrong-or-missing-secret",
+    );
+
+    const res = await realFetch(`${baseUrl}/api/billing/status`, {
+      headers: { Authorization: `Bearer ${forgedToken}` },
+    });
+    const body = (await res.json()) as { authenticated: boolean; userId: string | null };
+    expect(body.authenticated).toBe(false);
+    expect(body.userId).toBeNull();
+  });
+
+  it("blocks demo checkout in production when Stripe is unconfigured and resets budget on re-subscribe", async () => {
+    const userId = "user-resub-1";
+    const authHeader = { Authorization: `Bearer test-user:${userId}:resub@test.com` };
+
+    // Exhaust Pro budget, then downgrade
+    await updateSubscription(userId, {
+      plan: "free",
+      queriesUsed: 15,
+      budgetUsedMicros: PRO_BUDGET_LIMIT_MICROS,
+    });
+
+    // Re-subscribe in dev demo mode -> resets budgetUsedMicros and queriesUsed to 0
+    const demoRes = await realFetch(`${baseUrl}/api/billing/checkout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({}),
+    });
+    expect(demoRes.status).toBe(200);
+    const demoBody = (await demoRes.json()) as {
+      subscription: { plan: string; queriesUsed: number; budgetUsedMicros: number };
+    };
+    expect(demoBody.subscription.plan).toBe("pro");
+    expect(demoBody.subscription.queriesUsed).toBe(0);
+    expect(demoBody.subscription.budgetUsedMicros).toBe(0);
+
+    // Production guard: missing Stripe env vars returns 503 instead of upgrading for free
+    const prevEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      const prodRes = await realFetch(`${baseUrl}/api/billing/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${createSignedJwt({ sub: "prod-user", exp: Math.floor(Date.now() / 1000) + 3600 }, "s")}`,
+        },
+        body: JSON.stringify({}),
+      });
+      // Unverified JWT fails closed with 401; with valid JWT in production without Stripe -> 503
+      expect(prodRes.status).toBe(401);
+
+      process.env.SUPABASE_JWT_SECRET = "s";
+      const prodAuthRes = await realFetch(`${baseUrl}/api/billing/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${createSignedJwt({ sub: "prod-user", exp: Math.floor(Date.now() / 1000) + 3600 }, "s")}`,
+        },
+        body: JSON.stringify({}),
+      });
+      expect(prodAuthRes.status).toBe(503);
+    } finally {
+      process.env.NODE_ENV = prevEnv;
+    }
+  });
 });

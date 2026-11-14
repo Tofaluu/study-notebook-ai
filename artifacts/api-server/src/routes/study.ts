@@ -17,8 +17,6 @@ import { openai } from "../llm/openai";
 import { isSupportedAudioType, transcribeAudio, type TranscribeProviderId } from "../llm/transcribe";
 import {
   FREE_QUERY_LIMIT,
-  getServerApiKey,
-  resolveAuthenticatedUser,
   resolveExecutionAccess,
   type ExecutionAccessResult,
 } from "../lib/billing";
@@ -261,25 +259,33 @@ router.post("/study/voice/action", async (req, res) => {
   }
 
   const provider = resolveProvider(fastModel);
-  const userKey = getApiKey(req, provider);
-  const serverKey = resolveAuthenticatedUser(req) ? getServerApiKey(provider.id) : undefined;
-  const apiKey = userKey || serverKey;
+  const access = await resolveExecutionAccess({
+    req,
+    model: fastModel,
+    provider: provider.id,
+    userProvidedKey: getApiKey(req, provider),
+  });
 
-  if (!apiKey) {
-    // If no key is configured, fallback smoothly
+  if (!access.allowed) {
+    // If no key or quota is available, fall back smoothly to plain dictation
     res.json({ action: "dictate", text: transcript });
     return;
   }
 
   try {
+    let usage: TokenUsage | undefined;
     const raw = await generateStructured({
       prompt: buildVoiceActionPrompt(transcript),
       schema: voiceActionSchema,
       model: fastModel,
-      apiKey,
+      apiKey: access.apiKey,
       images: [],
+      onUsage: (u) => {
+        usage = u;
+      },
     });
 
+    await access.consumeQuota(usage);
     res.json(raw);
   } catch (error) {
     req.log.warn({ err: error }, "Voice action classification failed; falling back to dictation");
@@ -316,13 +322,24 @@ router.post("/study/voice/transcribe", async (req, res) => {
   }
 
   const order: TranscribeProviderId[] = requestedModel.startsWith("gpt-") ? ["openai", "gemini"] : ["gemini", "openai"];
-  const isAuth = Boolean(resolveAuthenticatedUser(req));
-  const resolveTranscriberKey = (id: TranscribeProviderId) =>
-    getApiKey(req, TRANSCRIBERS[id]) || (isAuth ? getServerApiKey(TRANSCRIBERS[id].id) : undefined);
+  let selectedProvider: TranscribeProviderId | undefined;
+  let selectedAccess: Extract<ExecutionAccessResult, { allowed: true }> | undefined;
 
-  const provider = order.find((id) => resolveTranscriberKey(id));
-  const apiKey = provider && resolveTranscriberKey(provider);
-  if (!provider || !apiKey) {
+  for (const id of order) {
+    const access = await resolveExecutionAccess({
+      req,
+      model: id === "openai" ? "gpt-6-luna" : "gemini-3.8-flash",
+      provider: id,
+      userProvidedKey: getApiKey(req, TRANSCRIBERS[id]),
+    });
+    if (access.allowed) {
+      selectedProvider = id;
+      selectedAccess = access;
+      break;
+    }
+  }
+
+  if (!selectedProvider || !selectedAccess) {
     res.json({
       text: "",
       error: "Voice input in this browser needs a Google Gemini or OpenAI API key. Please add one in API Key Settings.",
@@ -331,7 +348,13 @@ router.post("/study/voice/transcribe", async (req, res) => {
   }
 
   try {
-    const text = await transcribeAudio({ provider, apiKey, audio, mimeType });
+    const text = await transcribeAudio({
+      provider: selectedProvider,
+      apiKey: selectedAccess.apiKey,
+      audio,
+      mimeType,
+    });
+    await selectedAccess.consumeQuota();
     res.json({ text });
   } catch (error) {
     req.log.warn({ err: error }, "Voice transcription failed");
