@@ -48,6 +48,7 @@ export interface AuthenticatedUser {
 export interface UserSubscription {
   userId: string;
   email?: string;
+  canonicalEmail?: string | null;
   plan: SubscriptionPlan;
   queriesUsed: number;
   queriesLimit: number;
@@ -91,6 +92,35 @@ export function resetBillingStoreForTests(): void {
 
 export function isFreeEligibleModel(model: string): boolean {
   return FREE_ELIGIBLE_MODELS.has(model);
+}
+
+/**
+ * Normalizes an email address to its canonical inbox form so `+alias` tags
+ * and Gmail dot-variants (`j.doe+1@gmail.com` -> `jdoe@gmail.com`) map to one identity.
+ */
+export function normalizeCanonicalEmail(email?: string | null): string | null {
+  if (!email) return null;
+  const trimmed = email.trim().toLowerCase();
+  const atIndex = trimmed.lastIndexOf("@");
+  if (atIndex <= 0 || atIndex === trimmed.length - 1) return null;
+
+  let local = trimmed.slice(0, atIndex);
+  let domain = trimmed.slice(atIndex + 1);
+  if (domain === "googlemail.com") domain = "gmail.com";
+
+  // Strip +subaddressing across all providers
+  const plusIndex = local.indexOf("+");
+  if (plusIndex !== -1) {
+    local = local.slice(0, plusIndex);
+  }
+  if (!local) return null;
+
+  // Gmail ignores dots in the local part
+  if (domain === "gmail.com") {
+    local = local.replace(/\./g, "");
+  }
+
+  return `${local}@${domain}`;
 }
 
 export function getServerApiKey(providerId: ProviderId): string | undefined {
@@ -201,13 +231,14 @@ function getSupabaseRestConfig(): { url: string; serviceKey: string; headers: Re
   return { url: url.replace(/\/+$/, ""), serviceKey, headers };
 }
 
-function createDefaultSubscription(userId: string, email?: string): UserSubscription {
+function createDefaultSubscription(userId: string, email?: string, queriesLimit = FREE_QUERY_LIMIT): UserSubscription {
   return {
     userId,
     email,
+    canonicalEmail: normalizeCanonicalEmail(email),
     plan: "free",
     queriesUsed: 0,
-    queriesLimit: FREE_QUERY_LIMIT,
+    queriesLimit,
     budgetUsedMicros: 0,
     budgetLimitMicros: PRO_BUDGET_LIMIT_MICROS,
     stripeCustomerId: null,
@@ -219,9 +250,12 @@ function createDefaultSubscription(userId: string, email?: string): UserSubscrip
 
 function mapRowToSubscription(row: Record<string, unknown>, fallbackUserId: string): UserSubscription {
   const plan = row.plan === "pro" ? "pro" : "free";
+  const email = typeof row.email === "string" ? row.email : undefined;
   return {
     userId: typeof row.user_id === "string" ? row.user_id : fallbackUserId,
-    email: typeof row.email === "string" ? row.email : undefined,
+    email,
+    canonicalEmail:
+      typeof row.canonical_email === "string" ? row.canonical_email : normalizeCanonicalEmail(email),
     plan,
     queriesUsed: typeof row.queries_used === "number" ? row.queries_used : 0,
     queriesLimit:
@@ -240,6 +274,34 @@ function mapRowToSubscription(row: Record<string, unknown>, fallbackUserId: stri
     currentPeriodEnd: typeof row.current_period_end === "string" ? row.current_period_end : null,
     updatedAt: typeof row.updated_at === "string" ? row.updated_at : new Date().toISOString(),
   };
+}
+
+async function hasExistingCanonicalEmail(canonicalEmail: string, excludeUserId: string): Promise<boolean> {
+  for (const sub of memorySubscriptions.values()) {
+    if (sub.userId !== excludeUserId && sub.canonicalEmail === canonicalEmail) {
+      return true;
+    }
+  }
+
+  const supabaseConfig = getSupabaseRestConfig();
+  if (supabaseConfig) {
+    try {
+      const res = await fetch(
+        `${supabaseConfig.url}/rest/v1/user_subscriptions?canonical_email=eq.${encodeURIComponent(canonicalEmail)}&user_id=neq.${encodeURIComponent(excludeUserId)}&select=user_id&limit=1`,
+        {
+          headers: supabaseConfig.headers,
+        },
+      );
+      if (res.ok) {
+        const rows = (await res.json()) as Array<Record<string, unknown>>;
+        if (rows.length > 0) return true;
+      }
+    } catch {
+      // Ignore network errors
+    }
+  }
+
+  return false;
 }
 
 export async function getSubscription(userId: string, email?: string): Promise<UserSubscription> {
@@ -267,11 +329,16 @@ export async function getSubscription(userId: string, email?: string): Promise<U
 
   const existing = memorySubscriptions.get(userId);
   if (existing) {
-    if (email && !existing.email) existing.email = email;
+    if (email && !existing.email) {
+      existing.email = email;
+      existing.canonicalEmail = normalizeCanonicalEmail(email);
+    }
     return existing;
   }
 
-  const created = createDefaultSubscription(userId, email);
+  const canonical = normalizeCanonicalEmail(email);
+  const isAliasDuplicate = canonical ? await hasExistingCanonicalEmail(canonical, userId) : false;
+  const created = createDefaultSubscription(userId, email, isAliasDuplicate ? 0 : FREE_QUERY_LIMIT);
   memorySubscriptions.set(userId, created);
   return created;
 }
@@ -302,6 +369,7 @@ export async function updateSubscription(
         body: JSON.stringify({
           user_id: updated.userId,
           email: updated.email ?? null,
+          canonical_email: updated.canonicalEmail ?? normalizeCanonicalEmail(updated.email),
           plan: updated.plan,
           queries_used: updated.queriesUsed,
           queries_limit: updated.queriesLimit,
