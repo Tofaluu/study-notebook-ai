@@ -328,6 +328,55 @@ async function parseSuccessBody(
   }
 }
 
+const GATEWAY_WAKEUP_STATUSES = new Set([502, 503, 504]);
+const WAKEUP_TIMEOUT_MS = 40_000;
+const WAKEUP_POLL_MS = 2_500;
+
+function sleepWithAbort(ms: number, signal?: AbortSignal | null): Promise<void> {
+  if (signal?.aborted) {
+    return Promise.reject(new DOMException("Aborted", "AbortError"));
+  }
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+function isColdStartGatewayError(response: Response, errorData: unknown): boolean {
+  if (!GATEWAY_WAKEUP_STATUSES.has(response.status)) return false;
+  if (typeof errorData === "string") {
+    const trimmed = errorData.trim();
+    return trimmed === "" || /^<!doctype\s+html|^<html/i.test(trimmed);
+  }
+  const msg = getStringField(errorData, "message") ?? getStringField(errorData, "error") ?? "";
+  if (response.status === 502 || response.status === 504) {
+    return !msg.startsWith("Stripe checkout session failed");
+  }
+  return /waking up|gateway/i.test(msg);
+}
+
+async function waitForServerWakeup(signal?: AbortSignal | null): Promise<boolean> {
+  const healthUrl = resolveUrl(applyBaseUrl("/api/healthz"));
+  const deadline = Date.now() + WAKEUP_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await sleepWithAbort(WAKEUP_POLL_MS, signal);
+    try {
+      const res = await fetch(healthUrl, { method: "GET", signal: signal ?? undefined });
+      if (res.ok) return true;
+    } catch (err) {
+      if (signal?.aborted) throw err;
+    }
+  }
+  return false;
+}
+
 export async function customFetch<T = unknown>(
   input: RequestInfo | URL,
   options: CustomFetchOptions = {},
@@ -376,11 +425,23 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  let response = await fetch(input, { ...init, method, headers });
 
   if (!response.ok) {
-    const errorData = await parseErrorBody(response, method);
-    throw new ApiError(response, errorData, requestInfo);
+    let errorData = await parseErrorBody(response, method);
+    if (
+      !requestInfo.url.includes("/healthz") &&
+      isColdStartGatewayError(response, errorData) &&
+      (await waitForServerWakeup(init.signal))
+    ) {
+      response = await fetch(input, { ...init, method, headers });
+      if (!response.ok) {
+        errorData = await parseErrorBody(response, method);
+        throw new ApiError(response, errorData, requestInfo);
+      }
+    } else {
+      throw new ApiError(response, errorData, requestInfo);
+    }
   }
 
   const parsed = (await parseSuccessBody(response, responseType, requestInfo)) as T;

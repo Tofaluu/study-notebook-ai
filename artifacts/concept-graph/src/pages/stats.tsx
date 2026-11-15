@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, RefreshCw, ShieldAlert } from 'lucide-react';
+import { ApiError, customFetch } from '@workspace/api-client-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 
@@ -113,18 +114,22 @@ export default function StatsPage() {
     setStatusCode(null);
 
     try {
-      const res = await fetch(`/api/stats?days=${days}`, {
+      const json = await customFetch<StatsResponse>(`/api/stats?days=${days}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      setStatusCode(res.status);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(typeof body.error === 'string' ? body.error : `Request failed (${res.status})`);
-      }
-      const json = (await res.json()) as StatsResponse;
+      setStatusCode(200);
       setData(json);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load stats.');
+      if (err instanceof ApiError) {
+        setStatusCode(err.status);
+        const serverErr =
+          err.data && typeof err.data === 'object' && 'error' in err.data && typeof err.data.error === 'string'
+            ? err.data.error
+            : err.message;
+        setError(serverErr);
+      } else {
+        setError(err instanceof Error ? err.message : 'Unable to load stats.');
+      }
     } finally {
       setLoading(false);
     }

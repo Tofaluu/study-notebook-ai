@@ -60,6 +60,10 @@ function App() {
 
   useEffect(() => {
     trackEvent('page_view', undefined, { onceKey: 'initial-page-view' });
+    // Pre-warm Render backend when a real visitor opens the page so first query avoids cold-start delay
+    if (typeof navigator === 'undefined' || !navigator.webdriver) {
+      void fetch('/api/healthz').catch(() => {});
+    }
 
     const handler = () => {
       trackEvent('auth_open');

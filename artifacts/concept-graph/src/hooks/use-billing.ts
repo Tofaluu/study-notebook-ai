@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { customFetch } from '@workspace/api-client-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 
@@ -75,15 +76,12 @@ async function fetchBillingStatusDeduped(): Promise<BillingStatus> {
         notifySubscribers(DEFAULT_BILLING_STATUS);
         return DEFAULT_BILLING_STATUS;
       }
-      const res = await fetch('/api/billing/status', {
+      const data = await customFetch<BillingStatus>('/api/billing/status', {
         headers: { ...authHeaders },
       });
-      if (res.ok) {
-        const data = (await res.json()) as BillingStatus;
-        hasFetchedOnce = true;
-        notifySubscribers(data);
-        return data;
-      }
+      hasFetchedOnce = true;
+      notifySubscribers(data);
+      return data;
     } catch {
       // Keep cached status on transient network failure
     } finally {
