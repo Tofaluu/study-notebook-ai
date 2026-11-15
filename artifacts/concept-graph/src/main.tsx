@@ -9,6 +9,9 @@ import '@fontsource-variable/source-sans-3/wght.css';
 import '@fontsource-variable/source-sans-3/wght-italic.css';
 import './index.css';
 import 'drag-drop-touch';
+import { startCoreFontPreload } from '@/lib/fonts';
+
+void startCoreFontPreload();
 
 createRoot(document.getElementById('root')!, {
   // Keeps caught errors off reportError(), which would raise the dev overlay.

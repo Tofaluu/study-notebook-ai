@@ -4,6 +4,7 @@ import { AuthView, type AuthMode } from '@/components/AuthView';
 import { supabase } from '@/lib/supabase';
 import { trackEvent } from '@/lib/analytics';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { warmServer } from '@workspace/api-client-react';
 import { ThemeProvider } from 'next-themes';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -62,7 +63,7 @@ function App() {
     trackEvent('page_view', undefined, { onceKey: 'initial-page-view' });
     // Pre-warm Render backend when a real visitor opens the page so first query avoids cold-start delay
     if (typeof navigator === 'undefined' || !navigator.webdriver) {
-      void fetch('/api/healthz').catch(() => {});
+      void warmServer();
     }
 
     const handler = (e: Event) => {

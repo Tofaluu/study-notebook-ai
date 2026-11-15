@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { StudyModel } from '@workspace/api-client-react';
 import { DEFAULT_STUDY_MODEL, STUDY_MODEL_OPTIONS } from '@/lib/models';
+import { useAuth } from '@/hooks/use-auth';
 import { useBilling } from '@/hooks/use-billing';
 import {
   Select,
@@ -44,6 +45,7 @@ function readStoredKeys() {
 
 /** Picks the model new questions use; models unlocked via BYOK or the user's active plan are selectable. */
 export function ModelPicker({ value, onChange }: ModelPickerProps) {
+  const { user, loading: authLoading } = useAuth();
   const { status: billing, loading: billingLoading } = useBilling();
   const [keys, setKeys] = useState(readStoredKeys);
 
@@ -59,11 +61,15 @@ export function ModelPicker({ value, onChange }: ModelPickerProps) {
   }, []);
 
   const hasAnyByok = keys.gemini || keys.openai || keys.anthropic;
-  const hasServerAccess = billing.authenticated && billing.remaining > 0;
+  const isSignedInOptimisticFree = Boolean(user && !billing.authenticated);
+  const hasServerAccess = (billing.authenticated && billing.remaining > 0) || isSignedInOptimisticFree;
 
   const isModelUnlocked = (providerKey: ProviderKey, modelValue: StudyModel): boolean => {
     if (keys[providerKey]) return true;
     if (!hasServerAccess) return false;
+    if (!billing.authenticated && user) {
+      return providerKey === 'gemini' && billing.freeEligibleModels.includes(modelValue);
+    }
     if (!billing.serverKeysConfigured[providerKey]) return false;
     if (billing.plan === 'pro') return true;
     return billing.freeEligibleModels.includes(modelValue);
@@ -71,7 +77,7 @@ export function ModelPicker({ value, onChange }: ModelPickerProps) {
 
   // Prevent stale Pro/Anthropic/OpenAI models in localStorage from sticking when logged out or without that provider's key
   useEffect(() => {
-    if (billingLoading) return;
+    if (authLoading || billingLoading || isSignedInOptimisticFree) return;
     if (!hasAnyByok && !hasServerAccess) {
       if (value !== DEFAULT_STUDY_MODEL) {
         onChange(DEFAULT_STUDY_MODEL);
@@ -94,7 +100,7 @@ export function ModelPicker({ value, onChange }: ModelPickerProps) {
     if (fallback !== value) {
       onChange(fallback);
     }
-  }, [billingLoading, hasAnyByok, hasServerAccess, value, onChange, keys, billing]);
+  }, [authLoading, billingLoading, isSignedInOptimisticFree, hasAnyByok, hasServerAccess, value, onChange, keys, billing]);
 
   if (!hasAnyByok && !hasServerAccess) {
     return (
@@ -109,7 +115,7 @@ export function ModelPicker({ value, onChange }: ModelPickerProps) {
         }
         className="h-7 shrink-0 whitespace-nowrap rounded-md px-2 text-xs font-medium [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:px-3 text-foreground transition-[transform,background-color] duration-150 ease-out hover:bg-muted active:scale-95"
       >
-        {billing.authenticated ? 'Upgrade or add key' : 'Sign up or add key'}
+        {billing.authenticated || user ? 'Upgrade or add key' : 'Sign up or add key'}
       </button>
     );
   }
@@ -128,7 +134,7 @@ export function ModelPicker({ value, onChange }: ModelPickerProps) {
             <SelectLabel className={`text-xs text-muted-foreground ${index > 0 ? 'mt-1' : ''}`}>{provider.name}</SelectLabel>
             {STUDY_MODEL_OPTIONS.filter((o) => o.provider === provider.name).map((option) => {
               const unlocked = isModelUnlocked(provider.key, option.value);
-              const showProBadge = !unlocked && billing.authenticated && billing.plan === 'free';
+              const showProBadge = !unlocked && (billing.authenticated || !!user) && billing.plan === 'free';
               return (
                 <SelectItem
                   key={option.value}

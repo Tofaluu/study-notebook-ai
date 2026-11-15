@@ -47,47 +47,142 @@ const DEFAULT_BILLING_STATUS: BillingStatus = {
   },
 };
 
-let cachedBillingStatus: BillingStatus = DEFAULT_BILLING_STATUS;
-let hasFetchedOnce = false;
-let inFlightPromise: Promise<BillingStatus> | null = null;
-const subscribers = new Set<(status: BillingStatus) => void>();
+const BILLING_CACHE_KEY = 'study-notebook-billing-cache-v1';
 
-function notifySubscribers(next: BillingStatus) {
-  cachedBillingStatus = next;
-  for (const listener of subscribers) {
-    listener(next);
+interface BillingSnapshot {
+  status: BillingStatus;
+  loading: boolean;
+  synced: boolean;
+  unavailable: boolean;
+}
+
+function readCachedBillingStatus(): BillingStatus | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(BILLING_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<BillingStatus>;
+    if (!parsed || parsed.authenticated !== true || typeof parsed.userId !== 'string') {
+      return null;
+    }
+    return {
+      ...DEFAULT_BILLING_STATUS,
+      ...parsed,
+      serverKeysConfigured: {
+        ...DEFAULT_BILLING_STATUS.serverKeysConfigured,
+        ...(parsed.serverKeysConfigured ?? {}),
+      },
+      freeEligibleModels: Array.isArray(parsed.freeEligibleModels)
+        ? parsed.freeEligibleModels
+        : DEFAULT_BILLING_STATUS.freeEligibleModels,
+    };
+  } catch {
+    return null;
   }
 }
 
-async function getAuthHeaders(): Promise<Record<string, string>> {
+function writeCachedBillingStatus(next: BillingStatus | null) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!next || !next.authenticated || !next.userId) {
+      window.localStorage.removeItem(BILLING_CACHE_KEY);
+    } else {
+      window.localStorage.setItem(BILLING_CACHE_KEY, JSON.stringify(next));
+    }
+  } catch {
+    // Ignore storage quota / privacy mode errors
+  }
+}
+
+const initialCached = readCachedBillingStatus();
+
+let snapshot: BillingSnapshot = {
+  status: initialCached ?? DEFAULT_BILLING_STATUS,
+  loading: false,
+  synced: false,
+  unavailable: false,
+};
+
+let hasFetchedOnce = false;
+let inFlightPromise: Promise<BillingStatus> | null = null;
+let retryTimer: number | null = null;
+const subscribers = new Set<(next: BillingSnapshot) => void>();
+
+function updateSnapshot(patch: Partial<BillingSnapshot>) {
+  snapshot = { ...snapshot, ...patch };
+  for (const listener of subscribers) {
+    listener(snapshot);
+  }
+}
+
+async function getSessionAuth(): Promise<{ userId: string | null; headers: Record<string, string> }> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const userId = data.session?.user?.id ?? null;
+  return {
+    userId,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  };
+}
+
+function scheduleBackgroundRetry() {
+  if (typeof window === 'undefined' || retryTimer !== null) return;
+  retryTimer = window.setTimeout(() => {
+    retryTimer = null;
+    if (!snapshot.synced) {
+      void fetchBillingStatusDeduped();
+    }
+  }, 5_000);
 }
 
 async function fetchBillingStatusDeduped(): Promise<BillingStatus> {
   if (inFlightPromise) return inFlightPromise;
 
+  updateSnapshot({ loading: true });
+
   inFlightPromise = (async () => {
     try {
-      const authHeaders = await getAuthHeaders();
-      if (!authHeaders.Authorization) {
+      const { userId, headers } = await getSessionAuth();
+      if (!headers.Authorization || !userId) {
         hasFetchedOnce = true;
-        notifySubscribers(DEFAULT_BILLING_STATUS);
+        writeCachedBillingStatus(null);
+        updateSnapshot({
+          status: DEFAULT_BILLING_STATUS,
+          loading: false,
+          synced: true,
+          unavailable: false,
+        });
         return DEFAULT_BILLING_STATUS;
       }
+
+      // Discard cached billing data if a different Supabase user is now signed in
+      if (snapshot.status.userId && snapshot.status.userId !== userId) {
+        writeCachedBillingStatus(null);
+        updateSnapshot({ status: DEFAULT_BILLING_STATUS });
+      }
+
       const data = await customFetch<BillingStatus>('/api/billing/status', {
-        headers: { ...authHeaders },
+        headers: { ...headers },
       });
       hasFetchedOnce = true;
-      notifySubscribers(data);
+      writeCachedBillingStatus(data.authenticated ? data : null);
+      updateSnapshot({
+        status: data,
+        loading: false,
+        synced: true,
+        unavailable: false,
+      });
       return data;
     } catch {
-      // Keep cached status on transient network failure
+      updateSnapshot({
+        loading: false,
+        unavailable: true,
+      });
+      scheduleBackgroundRetry();
     } finally {
       inFlightPromise = null;
     }
-    return cachedBillingStatus;
+    return snapshot.status;
   })();
 
   return inFlightPromise;
@@ -109,12 +204,12 @@ async function verifyCheckoutSessionFromUrl(): Promise<void> {
 
   if (billingParam === 'success' && sessionId) {
     try {
-      const authHeaders = await getAuthHeaders();
+      const { headers } = await getSessionAuth();
       const res = await fetch('/api/billing/verify-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...authHeaders,
+          ...headers,
         },
         body: JSON.stringify({ sessionId }),
       });
@@ -135,54 +230,56 @@ async function verifyCheckoutSessionFromUrl(): Promise<void> {
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('billing-updated', () => {
+  const triggerRefresh = () => {
     void fetchBillingStatusDeduped();
-  });
+  };
+  window.addEventListener('billing-updated', triggerRefresh);
+  window.addEventListener('server-awake', triggerRefresh);
   supabase.auth.onAuthStateChange((_event, session) => {
     if (session?.access_token) {
       void fetchBillingStatusDeduped();
     } else {
-      notifySubscribers(DEFAULT_BILLING_STATUS);
+      writeCachedBillingStatus(null);
+      updateSnapshot({
+        status: DEFAULT_BILLING_STATUS,
+        loading: false,
+        synced: true,
+        unavailable: false,
+      });
     }
   });
 }
 
 export function useBilling() {
-  const [status, setStatus] = useState<BillingStatus>(cachedBillingStatus);
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState<BillingSnapshot>(snapshot);
   const [actionLoading, setActionLoading] = useState(false);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      await fetchBillingStatusDeduped();
-    } finally {
-      setLoading(false);
-    }
+    await fetchBillingStatusDeduped();
   }, []);
 
   useEffect(() => {
-    subscribers.add(setStatus);
+    subscribers.add(setState);
     void verifyCheckoutSessionFromUrl();
     if (!hasFetchedOnce) {
       void fetchBillingStatusDeduped();
     } else {
-      setStatus(cachedBillingStatus);
+      setState(snapshot);
     }
     return () => {
-      subscribers.delete(setStatus);
+      subscribers.delete(setState);
     };
   }, []);
 
   const startCheckout = useCallback(async () => {
     setActionLoading(true);
     try {
-      const authHeaders = await getAuthHeaders();
+      const { headers } = await getSessionAuth();
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...authHeaders,
+          ...headers,
         },
         body: JSON.stringify({ returnUrl: window.location.origin }),
       });
@@ -224,12 +321,12 @@ export function useBilling() {
   const openBillingPortal = useCallback(async () => {
     setActionLoading(true);
     try {
-      const authHeaders = await getAuthHeaders();
+      const { headers } = await getSessionAuth();
       const res = await fetch('/api/billing/portal', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...authHeaders,
+          ...headers,
         },
         body: JSON.stringify({ returnUrl: window.location.origin }),
       });
@@ -269,8 +366,10 @@ export function useBilling() {
   }, []);
 
   return {
-    status,
-    loading,
+    status: state.status,
+    loading: state.loading,
+    synced: state.synced,
+    unavailable: state.unavailable,
     actionLoading,
     refresh,
     startCheckout,

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CreditCard, Key, Loader2, Paintbrush, RotateCcw } from 'lucide-react';
 import { useThemeCustomization, type ThemeColors } from '@/hooks/use-theme';
+import { useAuth } from '@/hooks/use-auth';
 import { useBilling } from '@/hooks/use-billing';
 import { contrastRatio, getCssVariableHex } from '@/lib/colors';
 import { trackEvent } from '@/lib/analytics';
@@ -35,8 +36,9 @@ export function SettingsModal() {
   const [openaiKey, setOpenaiKey] = useState('');
   const [anthropicKey, setAnthropicKey] = useState('');
 
+  const { user } = useAuth();
   const { colors, updateColor, resetColors } = useThemeCustomization();
-  const { status: billing, actionLoading, refresh: refreshBilling, startCheckout, openBillingPortal } = useBilling();
+  const { status: billing, loading: billingLoading, unavailable: billingUnavailable, actionLoading, refresh: refreshBilling, startCheckout, openBillingPortal } = useBilling();
   const [defaultHex, setDefaultHex] = useState<Record<keyof ThemeColors, string>>({
     primary: '#126e61', background: '#f8f8f7', secondaryBackground: '#fefefe', foreground: '#1b1f27', secondaryForeground: '#595e69',
   });
@@ -191,7 +193,7 @@ export function SettingsModal() {
                 </div>
               )}
 
-              {!billing.authenticated ? (
+              {!billing.authenticated && !user ? (
                 <div className="space-y-4">
                   <div className="flex items-baseline justify-between">
                     <div>
@@ -215,6 +217,32 @@ export function SettingsModal() {
                   >
                     Create free account or sign in
                   </Button>
+                </div>
+              ) : !billing.authenticated && user ? (
+                <div className="space-y-4" data-testid="plan-status-syncing">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <div>
+                      <h3 className="text-base font-semibold text-foreground">Signed-in account</h3>
+                      {user.email && (
+                        <p className="mt-0.5 text-xs text-muted-foreground">{user.email}</p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void refreshBilling()}
+                      disabled={billingLoading}
+                      className="gap-1.5"
+                    >
+                      {billingLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
+                      {billingLoading ? 'Connecting…' : 'Retry'}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {billingUnavailable
+                      ? 'The study server is waking up from sleep, so your remaining question count could not be loaded yet.'
+                      : 'Loading your plan and remaining question count…'}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4" data-testid="plan-status-card">

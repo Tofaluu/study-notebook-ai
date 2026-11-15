@@ -1,9 +1,44 @@
 import path from 'path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
+
+const PRELOADED_FONT_PREFIXES = [
+  'assets/source-sans-3-latin-wght-normal-',
+  'assets/source-serif-4-latin-opsz-normal-',
+];
+
+function preloadCoreFonts(basePath: string): Plugin {
+  return {
+    name: 'preload-core-fonts',
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        if (!ctx.bundle) return [];
+        const base = basePath.endsWith('/') ? basePath : `${basePath}/`;
+        return Object.keys(ctx.bundle)
+          .filter((file) =>
+            file.endsWith('.woff2') &&
+            PRELOADED_FONT_PREFIXES.some((prefix) => file.startsWith(prefix)),
+          )
+          .sort()
+          .map((file) => ({
+            tag: 'link',
+            attrs: {
+              rel: 'preload',
+              as: 'font',
+              type: 'font/woff2',
+              crossorigin: '',
+              href: `${base}${file}`,
+            },
+            injectTo: 'head' as const,
+          }));
+      },
+    },
+  };
+}
 
 const rawPort = process.env.PORT;
 
@@ -20,6 +55,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    preloadCoreFonts(basePath),
     runtimeErrorOverlay(),
     ...(process.env.NODE_ENV !== 'production' &&
     process.env.REPL_ID !== undefined

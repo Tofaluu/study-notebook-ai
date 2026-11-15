@@ -329,8 +329,10 @@ async function parseSuccessBody(
 }
 
 const GATEWAY_WAKEUP_STATUSES = new Set([502, 503, 504]);
-const WAKEUP_TIMEOUT_MS = 40_000;
+const WAKEUP_TIMEOUT_MS = 95_000;
 const WAKEUP_POLL_MS = 2_500;
+
+let sharedWakeupPromise: Promise<boolean> | null = null;
 
 function sleepWithAbort(ms: number, signal?: AbortSignal | null): Promise<void> {
   if (signal?.aborted) {
@@ -362,19 +364,75 @@ function isColdStartGatewayError(response: Response, errorData: unknown): boolea
   return /waking up|gateway/i.test(msg);
 }
 
-async function waitForServerWakeup(signal?: AbortSignal | null): Promise<boolean> {
-  const healthUrl = resolveUrl(applyBaseUrl("/api/healthz"));
-  const deadline = Date.now() + WAKEUP_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    await sleepWithAbort(WAKEUP_POLL_MS, signal);
-    try {
-      const res = await fetch(healthUrl, { method: "GET", signal: signal ?? undefined });
-      if (res.ok) return true;
-    } catch (err) {
-      if (signal?.aborted) throw err;
+function notifyServerAwake(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("server-awake"));
+  window.dispatchEvent(new CustomEvent("billing-updated"));
+}
+
+function runSharedWakeupPoll(): Promise<boolean> {
+  if (sharedWakeupPromise) return sharedWakeupPromise;
+
+  sharedWakeupPromise = (async () => {
+    const healthUrl = resolveUrl(applyBaseUrl("/api/healthz"));
+    const deadline = Date.now() + WAKEUP_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      await sleepWithAbort(WAKEUP_POLL_MS);
+      try {
+        const res = await fetch(healthUrl, { method: "GET" });
+        if (res.ok) {
+          notifyServerAwake();
+          return true;
+        }
+      } catch {
+        // Keep polling until the backend finishes booting or the deadline expires
+      }
     }
+    return false;
+  })().finally(() => {
+    sharedWakeupPromise = null;
+  });
+
+  return sharedWakeupPromise;
+}
+
+async function waitForServerWakeup(signal?: AbortSignal | null): Promise<boolean> {
+  if (!signal) {
+    return runSharedWakeupPoll();
   }
-  return false;
+  if (signal.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
+  return new Promise<boolean>((resolve, reject) => {
+    const onAbort = () => reject(new DOMException("Aborted", "AbortError"));
+    signal.addEventListener("abort", onAbort, { once: true });
+    runSharedWakeupPoll().then(
+      (awake) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(awake);
+      },
+      (err) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(err);
+      },
+    );
+  });
+}
+
+/**
+ * Probes `/api/healthz` on app startup and polls cleanly if the backend is waking from sleep,
+ * notifying billing/account listeners as soon as the server comes online.
+ */
+export async function warmServer(): Promise<boolean> {
+  const healthUrl = resolveUrl(applyBaseUrl("/api/healthz"));
+  try {
+    const res = await fetch(healthUrl, { method: "GET" });
+    if (res.ok) return true;
+    if (!GATEWAY_WAKEUP_STATUSES.has(res.status)) return false;
+  } catch {
+    // Transient network error while cold-starting; fall through to wakeup poller
+  }
+  return waitForServerWakeup();
 }
 
 export async function customFetch<T = unknown>(

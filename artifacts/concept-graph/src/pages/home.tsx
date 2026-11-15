@@ -12,6 +12,7 @@ import { trackEvent } from '@/lib/analytics';
 import type { StudyModel } from '@workspace/api-client-react';
 import { DEFAULT_STUDY_MODEL, isStudyModel } from '@/lib/models';
 import { SettingsModal } from '@/components/SettingsModal';
+import { useFontsReady } from '@/lib/fonts';
 import { VoiceProvider } from '@/components/VoiceProvider';
 import { VoiceBannerDock } from '@/components/VoiceBanner';
 import { resolveVoiceAction } from '@/lib/voice-actions';
@@ -41,12 +42,13 @@ export default function Home() {
   React.useEffect(() => {
     localStorage.setItem(MODEL_STORAGE_KEY, selectedModel);
   }, [selectedModel]);
+  const fontsReady = useFontsReady();
   const {
     state, activeChat, createChat, openDemo, switchChat, deleteChat, deleteAllChats, renameChat,
     addTab, closeTab, switchTab, updateTab, reorderTabs, setSources, addHistory, removeHistoryItem
   } = useWorkspace();
 
-  if (!state) {
+  if (!state || !fontsReady) {
     return <div className="h-[100dvh] w-full flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 

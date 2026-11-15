@@ -105,7 +105,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat, onSwitchChat, onDeleteChat, onDeleteAllChats, onRenameChat, onSetSources }: SidebarProps) {
   const { user } = useAuth();
-  const { status: billing } = useBilling();
+  const { status: billing, synced: billingSynced, unavailable: billingUnavailable } = useBilling();
   const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
   const [isUploading, setIsUploading] = useState(false);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
@@ -420,16 +420,22 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
               title="View plan and usage"
               data-testid="sidebar-plan-pill"
               className={`inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-xs font-medium tabular-nums transition-[transform,background-color,color] duration-150 ease-out active:scale-[0.97] ${
-                billing.plan === 'pro'
-                  ? billing.remaining === 0
-                    ? 'bg-destructive/15 text-destructive hover:bg-destructive/25'
-                    : 'bg-primary/15 text-primary hover:bg-primary/25'
-                  : billing.remaining === 0
-                    ? 'bg-destructive/15 text-destructive hover:bg-destructive/25'
-                    : 'bg-foreground/[0.06] text-muted-foreground hover:bg-foreground/10 hover:text-foreground'
+                !billing.authenticated && !billingSynced
+                  ? 'bg-foreground/[0.06] text-muted-foreground hover:bg-foreground/10 hover:text-foreground'
+                  : billing.plan === 'pro'
+                    ? billing.remaining === 0
+                      ? 'bg-destructive/15 text-destructive hover:bg-destructive/25'
+                      : 'bg-primary/15 text-primary hover:bg-primary/25'
+                    : billing.remaining === 0
+                      ? 'bg-destructive/15 text-destructive hover:bg-destructive/25'
+                      : 'bg-foreground/[0.06] text-muted-foreground hover:bg-foreground/10 hover:text-foreground'
               }`}
             >
-              {billing.plan === 'pro' ? `Pro · ${billing.usagePercent ?? 0}%` : `Free · ${billing.remaining}`}
+              {!billing.authenticated && !billingSynced
+                ? (billingUnavailable ? 'Offline' : 'Syncing…')
+                : billing.plan === 'pro'
+                  ? `Pro · ${billing.usagePercent ?? 0}%`
+                  : `Free · ${billing.remaining}`}
             </button>
           </div>
         ) : (
