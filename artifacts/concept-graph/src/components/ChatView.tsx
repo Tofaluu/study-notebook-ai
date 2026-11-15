@@ -284,10 +284,10 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
                     <>
                       <button
                         type="button"
-                        onClick={() => window.dispatchEvent(new Event('open-auth'))}
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-auth', { detail: { mode: 'signup' } }))}
                         className="font-semibold text-accent-foreground underline decoration-accent-foreground/40 underline-offset-4 hover:decoration-accent-foreground"
                       >
-                        Sign in for 15 free questions
+                        Sign up for 15 free questions
                       </button>{' '}
                       or{' '}
                       <button

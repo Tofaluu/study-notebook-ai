@@ -436,7 +436,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event('open-auth'))}
-            title="Sign in for 15 free questions"
+            title="Sign in or sign up for 15 free questions"
             className="inline-flex h-8 flex-1 items-center justify-center gap-2 rounded-lg border border-border/70 bg-card/80 px-3 text-xs font-medium text-foreground transition-[transform,background-color,border-color] duration-150 ease-out hover:border-border hover:bg-card active:scale-[0.97]"
           >
             <User className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />

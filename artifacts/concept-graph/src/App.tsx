@@ -65,9 +65,11 @@ function App() {
       void fetch('/api/healthz').catch(() => {});
     }
 
-    const handler = () => {
-      trackEvent('auth_open');
-      setAuthMode('login');
+    const handler = (e: Event) => {
+      const requestedMode = (e as CustomEvent<{ mode?: AuthMode }>)?.detail?.mode;
+      const nextMode: AuthMode = requestedMode === 'signup' ? 'signup' : 'login';
+      trackEvent('auth_open', { mode: nextMode });
+      setAuthMode(nextMode);
       setIsAuthOpen(true);
     };
     window.addEventListener('open-auth', handler);

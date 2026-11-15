@@ -197,7 +197,7 @@ export function SettingsModal() {
                     <div>
                       <h3 className="text-base font-semibold text-foreground">Guest session</h3>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Sign in to get 15 free questions on Gemini Flash without needing your own API key.
+                        Sign up to get 15 free questions on Gemini Flash without needing your own API key.
                       </p>
                     </div>
                     {hasAnyByokKey && (
@@ -209,11 +209,11 @@ export function SettingsModal() {
                   <Button
                     onClick={() => {
                       setOpen(false);
-                      window.dispatchEvent(new CustomEvent('open-auth'));
+                      window.dispatchEvent(new CustomEvent('open-auth', { detail: { mode: 'signup' } }));
                     }}
                     className="w-full"
                   >
-                    Sign in or create account
+                    Create free account or sign in
                   </Button>
                 </div>
               ) : (
