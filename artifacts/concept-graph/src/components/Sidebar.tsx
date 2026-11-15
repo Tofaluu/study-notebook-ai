@@ -1,4 +1,5 @@
 import { useAuth } from '@/hooks/use-auth';
+import { useBilling } from '@/hooks/use-billing';
 import React, { useState } from 'react';
 import { FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Settings, MoreHorizontal } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -104,6 +105,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat, onSwitchChat, onDeleteChat, onDeleteAllChats, onRenameChat, onSetSources }: SidebarProps) {
   const { user } = useAuth();
+  const { status: billing } = useBilling();
   const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
   const [isUploading, setIsUploading] = useState(false);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
@@ -250,7 +252,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
               <li
                 key={chat.id}
                 className={`group flex items-center gap-1 rounded-lg pr-1 transition-colors ${
-                  chat.id === activeChatId ? 'bg-card text-foreground shadow-sm' : 'text-foreground hover:bg-foreground/5'
+                  chat.id === activeChatId ? 'bg-card text-foreground' : 'text-foreground hover:bg-foreground/5'
                 }`}
               >
                 <div className="min-w-0 flex-1">
@@ -381,7 +383,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
               {activeChat.sources.map(s => (
                 <li
                   key={s.id}
-                  className="group relative flex items-start gap-3 rounded-xl border border-border bg-card p-3 shadow-sm"
+                  className="group relative flex items-start gap-3 rounded-xl border border-border bg-card p-3"
                 >
                   {s.type === 'image' && s.base64Data ? <div className="w-8 h-8 rounded shrink-0 overflow-hidden bg-muted flex items-center justify-center"><img src={s.base64Data} alt={s.name} className="w-full h-full object-cover" /></div> : <FileText className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />}
                   <div className="flex-1 min-w-0 pr-8">
@@ -403,15 +405,32 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
         )}
       </div>
 
-      <div className="p-4 border-t border-border/50 shrink-0 bg-background/50 flex items-center justify-between">
+      <div className="p-4 border-t border-border/50 shrink-0 bg-background/50 flex items-center justify-between gap-2">
         {user ? (
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold uppercase">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-6 h-6 shrink-0 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold uppercase">
               {displayName.charAt(0)}
             </div>
-            <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
+            <span className="text-sm font-medium text-foreground truncate max-w-[96px]">
               {displayName}
             </span>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'plan' } }))}
+              title="View plan and usage"
+              data-testid="sidebar-plan-pill"
+              className={`inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-xs font-medium tabular-nums transition-[transform,background-color,color] duration-150 ease-out active:scale-[0.97] ${
+                billing.plan === 'pro'
+                  ? billing.remaining === 0
+                    ? 'bg-destructive/15 text-destructive hover:bg-destructive/25'
+                    : 'bg-primary/15 text-primary hover:bg-primary/25'
+                  : billing.remaining === 0
+                    ? 'bg-destructive/15 text-destructive hover:bg-destructive/25'
+                    : 'bg-foreground/[0.06] text-muted-foreground hover:bg-foreground/10 hover:text-foreground'
+              }`}
+            >
+              {billing.plan === 'pro' ? `Pro · ${billing.usagePercent ?? 0}%` : `Free · ${billing.remaining}`}
+            </button>
           </div>
         ) : (
           <button

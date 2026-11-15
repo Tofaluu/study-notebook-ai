@@ -377,5 +377,21 @@ export async function customFetch<T = unknown>(
     throw new ApiError(response, errorData, requestInfo);
   }
 
-  return (await parseSuccessBody(response, responseType, requestInfo)) as T;
+  const parsed = (await parseSuccessBody(response, responseType, requestInfo)) as T;
+  if (typeof window !== "undefined" && method === "POST" && requestInfo.url.includes("/study/")) {
+    window.dispatchEvent(new CustomEvent("billing-updated"));
+    const title = getStringField(parsed, "title");
+    if (
+      title === "Free Limit Reached" ||
+      title === "Monthly Pro Limit Reached" ||
+      title === "Pro Plan or API Key Required"
+    ) {
+      window.dispatchEvent(
+        new CustomEvent("open-settings", {
+          detail: { tab: "plan", notice: title },
+        }),
+      );
+    }
+  }
+  return parsed;
 }

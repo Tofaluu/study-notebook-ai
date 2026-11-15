@@ -116,6 +116,18 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
     explainMutation.mutate(variables, {
       onSuccess: (data) => {
         if (currentToken !== cancelTokenRef.current) return;
+        const isBillingBlocked =
+          data.title === 'Free Limit Reached' ||
+          data.title === 'Monthly Pro Limit Reached' ||
+          data.title === 'Pro Plan or API Key Required';
+        if (isBillingBlocked && pendingUserMsgIdRef.current && onRemoveHistory) {
+          onRemoveHistory(pendingUserMsgIdRef.current);
+          const restored = pendingPromptTextRef.current;
+          if (restored) setPrompt((current) => current || restored);
+          pendingUserMsgIdRef.current = null;
+          pendingPromptTextRef.current = '';
+          return;
+        }
         pendingUserMsgIdRef.current = null;
         pendingPromptTextRef.current = '';
         onAddHistory([{
