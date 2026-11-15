@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/use-auth';
 import { useBilling } from '@/hooks/use-billing';
 import React, { useState } from 'react';
-import { FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Settings, MoreHorizontal } from 'lucide-react';
+import { FileText, Trash2, UploadCloud, Loader2, Plus, Edit2, Settings, MoreHorizontal, User } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Chat } from '@/lib/db';
 import type { LectureSource } from '@workspace/api-client-react';
@@ -434,11 +434,15 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
           </div>
         ) : (
           <button
+            type="button"
             onClick={() => window.dispatchEvent(new Event('open-auth'))}
-            className="flex items-center gap-2 rounded px-1 text-sm font-medium text-foreground underline-offset-4 transition-[transform,opacity] duration-150 ease-out hover:underline active:scale-95"
+            className="inline-flex h-8 items-center gap-2 rounded-lg border border-border/70 bg-card/80 px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color] duration-150 ease-out hover:border-border hover:bg-card active:scale-[0.97]"
           >
-            <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-            Sign In / Sign Up
+            <User className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <span>Sign in</span>
+            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary tabular-nums">
+              15 free
+            </span>
           </button>
         )}
 
