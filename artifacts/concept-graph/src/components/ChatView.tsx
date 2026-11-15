@@ -12,6 +12,7 @@ import { ModelPicker } from './ModelPicker';
 import { VoiceBannerDock } from './VoiceBanner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ChatViewProps {
   chat: Chat;
@@ -29,6 +30,7 @@ interface ChatViewProps {
 }
 
 export const ChatView = React.memo(function ChatView({ chat, model, onModelChange, isVisible, onAddHistory, onRemoveHistory, onRename, onTermClick, onFollowUp, onAddSources, onOpenDemo }: ChatViewProps) {
+  const { user } = useAuth();
   const voice = useVoice();
   const isVoiceSupported = !!voice?.isSupported;
   const isListening = !!voice?.isListening;
@@ -276,13 +278,28 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
                 <p>
                   <span className="font-semibold">This is a demo notebook with pre-written answers.</span>{' '}
                   Click an underlined term to open its concept page, or highlight any text to ask a follow-up.{' '}
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'api' } }))}
-                    className="font-semibold text-accent-foreground underline decoration-accent-foreground/40 underline-offset-4 hover:decoration-accent-foreground"
-                  >
-                    Add an API key
-                  </button>{' '}
-                  to ask your own questions.
+                  {user ? (
+                    'Ask your own question below or start a new notebook in the sidebar.'
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new Event('open-auth'))}
+                        className="font-semibold text-accent-foreground underline decoration-accent-foreground/40 underline-offset-4 hover:decoration-accent-foreground"
+                      >
+                        Sign in for 15 free questions
+                      </button>{' '}
+                      or{' '}
+                      <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'api' } }))}
+                        className="font-semibold text-accent-foreground underline decoration-accent-foreground/40 underline-offset-4 hover:decoration-accent-foreground"
+                      >
+                        add an API key
+                      </button>{' '}
+                      to ask your own.
+                    </>
+                  )}
                 </p>
               </div>
             )}
