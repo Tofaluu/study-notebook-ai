@@ -1,0 +1,19 @@
+name: Keepalive
+
+on:
+  schedule:
+    # Render Free spins down after 15 minutes of inactivity; ping every 8 minutes to keep it warm
+    - cron: '*/8 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: render-keepalive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Ping Render API healthz
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake or keep Render backend warm
+        run: curl -fsS --retry 2 --retry-delay 5 --max-time 60 https://study-notebook-api.onrender.com/api/healthz
