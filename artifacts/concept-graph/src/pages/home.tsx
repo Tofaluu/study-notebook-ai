@@ -7,7 +7,8 @@ import { ConceptView } from '@/components/ConceptView';
 import { FollowUpView } from '@/components/FollowUpView';
 import { NotebookReaderView } from '@/components/NotebookReaderView';
 import { Loader2 } from 'lucide-react';
-import { getDemoConcept, takeDemoWait } from '@/lib/demo';
+import { DEMO_SOURCE_ID, getDemoConcept, takeDemoWait } from '@/lib/demo';
+import { trackEvent } from '@/lib/analytics';
 import type { StudyModel } from '@workspace/api-client-react';
 import { DEFAULT_STUDY_MODEL, isStudyModel } from '@/lib/models';
 import { SettingsModal } from '@/components/SettingsModal';
@@ -49,9 +50,22 @@ export default function Home() {
     return <div className="h-[100dvh] w-full flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
+  const handleCreateChat = () => {
+    trackEvent('notebook_create');
+    createChat();
+  };
+
+  const handleOpenDemo = () => {
+    trackEvent('demo_open');
+    openDemo();
+  };
+
   const handleTermClick = (chatId: string, term: string, contextSnippet: string, parentId?: string): string | undefined => {
     const chat = state?.chats.find(candidate => candidate.id === chatId);
     if (!chat) return;
+    if (chat.sources.some(source => source.id === DEMO_SOURCE_ID)) {
+      trackEvent(parentId ? 'demo_prereq_click' : 'demo_term_click', { term });
+    }
     const existingTab = chat.tabs.find(
       tab => tab.type === 'concept' && tab.term.toLowerCase() === term.toLowerCase()
     );
@@ -96,13 +110,18 @@ export default function Home() {
   };
 
   const rememberHighlight = () => {
+    trackEvent('voice_start');
     const text = window.getSelection()?.toString().trim() ?? '';
     const onChatTab = activeChat?.tabs.find((t) => t.id === activeChat.activeTabId)?.type === 'chat';
     heldHighlightRef.current = { text, passage: activeChat && onChatTab ? highlightedAnswerPassage(activeChat) : null };
   };
 
   const handleFollowUp = (chatId: string, selectedText: string, question: string, answerContext: string, parentId?: string): string | undefined => {
-    if (!state?.chats.some(chat => chat.id === chatId)) return;
+    const targetChat = state?.chats.find(chat => chat.id === chatId);
+    if (!targetChat) return;
+    if (targetChat.sources.some(source => source.id === DEMO_SOURCE_ID)) {
+      trackEvent('demo_followup_open', { source: 'highlight' });
+    }
     const newTabId = crypto.randomUUID();
     addTab(chatId, {
       id: newTabId,
@@ -204,8 +223,11 @@ ${tab.explanation.answerMarkdown}`.slice(0, 20000),
             onFollowUp={(selectedText, question, answerContext) =>
               handleFollowUp(chat.id, selectedText, question, answerContext)
             }
-            onAddSources={(sources) => setSources(chat.id, [...chat.sources, ...sources])}
-            onOpenDemo={openDemo}
+            onAddSources={(sources) => {
+              if (sources.length > 0) trackEvent('source_upload', { count: sources.length });
+              setSources(chat.id, [...chat.sources, ...sources]);
+            }}
+            onOpenDemo={handleOpenDemo}
           />
         </div>
       );
@@ -252,12 +274,18 @@ ${tab.explanation.answerMarkdown}`.slice(0, 20000),
         chats={state.chats}
         activeChatId={state.activeChatId}
         activeChat={activeChat}
-        onCreateChat={createChat}
+        onCreateChat={handleCreateChat}
         onSwitchChat={switchChat}
         onDeleteChat={deleteChat}
         onDeleteAllChats={deleteAllChats}
         onRenameChat={renameChat}
-        onSetSources={(sources) => activeChat && setSources(activeChat.id, sources)}
+        onSetSources={(sources) => {
+          if (activeChat) {
+            const added = sources.length - activeChat.sources.length;
+            if (added > 0) trackEvent('source_upload', { count: added });
+            setSources(activeChat.id, sources);
+          }
+        }}
       />
       {isSidebarOpen && (
         <div
@@ -283,9 +311,16 @@ ${tab.explanation.answerMarkdown}`.slice(0, 20000),
               tabs={activeChat.tabs}
               activeTabId={activeChat.activeTabId}
               isReaderMode={isReaderMode}
-              onToggleReaderMode={() => setIsReaderMode((v) => !v)}
+              onToggleReaderMode={() => setIsReaderMode((v) => {
+                if (!v) trackEvent('reader_mode_toggle');
+                return !v;
+              })}
               onSwitch={(tabId) => {
                 setIsReaderMode(false);
+                const clickedTab = activeChat.tabs.find(t => t.id === tabId);
+                if (clickedTab?.type === 'follow-up' && activeChat.sources.some(s => s.id === DEMO_SOURCE_ID)) {
+                  trackEvent('demo_followup_open', { source: 'tab' });
+                }
                 switchTab(activeChat.id, tabId);
               }}
               onClose={(tabId) => closeTab(activeChat.id, tabId)}
@@ -312,7 +347,7 @@ ${tab.explanation.answerMarkdown}`.slice(0, 20000),
                       setIsReaderMode(false);
                       switchTab(activeChat.id, tabId);
                     }}
-                    onOpenDemo={openDemo}
+                    onOpenDemo={handleOpenDemo}
                   />
                 </div>
               )}
@@ -323,9 +358,9 @@ ${tab.explanation.answerMarkdown}`.slice(0, 20000),
             <div className="text-center">
               <p className="mb-4 text-lg">No notebook is open.</p>
               <div className="flex items-center justify-center gap-4">
-                <button onClick={createChat} className="text-primary hover:underline font-medium">Create a new notebook</button>
+                <button onClick={handleCreateChat} className="text-primary hover:underline font-medium">Create a new notebook</button>
                 <span aria-hidden>·</span>
-                <button onClick={openDemo} className="text-primary hover:underline font-medium">Open the demo</button>
+                <button onClick={handleOpenDemo} className="text-primary hover:underline font-medium">Open the demo</button>
               </div>
             </div>
           </div>

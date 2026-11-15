@@ -12,6 +12,7 @@ import {
   verifyStripeWebhookSignature,
   type StripeWebhookEvent,
 } from "../lib/billing";
+import { recordAnalyticsEvent } from "../lib/analytics";
 
 const router: IRouter = Router();
 
@@ -100,6 +101,11 @@ router.post("/billing/checkout", async (req, res) => {
     }
 
     const session = (await stripeRes.json()) as { id: string; url?: string };
+    void recordAnalyticsEvent({
+      eventName: "checkout_started",
+      userId: user.id,
+      properties: { mode: "stripe" },
+    });
     res.json({
       mode: "stripe",
       sessionId: session.id,

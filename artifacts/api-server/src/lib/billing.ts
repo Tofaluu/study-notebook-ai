@@ -254,7 +254,7 @@ export async function resolveAuthenticatedUser(req: Request): Promise<Authentica
   }
 }
 
-function getSupabaseRestConfig(): { url: string; serviceKey: string; headers: Record<string, string> } | null {
+export function getSupabaseRestConfig(): { url: string; serviceKey: string; headers: Record<string, string> } | null {
   const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL)?.trim();
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !serviceKey) return null;
@@ -603,11 +603,13 @@ export type ExecutionAccessResult =
       allowed: true;
       apiKey: string;
       mode: "byok" | "server_quota";
+      userId?: string;
       consumeQuota: (usage?: TokenUsage) => Promise<void>;
     }
   | {
       allowed: false;
       reason: "missing_key" | "pro_model_required" | "quota_exceeded";
+      userId?: string;
       subscription?: UserSubscription;
     };
 
@@ -649,6 +651,7 @@ export async function resolveExecutionAccess(params: {
     return {
       allowed: false,
       reason: "pro_model_required",
+      userId: user.id,
       subscription,
     };
   }
@@ -665,6 +668,7 @@ export async function resolveExecutionAccess(params: {
     return {
       allowed: false,
       reason: "quota_exceeded",
+      userId: user.id,
       subscription,
     };
   }
@@ -672,13 +676,14 @@ export async function resolveExecutionAccess(params: {
   // 5. Resolve server-side API key for the requested provider
   const serverKey = getServerApiKey(provider);
   if (!serverKey) {
-    return { allowed: false, reason: "missing_key", subscription };
+    return { allowed: false, reason: "missing_key", userId: user.id, subscription };
   }
 
   return {
     allowed: true,
     apiKey: serverKey,
     mode: "server_quota",
+    userId: user.id,
     consumeQuota: async (usage?: TokenUsage) => {
       await incrementQuotaUsage(user.id, model, usage);
     },
@@ -911,4 +916,32 @@ export async function processStripeWebhookEvent(
 
   await recordProcessedWebhookEvent(event.id, event.type);
   return { processed: true, duplicate: false };
+}
+
+/**
+ * Lists user subscription & usage rows for the private owner `/stats` dashboard.
+ */
+export async function listSubscriptionsForStats(limit = 200): Promise<UserSubscription[]> {
+  const safeLimit = Math.max(1, Math.min(1000, Math.floor(limit)));
+  const supabaseConfig = getSupabaseRestConfig();
+  if (supabaseConfig) {
+    try {
+      const res = await fetch(
+        `${supabaseConfig.url}/rest/v1/user_subscriptions?select=*&order=updated_at.desc&limit=${safeLimit}`,
+        { headers: supabaseConfig.headers },
+      );
+      if (res.ok) {
+        const rows = (await res.json()) as Array<Record<string, unknown>>;
+        return rows.map((row) =>
+          mapRowToSubscription(row, typeof row.user_id === "string" ? row.user_id : ""),
+        );
+      }
+    } catch {
+      // Fall back to in-memory store below
+    }
+  }
+
+  return Array.from(memorySubscriptions.values())
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, safeLimit);
 }

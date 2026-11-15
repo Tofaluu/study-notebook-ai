@@ -20,8 +20,28 @@ import {
   resolveExecutionAccess,
   type ExecutionAccessResult,
 } from "../lib/billing";
+import { recordAnalyticsEvent } from "../lib/analytics";
 
 const router: IRouter = Router();
+
+function logStudyAccess(
+  access: ExecutionAccessResult,
+  endpoint: "explain" | "concept" | "followup" | "transcribe",
+  model: string,
+  provider: string,
+): void {
+  void recordAnalyticsEvent({
+    eventName: "ai_query",
+    userId: access.userId ?? null,
+    properties: {
+      endpoint,
+      model,
+      provider,
+      authMode: access.allowed ? access.mode : "denied",
+      ...(access.allowed ? {} : { reason: access.reason }),
+    },
+  });
+}
 
 /** Bring-your-own-key: the browser forwards the user's key for the chosen provider. */
 function getApiKey(req: Request, provider: ProviderAdapter): string | undefined {
@@ -86,6 +106,7 @@ router.post("/study/explain", async (req, res) => {
     provider: provider.id,
     userProvidedKey: getApiKey(req, provider),
   });
+  logStudyAccess(access, "explain", effectiveModel, provider.id);
 
   if (!access.allowed) {
     const denied = buildAccessDeniedExplanation(access, provider, "start using the Study Notebook");
@@ -148,6 +169,7 @@ router.post("/study/concepts/explain", async (req, res) => {
     provider: provider.id,
     userProvidedKey: getApiKey(req, provider),
   });
+  logStudyAccess(access, "concept", effectiveModel, provider.id);
 
   if (!access.allowed) {
     const denied = buildAccessDeniedExplanation(access, provider, "explain concepts");
@@ -203,6 +225,7 @@ router.post("/study/follow-ups/explain", async (req, res) => {
     provider: provider.id,
     userProvidedKey: getApiKey(req, provider),
   });
+  logStudyAccess(access, "followup", effectiveModel, provider.id);
 
   if (!access.allowed) {
     const denied = buildAccessDeniedExplanation(access, provider, "ask follow-up questions");
@@ -340,12 +363,29 @@ router.post("/study/voice/transcribe", async (req, res) => {
   }
 
   if (!selectedProvider || !selectedAccess) {
+    void recordAnalyticsEvent({
+      eventName: "ai_query",
+      properties: {
+        endpoint: "transcribe",
+        model: requestedModel || "gemini-3.8-flash",
+        provider: order[0],
+        authMode: "denied",
+        reason: "missing_key",
+      },
+    });
     res.json({
       text: "",
       error: "Voice input in this browser needs a Google Gemini or OpenAI API key. Please add one in API Key Settings.",
     });
     return;
   }
+
+  logStudyAccess(
+    selectedAccess,
+    "transcribe",
+    selectedProvider === "openai" ? "gpt-6-luna" : "gemini-3.8-flash",
+    selectedProvider,
+  );
 
   try {
     const text = await transcribeAudio({

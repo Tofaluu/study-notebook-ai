@@ -27,3 +27,5 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: ADMIN_EMAILS
+        sync: false

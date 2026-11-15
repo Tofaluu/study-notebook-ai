@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { useThemeCustomization } from '@/hooks/use-theme';
 import { AuthView, type AuthMode } from '@/components/AuthView';
 import { supabase } from '@/lib/supabase';
+import { trackEvent } from '@/lib/analytics';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -16,6 +17,8 @@ import {
   Router as WouterRouter,
 } from 'wouter';
 
+const StatsPage = lazy(() => import('@/pages/stats'));
+
 const queryClient = new QueryClient();
 
 function Router() {
@@ -23,6 +26,13 @@ function Router() {
     <RoutedErrorBoundary>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/stats">
+          {() => (
+            <Suspense fallback={<div className="min-h-screen bg-background" />}>
+              <StatsPage />
+            </Suspense>
+          )}
+        </Route>
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>
@@ -49,7 +59,10 @@ function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(() => isRecoveryUrl());
 
   useEffect(() => {
+    trackEvent('page_view', undefined, { onceKey: 'initial-page-view' });
+
     const handler = () => {
+      trackEvent('auth_open');
       setAuthMode('login');
       setIsAuthOpen(true);
     };

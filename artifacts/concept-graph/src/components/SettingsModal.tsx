@@ -13,6 +13,7 @@ import { CreditCard, Key, Loader2, Paintbrush, RotateCcw } from 'lucide-react';
 import { useThemeCustomization, type ThemeColors } from '@/hooks/use-theme';
 import { useBilling } from '@/hooks/use-billing';
 import { contrastRatio, getCssVariableHex } from '@/lib/colors';
+import { trackEvent } from '@/lib/analytics';
 
 export type SettingsTab = 'plan' | 'api' | 'appearance';
 
@@ -53,13 +54,14 @@ export function SettingsModal() {
       // Opened by an event rather than a Radix trigger, so remember where focus should return
       returnFocusRef.current = document.activeElement as HTMLElement | null;
       const detail = (e as CustomEvent).detail;
-      if (e.type === 'open-api-key-modal') {
-        setActiveTab('api');
-      } else if (detail?.tab) {
-        setActiveTab(detail.tab);
-      } else {
-        setActiveTab('plan');
-      }
+      const resolvedTab =
+        e.type === 'open-api-key-modal'
+          ? 'api'
+          : detail?.tab
+            ? detail.tab
+            : 'plan';
+      setActiveTab(resolvedTab);
+      trackEvent('settings_open', { tab: String(resolvedTab) });
       setLimitNotice(typeof detail?.notice === 'string' ? detail.notice : null);
       refreshBilling();
       // Read the theme's own values, ignoring any custom overrides, so the pickers start from them
@@ -101,6 +103,11 @@ export function SettingsModal() {
     if (anthropicKey.trim()) window.localStorage.setItem('study-notebook-anthropic-key', anthropicKey.trim());
     else window.localStorage.removeItem('study-notebook-anthropic-key');
 
+    trackEvent('api_key_saved', {
+      gemini: Boolean(geminiKey.trim()),
+      openai: Boolean(openaiKey.trim()),
+      anthropic: Boolean(anthropicKey.trim()),
+    });
     setOpen(false);
     window.dispatchEvent(new Event('api-keys-updated'));
   };
@@ -296,7 +303,10 @@ export function SettingsModal() {
                 <div className="space-y-2">
                   {billing.plan === 'free' ? (
                     <Button
-                      onClick={startCheckout}
+                      onClick={() => {
+                        trackEvent('checkout_click');
+                        void startCheckout();
+                      }}
                       disabled={actionLoading}
                       className="w-full gap-2"
                       data-testid="upgrade-to-pro-button"

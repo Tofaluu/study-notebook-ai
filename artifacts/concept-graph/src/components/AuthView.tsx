@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { migrateLocalToCloud, clearLocalChats } from '@/lib/db';
+import { trackEvent } from '@/lib/analytics';
 import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,7 @@ export function AuthView({ initialMode = 'login', onClose }: AuthViewProps) {
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        trackEvent('auth_signin');
         await clearLocalChats();
         window.location.reload();
       } else if (mode === 'signup') {
@@ -62,6 +64,7 @@ export function AuthView({ initialMode = 'login', onClose }: AuthViewProps) {
           }
         });
         if (error) throw error;
+        trackEvent('auth_signup', { confirmed: Boolean(data.session) });
         if (data.session) {
           if (data.user) await migrateLocalToCloud(data.user.id);
           window.location.reload();
