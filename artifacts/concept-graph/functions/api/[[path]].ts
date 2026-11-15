@@ -24,10 +24,27 @@ export const onRequest = async (context: { request: Request; env: Env }): Promis
   const method = context.request.method.toUpperCase();
   const hasBody = method !== "GET" && method !== "HEAD";
 
-  return fetch(targetUrl, {
+  let res = await fetch(targetUrl, {
     method,
     headers,
     body: hasBody ? context.request.body : undefined,
     redirect: "manual",
   });
+
+  // Render Free can briefly return a 502/503 HTML page while spinning up from sleep;
+  // convert HTML gateway errors into clean JSON so the UI never displays raw HTML.
+  const contentType = res.headers.get("content-type") || "";
+  if ((res.status === 502 || res.status === 503 || res.status === 504) && contentType.includes("text/html")) {
+    return new Response(
+      JSON.stringify({
+        error: "The study server is waking up from sleep. Wait a few seconds and click Try again.",
+      }),
+      {
+        status: res.status,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  return res;
 };

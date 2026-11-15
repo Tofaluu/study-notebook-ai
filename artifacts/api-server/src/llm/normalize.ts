@@ -107,11 +107,13 @@ export function getErrorMessage(error: unknown): string {
   if (
     msg.includes("API_KEY_INVALID") ||
     msg.includes("API key not valid") ||
+    msg.includes("invalid_api_key") ||
+    msg.includes("authentication_error") ||
     msg.includes("PERMISSION_DENIED") ||
     msg.includes("401") ||
     msg.includes("403")
   ) {
-    return "The provided API key is invalid or unauthorized. Please verify your API key and update it in the API Key Settings.";
+    return "The provided API key is invalid or unauthorized. Please verify your API key and update it in API Key Settings.";
   }
   if (msg.includes("400")) {
     return `Bad Request (400) from AI provider: ${msg}`;

@@ -149,10 +149,16 @@ function truncate(text: string, maxLength = 300): string {
 }
 
 function buildErrorMessage(response: Response, data: unknown): string {
-  const prefix = `HTTP ${response.status} ${response.statusText}`;
+  const prefix = `HTTP ${response.status} ${response.statusText}`.trim();
 
   if (typeof data === "string") {
     const text = data.trim();
+    if (/^<!doctype\s+html|^<html/i.test(text)) {
+      if (response.status === 502 || response.status === 503 || response.status === 504) {
+        return "The study server is waking up from sleep. Wait a few seconds and click Try again.";
+      }
+      return `${prefix}: The server returned an unexpected error page.`;
+    }
     return text ? `${prefix}: ${truncate(text)}` : prefix;
   }
 
