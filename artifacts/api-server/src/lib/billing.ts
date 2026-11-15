@@ -369,6 +369,12 @@ export async function getSubscription(userId: string, email?: string): Promise<U
     if (email && !existing.email) {
       existing.email = email;
       existing.canonicalEmail = normalizeCanonicalEmail(email);
+      if (existing.plan === "free" && existing.canonicalEmail) {
+        const isAliasDuplicate = await hasExistingCanonicalEmail(existing.canonicalEmail, userId);
+        if (isAliasDuplicate) {
+          existing.queriesLimit = 0;
+        }
+      }
     }
     return existing;
   }
@@ -465,18 +471,27 @@ export async function findSubscriptionByStripeCustomer(
   const supabaseConfig = getSupabaseRestConfig();
   if (supabaseConfig) {
     try {
-      const res = await fetch(
-        `${supabaseConfig.url}/rest/v1/user_subscriptions?stripe_customer_id=eq.${encodeURIComponent(stripeCustomerId)}&select=*`,
-        {
-          headers: supabaseConfig.headers,
-        },
-      );
-      if (res.ok) {
-        const rows = (await res.json()) as Array<Record<string, unknown>>;
-        if (rows.length > 0 && typeof rows[0].user_id === "string") {
-          const sub = mapRowToSubscription(rows[0], rows[0].user_id);
-          memorySubscriptions.set(sub.userId, sub);
-          return sub;
+      const filters: string[] = [];
+      if (stripeCustomerId) {
+        filters.push(`stripe_customer_id=eq.${encodeURIComponent(stripeCustomerId)}`);
+      }
+      if (stripeSubscriptionId) {
+        filters.push(`stripe_subscription_id=eq.${encodeURIComponent(stripeSubscriptionId)}`);
+      }
+      for (const filter of filters) {
+        const res = await fetch(
+          `${supabaseConfig.url}/rest/v1/user_subscriptions?${filter}&select=*`,
+          {
+            headers: supabaseConfig.headers,
+          },
+        );
+        if (res.ok) {
+          const rows = (await res.json()) as Array<Record<string, unknown>>;
+          if (rows.length > 0 && typeof rows[0].user_id === "string") {
+            const sub = mapRowToSubscription(rows[0], rows[0].user_id);
+            memorySubscriptions.set(sub.userId, sub);
+            return sub;
+          }
         }
       }
     } catch {
