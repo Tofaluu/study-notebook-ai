@@ -230,11 +230,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
           {chat.history.length === 0 ? (
             <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col justify-center">
               <Reveal once={`welcome:${chat.id}`}>
-                <div className="space-y-2 mb-6">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    Study Session Guide
-                  </div>
+                <div className="space-y-3 mb-6">
                   <h2 className="font-serif text-3xl md:text-4xl font-semibold tracking-[-0.015em] text-foreground">
                     {chat.title === 'New Session' ? 'Begin your session.' : chat.title}
                   </h2>
@@ -245,18 +241,12 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
 
                 <div className="mb-8 grid gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-border/60 bg-card/60 p-4 transition-colors hover:border-border hover:bg-card">
-                    <div className="mb-2 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 font-mono text-xs font-semibold text-primary">
-                      01
-                    </div>
                     <h3 className="text-sm font-semibold text-foreground mb-1">Click underlined terms</h3>
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       Opens a dedicated page explaining the concept simply, with prerequisites it builds upon.
                     </p>
                   </div>
                   <div className="rounded-xl border border-border/60 bg-card/60 p-4 transition-colors hover:border-border hover:bg-card">
-                    <div className="mb-2 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 font-mono text-xs font-semibold text-primary">
-                      02
-                    </div>
                     <h3 className="text-sm font-semibold text-foreground mb-1">Highlight &amp; ask follow-up</h3>
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       Select any text passage and click it to ask a targeted question about that specific section.
@@ -350,7 +340,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
                           Response was stopped.
                         </div>
                       ) : (
-                        <article data-answer-id={item.id} className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
+                        <article data-answer-id={item.id} className="rounded-2xl border border-border/60 bg-card px-5 py-6 md:px-12 md:py-10">
                           {/* The card is there at once and its text comes in, once per page load. A new answer and the
                               demo, which opens at the top, write themselves in; a saved notebook opens at its latest
                               answer, so its text fades in instead. */}

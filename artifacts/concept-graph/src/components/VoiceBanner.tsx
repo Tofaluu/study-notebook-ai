@@ -29,10 +29,7 @@ export function VoiceBanner({ live, onDone }: VoiceBannerProps) {
       className="flex items-center justify-between gap-3 rounded-xl bg-popover px-4 py-2.5 text-sm text-popover-foreground shadow-[0_8px_30px_rgb(0,0,0,0.12)] animate-in fade-in slide-in-from-bottom-1 duration-150 dark:border dark:border-border dark:shadow-none"
     >
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-        </span>
+        <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />
         <span className="shrink-0 font-medium">{busy ? 'Transcribing' : 'Listening'}</span>
         <span className="min-w-0 truncate text-muted-foreground">
           {busy ? 'Turning your voice into text' : transcript || (hold ? 'Speak, then let go to send' : 'Say a question, or "open a new tab for…"')}

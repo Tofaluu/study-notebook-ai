@@ -204,8 +204,8 @@ export default function StatsPage() {
       <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 md:px-8">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Private Dashboard · {user.email}
+            <p className="text-xs font-medium text-muted-foreground">
+              Private dashboard · {user.email}
             </p>
             <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight">Study Notebook Stats</h1>
           </div>
@@ -217,7 +217,7 @@ export default function StatsPage() {
                   key={option}
                   type="button"
                   onClick={() => setDays(option)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.97] ${
                     days === option
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground'
@@ -235,7 +235,7 @@ export default function StatsPage() {
 
             <a
               href={import.meta.env.BASE_URL}
-              className="inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium text-muted-foreground transition-[color,background-color,transform] duration-150 ease-out hover:bg-accent hover:text-foreground active:scale-[0.97]"
             >
               Open App
             </a>
@@ -428,7 +428,7 @@ export default function StatsPage() {
                       {data.users.map((account) => (
                         <tr key={account.userId}>
                           <td className="py-2.5 pr-4 font-medium text-foreground">
-                            {account.email || <span className="font-mono text-muted-foreground">{account.userId.slice(0, 8)}</span>}
+                            {account.email || <span className="text-muted-foreground">{account.userId.slice(0, 8)}</span>}
                           </td>
                           <td className="py-2.5 pr-4">
                             <span
@@ -480,7 +480,7 @@ export default function StatsPage() {
                             {formatRelativeTime(ev.createdAt)}
                           </td>
                           <td className="py-2 pr-4">
-                            <span className="inline-flex rounded bg-muted px-2 py-0.5 font-mono text-xs text-foreground">
+                            <span className="inline-flex rounded bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
                               {ev.eventName}
                             </span>
                           </td>

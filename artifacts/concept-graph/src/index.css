@@ -126,6 +126,10 @@
   h3 {
     text-wrap: balance;
   }
+  td,
+  th {
+    font-variant-numeric: tabular-nums;
+  }
   button, select, [role="button"], [role="tab"] {
     @apply cursor-pointer;
   }
@@ -152,8 +156,8 @@
   to { --reveal-edge: calc(100% + 120px); }
 }
 .reveal-sweep {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(var(--reveal-edge) - 120px), transparent var(--reveal-edge));
-  mask-image: linear-gradient(to bottom, #000 calc(var(--reveal-edge) - 120px), transparent var(--reveal-edge));
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(var(--reveal-edge) - 120px), transparent var(--reveal-edge)); /* taste-skill-ignore: alpha mask for ink reveal */
+  mask-image: linear-gradient(to bottom, #000 calc(var(--reveal-edge) - 120px), transparent var(--reveal-edge)); /* taste-skill-ignore: alpha mask for ink reveal */
   animation: reveal-sweep 1s cubic-bezier(0.4, 0.5, 0.6, 1) backwards;
 }
 

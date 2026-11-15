@@ -1401,7 +1401,7 @@ export function NotebookReaderView({
 
             {conceptTabs.length > 0 && (
               <div className="pt-2 border-t border-border/50">
-                <p className="mb-1 px-1.5 text-[11px] font-medium text-muted-foreground">
+                <p className="mb-1 px-1.5 text-xs font-medium text-muted-foreground">
                   Concepts
                 </p>
                 <ul className="space-y-0.5">
@@ -1605,7 +1605,7 @@ export function NotebookReaderView({
               <div key={ch.id} className="space-y-5">
                 <article
                   id={sectionId}
-                  className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 shadow-sm transition-colors duration-300 md:px-12 md:py-10 ${
+                  className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 transition-colors duration-200 ease-out md:px-12 md:py-10 ${
                     isHighlighted ? 'border-primary' : 'border-border/60'
                   }`}
                 >
@@ -1676,7 +1676,7 @@ export function NotebookReaderView({
                         <aside
                           key={fu.id}
                           id={fuSectionId}
-                          className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 shadow-sm transition-colors duration-300 md:px-10 md:py-8 ${
+                          className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 transition-colors duration-200 ease-out md:px-10 md:py-8 ${
                             isFuHighlighted ? 'border-primary' : 'border-border/60'
                           }`}
                         >
@@ -1755,7 +1755,7 @@ export function NotebookReaderView({
                   <div key={ct.id} className="space-y-4">
                     <article
                       id={sectionId}
-                      className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 shadow-sm transition-colors duration-300 md:px-12 md:py-10 ${
+                      className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 transition-colors duration-200 ease-out md:px-12 md:py-10 ${
                         isHighlighted ? 'border-primary' : 'border-border/60'
                       }`}
                     >
@@ -1896,7 +1896,7 @@ export function NotebookReaderView({
                             <aside
                               key={fu.id}
                               id={fuSectionId}
-                              className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 shadow-sm transition-colors duration-300 md:px-10 md:py-8 ${
+                              className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 transition-colors duration-200 ease-out md:px-10 md:py-8 ${
                                 isFuHighlighted ? 'border-primary' : 'border-border/60'
                               }`}
                             >
@@ -1968,7 +1968,7 @@ export function NotebookReaderView({
                   <article
                     key={fu.id}
                     id={fuSectionId}
-                    className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 shadow-sm transition-colors duration-300 md:px-10 md:py-8 ${
+                    className={`scroll-mt-6 rounded-2xl border bg-card px-5 py-6 transition-colors duration-200 ease-out md:px-10 md:py-8 ${
                       isFuHighlighted ? 'border-primary' : 'border-border/60'
                     }`}
                   >
@@ -2007,7 +2007,7 @@ export function NotebookReaderView({
             <section
               id="notebook-glossary"
               aria-label="Glossary"
-              className="scroll-mt-6 rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10"
+              className="scroll-mt-6 rounded-2xl border border-border/60 bg-card px-5 py-6 md:px-12 md:py-10"
             >
               <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-2xl font-semibold tracking-[-0.01em] text-foreground">
                 Glossary
@@ -2063,7 +2063,7 @@ export function NotebookReaderView({
             <section
               id="notebook-sources"
               aria-label="Sources Cited"
-              className="scroll-mt-6 rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10"
+              className="scroll-mt-6 rounded-2xl border border-border/60 bg-card px-5 py-6 md:px-12 md:py-10"
             >
               <h2 className="mb-6 border-b border-border/50 pb-4 font-serif text-2xl font-semibold tracking-[-0.01em] text-foreground">
                 Sources Cited

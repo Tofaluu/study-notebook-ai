@@ -185,7 +185,7 @@ export function SettingsModal() {
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {billing.plan === 'free'
-                      ? 'Upgrade to Pro for $8/month to unlock all Google, OpenAI, and Claude models, or add a personal API key for unlimited use.'
+                      ? 'Upgrade to Pro for $8/month to use all Google, OpenAI, and Claude models, or add a personal API key for unlimited use.'
                       : 'Add a personal API key in the API keys tab to continue with unlimited usage.'}
                   </p>
                 </div>

@@ -48,7 +48,7 @@ export const FollowUpView = React.memo(function FollowUpView({ tab, sources, mod
     return (
       <div id={`scroll-${tab.id}`} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 bg-background">
         <div className="max-w-[46rem] mx-auto space-y-6 pb-20">
-          <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-12 md:py-10">
+          <article className="rounded-2xl border border-border/60 bg-card px-5 py-6 md:px-12 md:py-10">
             <Reveal once={tab.id}>
             <SelectableAnswer
               title={tab.explanation.title}
