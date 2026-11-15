@@ -69,6 +69,7 @@ export function ModelPicker({ value, onChange }: ModelPickerProps) {
   const isModelUnlocked = (providerKey: 'gemini' | 'openai' | 'anthropic', modelValue: StudyModel): boolean => {
     if (keys[providerKey]) return true;
     if (!hasServerAccess) return false;
+    if (!billing.serverKeysConfigured[providerKey]) return false;
     if (billing.plan === 'pro') return true;
     return billing.freeEligibleModels.includes(modelValue);
   };

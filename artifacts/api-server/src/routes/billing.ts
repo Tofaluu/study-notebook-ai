@@ -15,6 +15,37 @@ import {
 
 const router: IRouter = Router();
 
+function resolveSafeReturnOrigin(req: Request): string {
+  const allowedOrigins = new Set<string>(["http://localhost:5173", "http://127.0.0.1:5173"]);
+  if (typeof req.headers.origin === "string" && req.headers.origin.trim()) {
+    allowedOrigins.add(req.headers.origin.trim().replace(/\/+$/, ""));
+  }
+  const appUrl = process.env.APP_URL?.trim();
+  if (appUrl) {
+    try {
+      allowedOrigins.add(new URL(appUrl).origin);
+    } catch {
+      // Ignore malformed APP_URL
+    }
+  }
+
+  const candidate = typeof req.body?.returnUrl === "string" ? req.body.returnUrl.trim() : "";
+  if (candidate) {
+    try {
+      const parsed = new URL(candidate);
+      if ((parsed.protocol === "http:" || parsed.protocol === "https:") && allowedOrigins.has(parsed.origin)) {
+        return parsed.origin;
+      }
+    } catch {
+      // Fall back to request origin below
+    }
+  }
+
+  return typeof req.headers.origin === "string" && req.headers.origin.trim()
+    ? req.headers.origin.trim().replace(/\/+$/, "")
+    : "http://localhost:5173";
+}
+
 router.get("/billing/status", async (req, res) => {
   const status = await getBillingStatus(req);
   res.json(status);
@@ -27,10 +58,7 @@ router.post("/billing/checkout", async (req, res) => {
     return;
   }
 
-  const origin =
-    (typeof req.body?.returnUrl === "string" && req.body.returnUrl.trim()) ||
-    req.headers.origin ||
-    "http://localhost:5173";
+  const origin = resolveSafeReturnOrigin(req);
 
   if (isStripeConfigured()) {
     const secretKey = process.env.STRIPE_SECRET_KEY!.trim();
@@ -150,7 +178,7 @@ router.post("/billing/verify-session", async (req, res) => {
     return;
   }
 
-  if (session.payment_status === "paid" || session.status === "complete") {
+  if (session.payment_status === "paid" || session.payment_status === "no_payment_required") {
     const updated = await updateSubscription(user.id, {
       email: user.email,
       plan: "pro",
@@ -177,10 +205,7 @@ router.post("/billing/portal", async (req, res) => {
   }
 
   const sub = await getSubscription(user.id, user.email);
-  const origin =
-    (typeof req.body?.returnUrl === "string" && req.body.returnUrl.trim()) ||
-    req.headers.origin ||
-    "http://localhost:5173";
+  const origin = resolveSafeReturnOrigin(req);
 
   const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
   if (secretKey && sub.stripeCustomerId && !sub.stripeCustomerId.startsWith("cus_demo_")) {
