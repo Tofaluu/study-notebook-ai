@@ -1,0 +1,10 @@
+name = "study-notebook-keepalive"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+HEALTHZ_URL = "https://study-notebook-api.onrender.com/api/healthz"
