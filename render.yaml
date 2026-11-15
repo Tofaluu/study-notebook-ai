@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: study-notebook-api
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build
+    startCommand: pnpm --filter @workspace/api-server run start
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_URL
+        value: https://study.thomasliu.dev
+      - key: SUPABASE_URL
+        value: https://ckcfpakuckshuljhdlbj.supabase.co
+      - key: STRIPE_PRO_PRICE_ID
+        value: price_1UbsnCFGV1cPLxFGuHTZb1bs
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
