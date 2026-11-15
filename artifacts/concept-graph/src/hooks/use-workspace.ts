@@ -71,7 +71,7 @@ export function useWorkspace() {
     }));
   }, [updateState]);
 
-  const activeChat = state?.chats.find(c => c.id === state.activeChatId) || null;
+  const activeChat = state?.chats.find(c => c.id === state.activeChatId) || state?.chats[0] || null;
 
   const updateChat = useCallback((chatId: string, updater: (chat: Chat) => Chat) => {
     updateState(prev => {

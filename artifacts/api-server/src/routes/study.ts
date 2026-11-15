@@ -29,7 +29,7 @@ function getApiKey(req: Request, provider: ProviderAdapter): string | undefined 
 }
 
 function missingKeyMessage(provider: ProviderAdapter, action: string): string {
-  return `Your ${provider.displayName} API key is not configured. Please add it in API Key Settings to ${action}.`;
+  return `Your ${provider.displayName} API key is not configured. Sign in via Plan & Usage for 15 free questions on Gemini Flash, or add your own key in API Key Settings to ${action}.`;
 }
 
 function buildAccessDeniedExplanation(

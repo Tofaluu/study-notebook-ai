@@ -145,7 +145,7 @@ export async function loadAppState(): Promise<AppState> {
       chats = dbChats.map(row => row.data as Chat);
       chats.forEach(c => chatCache.set(c.id, JSON.stringify(c)));
 
-      if (activeChatId && !chats.find(c => c.id === activeChatId)) {
+      if (!activeChatId || !chats.find(c => c.id === activeChatId)) {
         activeChatId = chats[0].id;
       }
     } else {
@@ -155,7 +155,7 @@ export async function loadAppState(): Promise<AppState> {
       await setAppState({ chats, activeChatId });
     }
     
-    return { chats, activeChatId: activeChatId || null };
+    return { chats, activeChatId: activeChatId || chats[0]?.id || null };
   } catch (e) {
     console.error('Failed to load from DB:', e);
     return { chats: [], activeChatId: null };
