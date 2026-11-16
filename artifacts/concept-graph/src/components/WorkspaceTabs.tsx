@@ -165,7 +165,7 @@ export function WorkspaceTabs({ tabs, activeTabId, onSwitch, onClose, onReorderT
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-[transform,background-color,color] duration-150 ease-out hover:bg-muted hover:text-foreground active:scale-90"
         aria-label="Toggle Sidebar"
       >
-        <PanelLeft className="h-4 w-4" />
+        <PanelLeft className="h-4 w-4" strokeWidth={1.75} />
       </button>
       <div role="tablist" aria-label="Open pages" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto scrollbar-none">
         {visibleTabs.map((tab, index) => {
@@ -251,7 +251,7 @@ export function WorkspaceTabs({ tabs, activeTabId, onSwitch, onClose, onReorderT
                     }}
                     className="flex min-w-0 flex-1 items-center gap-2 rounded-sm py-1.5 text-left transition-transform duration-150 ease-out focus-visible:outline-none active:scale-[0.98]"
                   >
-                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} aria-hidden="true" />
+                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} strokeWidth={1.75} aria-hidden="true" />
                     <span
                       className={`min-w-0 flex-1 truncate whitespace-nowrap text-sm ${!isChild && !isChatTab ? 'font-medium' : ''}`}
                       style={tab.customWidth === undefined || tab.customWidth === 0 ? { maxWidth: '140px' } : {}}
@@ -306,7 +306,7 @@ export function WorkspaceTabs({ tabs, activeTabId, onSwitch, onClose, onReorderT
               : 'border-border bg-card text-foreground hover:border-primary/40 hover:bg-primary/5'
           }`}
         >
-          <BookOpen className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <BookOpen className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
           <span className="max-sm:hidden">Read Notebook</span>
         </button>
       )}

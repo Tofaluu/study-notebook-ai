@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-  --color-border: hsl(var(--border));
+  --color-border: var(--border);
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
@@ -71,7 +71,7 @@
   --destructive: 0 68% 45%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 40 8% 86%;
+  --border: rgb(0 0 0 / 0.12);
   --input: 40 8% 82%;
   --ring: var(--primary);
 
@@ -107,7 +107,7 @@
   --destructive: 0 75% 66%;
   --destructive-foreground: 220 6% 9%;
 
-  --border: 220 5% 20%;
+  --border: rgb(255 255 255 / 0.12);
   --input: 220 5% 25%;
   --ring: var(--primary);
 }

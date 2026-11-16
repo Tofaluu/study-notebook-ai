@@ -47,7 +47,20 @@ export function ThemeToggle() {
         aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
-        {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        <span className="relative flex h-4 w-4 items-center justify-center" aria-hidden="true">
+          <Sun
+            className={`absolute h-4 w-4 transition-[opacity,transform,filter] duration-200 ease-out motion-reduce:transition-none ${
+              isDark ? 'scale-100 opacity-100 blur-0' : 'scale-75 opacity-0 blur-[4px]'
+            }`}
+            strokeWidth={1.75}
+          />
+          <Moon
+            className={`absolute h-4 w-4 transition-[opacity,transform,filter] duration-200 ease-out motion-reduce:transition-none ${
+              isDark ? 'scale-75 opacity-0 blur-[4px]' : 'scale-100 opacity-100 blur-0'
+            }`}
+            strokeWidth={1.75}
+          />
+        </span>
       </button>
 
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>

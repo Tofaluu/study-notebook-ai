@@ -69,7 +69,7 @@ function SectionMenu({ label, items, buttonRef }: {
         title={label}
         className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-[transform,background-color,color] duration-150 ease-out hover:bg-foreground/5 hover:text-foreground active:scale-90"
       >
-        <MoreHorizontal className="h-4 w-4" />
+        <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
       </button>
       {open && (
         <div ref={menuRef} role="menu" aria-label={label} className="absolute right-0 top-9 z-20 min-w-40 rounded-lg border border-border bg-popover p-1 shadow-md animate-in fade-in zoom-in-95 duration-100 ease-out">
@@ -243,7 +243,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                 </>
               ) : null}
               <button onClick={onCreateChat} className="flex h-8 w-8 items-center justify-center rounded-md text-foreground transition-[transform,background-color] duration-150 ease-out hover:bg-foreground/5 active:scale-90" aria-label="New Notebook" title="New notebook">
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4" strokeWidth={1.75} />
               </button>
             </div>
           </div>
@@ -369,7 +369,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
               }`}
             >
               <div className="flex flex-col items-center justify-center pt-4 pb-4">
-                {isUploading ? <Loader2 className="w-6 h-6 text-muted-foreground animate-spin mb-2" /> : <UploadCloud className="w-6 h-6 text-muted-foreground group-hover:text-foreground mb-2 transition-colors" />}
+                {isUploading ? <Loader2 className="w-6 h-6 text-muted-foreground animate-spin mb-2" strokeWidth={1.75} /> : <UploadCloud className="w-6 h-6 text-muted-foreground group-hover:text-foreground mb-2 transition-colors" strokeWidth={1.75} />}
                 <p className="px-2 text-center text-sm font-medium text-foreground">
                   {isUploading ? 'Reading files…' : isDraggingFiles ? 'Drop to add' : 'Add PDFs or images'}
                 </p>
@@ -385,7 +385,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
                   key={s.id}
                   className="group relative flex items-start gap-3 rounded-xl border border-border bg-card p-3"
                 >
-                  {s.type === 'image' && s.base64Data ? <div className="w-8 h-8 rounded shrink-0 overflow-hidden bg-muted flex items-center justify-center"><img src={s.base64Data} alt={s.name} className="w-full h-full object-cover" /></div> : <FileText className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />}
+                  {s.type === 'image' && s.base64Data ? <div className="w-8 h-8 rounded shrink-0 overflow-hidden bg-muted flex items-center justify-center"><img src={s.base64Data} alt={s.name} className="w-full h-full object-cover" /></div> : <FileText className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" strokeWidth={1.75} />}
                   <div className="flex-1 min-w-0 pr-8">
                     <p className="text-sm font-medium text-foreground truncate" title={s.name}>{s.name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{s.type === 'image' ? 'Image' : s.pageCount + ' pages'}</p>
@@ -445,7 +445,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
             title="Sign in or sign up for 15 free questions"
             className="inline-flex h-8 flex-1 items-center justify-center gap-2 rounded-lg border border-border/70 bg-card/80 px-3 text-xs font-medium text-foreground transition-[transform,background-color,border-color] duration-150 ease-out hover:border-border hover:bg-card active:scale-[0.97]"
           >
-            <User className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <User className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} aria-hidden="true" />
             <span>Sign in</span>
           </button>
         )}
@@ -464,7 +464,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
               aria-label="Sign out"
               title="Sign out"
             >
-              <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
             </button>
           )}
           <button
@@ -473,7 +473,7 @@ export function Sidebar({ isOpen, chats, activeChatId, activeChat, onCreateChat,
             aria-label="Settings"
             title="Settings"
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-4 h-4" strokeWidth={1.75} />
           </button>
         </div>
       </div>

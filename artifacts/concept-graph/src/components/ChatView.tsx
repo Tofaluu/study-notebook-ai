@@ -424,7 +424,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
               aria-label={isListening ? "Stop voice listening" : "Start voice listening"}
               title={isListening ? "Listening... (click to stop)" : "Voice input: hold to talk, or tap and speak (hold Ctrl+Space from the keyboard)"}
               // Held presses must not open the long-press menu or select text on touch screens
-              className={`h-[52px] w-[52px] shrink-0 touch-manipulation select-none rounded-xl transition-[transform,background-color,color] duration-150 ease-out active:scale-[0.97] [-webkit-touch-callout:none] ${
+              className={`h-[52px] w-[52px] shrink-0 touch-manipulation select-none rounded-lg transition-[transform,background-color,color] duration-150 ease-out active:scale-[0.97] [-webkit-touch-callout:none] ${
                 isListening
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -436,16 +436,16 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
               // Keyboard and touch press the button by tap
               onClick={voice?.micClick}
             >
-              <Mic className="h-5 w-5" aria-hidden="true" />
+              <Mic className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
             </Button>
           )}
           {explainMutation.isPending ? (
-            <Button size="icon" variant="outline" aria-label="Stop generating (Escape)" title="Stop (Esc)" className="h-[52px] w-[52px] shrink-0 rounded-xl border-border/80 bg-background" onClick={handleCancel}>
+            <Button size="icon" variant="outline" aria-label="Stop generating (Escape)" title="Stop (Esc)" className="h-[52px] w-[52px] shrink-0 rounded-lg border-border/80 bg-background" onClick={handleCancel}>
               <Square className="h-4 w-4 fill-current" aria-hidden="true" />
             </Button>
           ) : (
-            <Button size="icon" aria-label="Send" className="h-[52px] w-[52px] shrink-0 rounded-xl" disabled={!prompt.trim() && chat.sources.length === 0} onClick={handleSubmit}>
-              <Send className="ml-0.5 h-5 w-5" aria-hidden="true" />
+            <Button size="icon" aria-label="Send" className="h-[52px] w-[52px] shrink-0 rounded-lg" disabled={!prompt.trim() && chat.sources.length === 0} onClick={handleSubmit}>
+              <Send className="ml-0.5 h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
             </Button>
           )}
         </div>
@@ -454,7 +454,7 @@ export const ChatView = React.memo(function ChatView({ chat, model, onModelChang
           <span className="hidden min-w-0 flex-1 truncate md:block">Highlight any part of an answer to ask a follow-up about that passage.</span>
           {isVoiceSupported && (
             <span className="hidden shrink-0 items-center gap-1.5 lg:inline-flex">
-              <Mic className="h-3.5 w-3.5" aria-hidden="true" /> Hold Ctrl+Space to talk
+              <Mic className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" /> Hold Ctrl+Space to talk
             </span>
           )}
         </div>
