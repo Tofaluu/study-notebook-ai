@@ -64,10 +64,13 @@ export async function transcribeAudio(
   }
 
   const response = await fetchImpl(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: GEMINI_PROMPT }, { inlineData: { mimeType: baseMime, data } }] }],
         generationConfig: { temperature: 0 },

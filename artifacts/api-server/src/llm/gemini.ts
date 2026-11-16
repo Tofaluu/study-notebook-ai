@@ -24,8 +24,11 @@ export const gemini: ProviderAdapter = {
     }
 
     return {
-      url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      headers: { "Content-Type": "application/json" },
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
       body: {
         contents: [{ role: "user", parts }],
         generationConfig: {

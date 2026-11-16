@@ -102,8 +102,16 @@ export function imagesFromSources(sources: LectureSource[]): ImageInput[] {
     }));
 }
 
+function redactSecrets(text: string): string {
+  return text
+    .replace(/([?&]key=)[^&\s"']+/gi, "$1[redacted]")
+    .replace(/\bAIza[0-9A-Za-z_-]{16,}\b/g, "[redacted]")
+    .replace(/\bsk-(?:ant-|proj-)?[0-9A-Za-z_-]{16,}\b/g, "[redacted]")
+    .replace(/(Bearer\s+)[A-Za-z0-9._-]+/gi, "$1[redacted]");
+}
+
 export function getErrorMessage(error: unknown): string {
-  const msg = error instanceof Error ? error.message : String(error);
+  const msg = redactSecrets(error instanceof Error ? error.message : String(error));
   if (
     msg.includes("API_KEY_INVALID") ||
     msg.includes("API key not valid") ||

@@ -109,6 +109,10 @@ describe("getErrorMessage", () => {
     [new Error("API request failed (429): slow down"), "rate limit exceeded"],
     [new Error("API request failed (400): bad schema"), "Bad Request (400)"],
     ["socket hang up", "communicating with the AI provider: socket hang up"],
+    [
+      new Error("fetch failed https://example.com?key=AIzaSySecretKeyValue1234567890"),
+      "https://example.com?key=[redacted]",
+    ],
   ])("maps %s to a readable message", (error, expected) => {
     expect(getErrorMessage(error)).toContain(expected);
   });

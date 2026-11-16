@@ -89,11 +89,12 @@ describe("anthropic adapter", () => {
 });
 
 describe("gemini adapter", () => {
-  it("URL-encodes the key and removes additionalProperties from the schema", () => {
-    const { url, body } = gemini.buildRequest(request);
+  it("sends the key in the x-goog-api-key header and removes additionalProperties from the schema", () => {
+    const { url, headers, body } = gemini.buildRequest(request);
     expect(url).toBe(
-      "https://generativelanguage.googleapis.com/v1beta/models/test-model:generateContent?key=secret%2Fkey%2B1",
+      "https://generativelanguage.googleapis.com/v1beta/models/test-model:generateContent",
     );
+    expect(headers["x-goog-api-key"]).toBe("secret/key+1");
     const responseSchema = (body as { generationConfig: { responseSchema: unknown } }).generationConfig.responseSchema;
     expect(JSON.stringify(responseSchema)).not.toContain("additionalProperties");
     expect(responseSchema).toMatchObject({ required: ["title"], properties: { nested: { type: "object" } } });

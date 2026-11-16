@@ -154,7 +154,8 @@ describe("POST /api/study/voice/transcribe", () => {
     );
     expect(await response.json()).toEqual({ text: "why is zero point one inexact" });
     const geminiCall = providerFetch.mock.calls.find(([url]) => String(url).includes("generativelanguage"));
-    expect(String(geminiCall?.[0])).toContain("key=key");
+    expect(String(geminiCall?.[0])).not.toContain("key=");
+    expect((geminiCall?.[1]?.headers as Record<string, string>)["x-goog-api-key"]).toBe("key");
     expect(JSON.parse(String(geminiCall?.[1]?.body)).contents[0].parts[1].inlineData).toEqual({ mimeType: "audio/wav", data: audio });
   });
 
